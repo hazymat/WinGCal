@@ -22,6 +22,10 @@ public class GeneralSettings
     public bool AutoUpdate { get; set; } = true;
     public string UpdateChannel { get; set; } = "stable"; // stable | dev
     public bool StartWithWindows { get; set; } = true;
+    public bool ShowTrayIcon { get; set; } = true;
+    public bool StartMinimised { get; set; } // start hidden in the tray (needs the tray icon)
+    public bool CloseToTray { get; set; } // off: Close (X, Alt+F4) quits
+    public bool CloseToTrayTipShown { get; set; }
     public string LastRunVersion { get; set; } = "";
 }
 

@@ -11,6 +11,7 @@ public sealed class DesktopPin : IDisposable
     IntPtr foregroundHook;
     public bool Pinned { get; private set; }
     public bool AllowPlacement { get; set; } // true while WinGCal itself moves the window (monitor setups)
+    public bool HiddenToTray { get; set; } // hidden on purpose (tray): not brought back with the desktop
 
     public DesktopPin(IntPtr handle)
     {
@@ -44,7 +45,7 @@ public sealed class DesktopPin : IDisposable
     // Show desktop on some Windows builds still hides owned windows: when the desktop comes to the front, show the widget again without taking focus
     void OnForegroundChanged(IntPtr hook, uint eventType, IntPtr foreground, int objectId, int childId, uint thread, uint time)
     {
-        if (!Pinned) return;
+        if (!Pinned || HiddenToTray) return;
         var className = new System.Text.StringBuilder(64); GetClassName(foreground, className, className.Capacity);
         if (className.ToString() is not ("WorkerW" or "Progman")) return;
         if (IsIconic(windowHandle) || !IsWindowVisible(windowHandle)) ShowWindow(windowHandle, RestoreNoActivate);
@@ -60,7 +61,7 @@ public sealed class DesktopPin : IDisposable
             var position = Marshal.PtrToStructure<WindowPosition>(lParam);
             position.Flags |= NoMove | NoSize;
             position.InsertAfter = BottomWindow; position.Flags &= ~NoZOrder;
-            if ((position.Flags & HideFlag) != 0) position.Flags &= ~HideFlag; // stays showing
+            if ((position.Flags & HideFlag) != 0 && !HiddenToTray) position.Flags &= ~HideFlag; // stays showing, unless hidden to the tray
             Marshal.StructureToPtr(position, lParam, false);
         }
         if (message == SystemCommand)

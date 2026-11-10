@@ -108,7 +108,7 @@ public partial class MainWindow : Window
                 case "dragWindow": if (!App.Settings.Window.Pinned) { ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); webView.Focus(); } break;
                 case "windowControl":
                     if (App.Settings.Window.Pinned) break;
-                    switch (Text(message, "action")) { case "minimise": WindowState = WindowState.Minimized; break; case "maximise": WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; break; case "close": App.Quit(); break; }
+                    switch (Text(message, "action")) { case "minimise": WindowState = WindowState.Minimized; break; case "maximise": WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; break; case "close": Close(); break; }
                     break;
                 case "theme": darkTheme = message.TryGetProperty("dark", out var darkValue) && darkValue.GetBoolean(); ApplyWindowStyle(); break;
             }
@@ -335,11 +335,17 @@ public partial class MainWindow : Window
     }
     void UpdateFrameMargin() => webView.Margin = App.Settings.Look.Frameless && WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
 
-    // Close quits (Alt+F4, or the close button when unpinned)
+    // Close (Alt+F4, or the close button when unpinned) quits, or hides to the tray when Settings says so
     protected override void OnClosing(CancelEventArgs closingArgs)
     {
         if (App.IsQuitting) return;
         closingArgs.Cancel = true;
-        Dispatcher.BeginInvoke(() => App.Quit());
+        if (!App.Settings.General.CloseToTray || !App.Settings.General.ShowTrayIcon) { Dispatcher.BeginInvoke(() => App.Quit()); return; } // after this Closing: Close() inside it throws
+        SavePlacement(); App.Settings.Save(); HideToTray();
+        if (!App.Settings.General.CloseToTrayTipShown) { App.ShowTip("WinGCal is still running", "Closing the window hides it to the tray. Quit from the tray menu."); App.Settings.General.CloseToTrayTipShown = true; App.Settings.Save(); }
     }
+    // Hidden to the tray: the pin lets this hide through, and the desktop doesn't bring it back
+    public void HideToTray() { if (pin != null) { pin.HiddenToTray = true; pin.AllowPlacement = true; } Hide(); if (pin != null) pin.AllowPlacement = false; }
+    public void ShowFromTray() { if (pin != null) pin.HiddenToTray = false; Show(); if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal; if (App.Settings.Window.Pinned) pin?.SendToBottom(); else Activate(); }
+    public void EnsureHandle() => new WindowInteropHelper(this).EnsureHandle();
 }

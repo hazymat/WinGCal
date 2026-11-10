@@ -32,6 +32,17 @@ To move a pinned widget: unpin, move or resize, pin again. Hovering the title st
 
 Implementation: pinned sets the window's owner to the desktop (`Progman`), adds `WS_EX_TOOLWINDOW`, and keeps it at the bottom of the z-order (`HWND_BOTTOM` on activation). A fallback watches for Show desktop (foreground becomes `WorkerW`/`Progman`) and re-shows the window without activating it if Windows hid it anyway. The window stays top-level so the acrylic glass keeps working.
 
+### Tray
+
+As WinSqueeze. Settings › Window › Start and tray:
+
+- **Show an icon in the system tray** (on by default). Left-click shows or hides the widget. The menu has Show/Hide, Refresh from Google, Pinned to the desktop, Skin, Check for updates, Settings and Quit.
+- **Start hidden in the tray** (off by default; only with the icon).
+- **Close (X) keeps WinGCal running in the tray** (off by default, so Close and Alt+F4 quit; only with the icon). The first time, a tip says where it went.
+- With the icon off, the window is never left hidden. Launching WinGCal again always brings it forward.
+
+Hiding to the tray works when pinned too: the widget hides, and Show desktop doesn't bring it back until it's shown again.
+
 ### Monitor setups
 
 A **monitor setup** is the set of monitors connected, identified the way Windows identifies them: each monitor's EDID manufacturer and product codes plus its device path (from `QueryDisplayConfig` / `DisplayConfigGetDeviceInfo`), sorted, so the same monitors give the same setup whichever order they come up in. The laptop screen alone is one setup; laptop plus the desk monitor is another.

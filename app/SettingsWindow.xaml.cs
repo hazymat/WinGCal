@@ -233,6 +233,12 @@ public partial class SettingsWindow : Window
         pinnedBox.Click += (sender, args) => { Settings.Window.Pinned = pinnedBox.IsChecked == true; Settings.Save(); App.ApplyPinned(); };
         startWithWindowsBox.IsChecked = Settings.General.StartWithWindows; startWithWindowsBox.IsEnabled = !AppPaths.IsPortable;
         startWithWindowsBox.Click += (sender, args) => { Settings.General.StartWithWindows = startWithWindowsBox.IsChecked == true; Settings.Save(); try { StartupRegistration.Apply(Settings.General.StartWithWindows); } catch { } };
+        var general = Settings.General;
+        void ShowTrayChoices() { trayIconBox.IsChecked = general.ShowTrayIcon; startMinimisedBox.IsChecked = general.StartMinimised; closeToTrayBox.IsChecked = general.CloseToTray; startMinimisedBox.IsEnabled = closeToTrayBox.IsEnabled = general.ShowTrayIcon; }
+        ShowTrayChoices();
+        trayIconBox.Click += (sender, args) => { general.ShowTrayIcon = trayIconBox.IsChecked == true; Settings.Save(); App.ApplyTray(); ShowTrayChoices(); };
+        startMinimisedBox.Click += (sender, args) => { general.StartMinimised = startMinimisedBox.IsChecked == true; Settings.Save(); };
+        closeToTrayBox.Click += (sender, args) => { general.CloseToTray = closeToTrayBox.IsChecked == true; Settings.Save(); };
         quitButton.Click += (sender, args) => App.Quit();
     }
     void ForgetSetup_Click(object sender, RoutedEventArgs args) { if (sender is Button { Tag: string key }) App.ForgetSetup(key); }
