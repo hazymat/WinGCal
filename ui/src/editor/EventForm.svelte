@@ -20,11 +20,13 @@
     const startAt = parseWhen(event.start), endAt = parseWhen(event.end), lastDay = event.allDay ? addDays(endAt, -1) : endAt
     return { title: event.title, allDay: event.allDay, startDate: dayKey(startAt), startTime: event.allDay ? '09:00' : clock(startAt), endDate: dayKey(lastDay), endTime: event.allDay ? '10:00' : clock(endAt), location: event.location ?? '', description: notesOf(event.description), calendarKey: event.calendarKey }
   }
-  let draft = $state<Draft>(fromEvent()), original = $state<Draft>(fromEvent()), saving = $state(false), justSaved = $state(false), confirmingDelete = $state(false), wholeSeries = $state(false)
+  let draft = $state<Draft>(fromEvent()), original = $state<Draft>(fromEvent()), saving = $state(false), confirmingDelete = $state(false), wholeSeries = $state(false)
   const dirty = $derived(JSON.stringify(draft) !== JSON.stringify(original))
   // The event changed elsewhere (sync, another window): follow it unless this one has unsaved edits
   $effect(() => { const fresh = fromEvent(); if (JSON.stringify(fresh) !== JSON.stringify(original) && !dirty) { draft = fresh; original = fromEvent() } })
-  $effect(() => { if (savedAt) { saving = false; original = JSON.parse(JSON.stringify(draft)); justSaved = true; setTimeout(() => justSaved = false, 1600) } })
+  // Save closes the window once Google has the change; Cancel (or Esc) closes it without saving
+  $effect(() => { if (savedAt) { saving = false; original = JSON.parse(JSON.stringify(draft)); closeWindow() } })
+  const closeWindow = () => sendToShell({ type: 'windowControl', action: 'close' })
   $effect(() => { if (problem) saving = false })
   function withOffset(dateText: string, timeText: string) {
     const local = new Date(`${dateText}T${timeText}:00`), minutes = -local.getTimezoneOffset(), sign = minutes >= 0 ? '+' : '-'
@@ -87,7 +89,7 @@
       {#if event && !readOnly}<button class="ghost icon" onclick={() => confirmingDelete = true} title="Delete"><Icon name="trash" size={16} /></button>{/if}
       {#if event?.link}<a class="more" href={event.link} target="_blank" rel="noreferrer" title="Guests, reminders and the rest">Open in Google</a>{/if}
       <span class="grow"></span>
-      {#if justSaved}<span class="saved"><Icon name="check" size={14} />Saved</span>{/if}
+      <button class="ghost" onclick={closeWindow}>{readOnly ? 'Close' : 'Cancel'}</button>
       {#if !readOnly}<button class="primary" disabled={!!draftProblem || saving || (!!event && !dirty)} onclick={save}>{saving ? 'Saving…' : event ? 'Save' : 'Add event'}</button>{/if}
     </div>
   {/if}
@@ -125,7 +127,6 @@
   .ghost { background: var(--hover); color: var(--fg); }
   .ghost.icon { display: grid; place-items: center; width: 34px; padding: 0; color: var(--fg-quiet); }
   .danger { background: #d9453a; color: white; }
-  .saved { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fg-quiet); }
   .confirm { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, #d9453a 12%, transparent); font-size: 13px; }
   .confirm label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .confirm .buttons { justify-content: flex-end; }
