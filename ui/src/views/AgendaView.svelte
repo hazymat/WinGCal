@@ -23,7 +23,7 @@
         <div class="items">
           {#if list.length === 0}<div class="empty">{sameDay(day, today) ? 'Nothing on today' : 'Nothing on ' + shortDate(day)}</div>{/if}
           {#each list as event (event.id)}
-            <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
+            <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
               <span class="bar"></span>
               <span class="time">{event.allDay ? allDayLabel(event, day) : formatTime(event.startAt) + ' – ' + formatTime(event.endAt)}</span>
               <span class="title">{event.title}</span>

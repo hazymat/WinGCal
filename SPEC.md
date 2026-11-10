@@ -82,6 +82,8 @@ The layout follows the window's size (CSS breakpoints in device-independent pixe
 
 Clicking an event opens a glass detail card: title, time, calendar, location (opens Maps), video link, description (HTML shown safely), attendees, reminders. Edit and Delete in the card. Editing happens in the card itself (never the browser): the pencil, or a click on the title, time or notes, turns it into a form (title, all day, start and end date and time, place, notes; moving the start keeps the length). Save sends only what changed; Esc or Cancel leaves it. A repeating event's edit changes that occurrence only for now. "More in Google Calendar" opens the event there for guests, reminders and the rest. Double-click an empty slot (or the + button) creates an event; drag in Week to set its time.
 
+Ctrl+click or Shift+click picks several events. A floating rounded bar near the bottom (over the calendar, never pushing it up) shows "N events selected" with Copy (titles and times as text), Delete (one confirmation listing them; repeats delete only those occurrences) and ×. Esc or a plain click clears the pick.
+
 Week starts on the Windows setting (Monday in the UK). Times follow Windows' 12/24-hour setting.
 
 ### Calendar switcher (quick)

@@ -15,6 +15,7 @@
   import TasksPanel from './parts/TasksPanel.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
   import SkinPicker from './parts/SkinPicker.svelte'
+  import SelectionBar from './parts/SelectionBar.svelte'
 
   // ---- From the shell ----
   onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
@@ -43,6 +44,7 @@
     if (params.get('panelTint')) ui.panelTint = Number(params.get('panelTint')); if (params.get('windowTint')) ui.windowTint = Number(params.get('windowTint')); if (params.get('panelGrain')) ui.panelGrain = Number(params.get('panelGrain'))
     if (params.get('skin')) ui.skin = params.get('skin')!
     if (params.get('view')) ui.view = params.get('view') as ViewMode
+    if (params.get('picked')) ui.picked = params.get('picked')!.split(',')
     if (params.has('tasks')) app.tasks = sampleTasks()
   }
 
@@ -106,10 +108,15 @@
   let tasksOverlay = $state(false)
   function toggleTasks() { if (width >= 760) { ui.tasksOpen = !ui.tasksOpen; writeSetting('tasksOpen', ui.tasksOpen ? '1' : '0') } else tasksOverlay = !tasksOverlay }
   const shownCalendars = $derived(app.calendars.filter(calendar => calendar.shown))
-  function pick(event: Placed, target: HTMLElement) { const box = target.getBoundingClientRect(); ui.selectedEvent = { event, left: box.right + 6 > innerWidth - 340 ? box.left - 346 : box.right + 6, top: box.top - 10 } }
+  let pickModifier = false // Ctrl or Shift held on the click: add to the selection rather than open the card
+  function pick(event: Placed, target: HTMLElement) {
+    if (pickModifier) { const open = ui.selectedEvent?.event.id; if (open && !ui.picked.includes(open) && open !== event.id) ui.picked.push(open); ui.selectedEvent = null; ui.picked = ui.picked.includes(event.id) ? ui.picked.filter(id => id !== event.id) : ui.picked.concat(event.id); return }
+    ui.picked = []; openCard(event, target)
+  }
+  function openCard(event: Placed, target: HTMLElement) { const box = target.getBoundingClientRect(); ui.selectedEvent = { event, left: box.right + 6 > innerWidth - 340 ? box.left - 346 : box.right + 6, top: box.top - 10 } }
   function onKey(event: KeyboardEvent) {
     if ((event.target as HTMLElement).closest('input, textarea')) return
-    if (event.key === 'Escape') { ui.selectedEvent = null; ui.switcherOpen = false; tasksOverlay = false }
+    if (event.key === 'Escape') { ui.selectedEvent = null; ui.picked = []; ui.switcherOpen = false; tasksOverlay = false }
     else if (event.key === 'ArrowLeft' || event.key === 'PageUp') step(-1)
     else if (event.key === 'ArrowRight' || event.key === 'PageDown') step(1)
     else if (event.key === 't') ui.focus = startOfDay(new Date())
@@ -119,7 +126,7 @@
   }
 </script>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} />
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} onpointerdowncapture={(event) => pickModifier = event.ctrlKey || event.shiftKey || event.metaKey} />
 
 <div class="shell" class:pinned={app.window.pinned}>
   {#if app.window.frameless && !app.window.pinned && !app.window.maximised}<ResizeEdges />{/if}
@@ -178,6 +185,7 @@
 </div>
 
 <WhatsNew />
+<SelectionBar />
 
 <style>
   .shell { position: relative; display: flex; flex-direction: column; height: 100vh; }

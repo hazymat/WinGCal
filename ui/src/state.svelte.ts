@@ -27,6 +27,7 @@ export const ui = $state({
   view: readSetting('view', 'auto') as ViewMode,
   focus: startOfDay(new Date()), // the day the view is built around
   selectedEvent: null as null | { event: Placed; left: number; top: number },
+  picked: [] as string[], // events Ctrl- or Shift-clicked, for the selection bar
   switcherOpen: false,
   hint: '' as string,
   tasksOpen: readSetting('tasksOpen', '1') === '1', // the side column, when the window is wide enough
