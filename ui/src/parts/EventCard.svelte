@@ -56,17 +56,19 @@
     else if (keyEvent.key === 'Enter' && !(keyEvent.target as HTMLElement).matches('textarea')) { keyEvent.preventDefault(); save() }
   }
   let card: HTMLDivElement | undefined = $state()
-  let position = $state({ left: 0, top: 0 })
+  // Starts where it will open (hidden until measured) so it never flashes in the corner
+  let position = $state({ left: ui.selectedEvent?.left ?? 0, top: ui.selectedEvent?.top ?? 0 }), placed = $state(false)
   // Beside the clicked event, kept inside the window
   $effect(() => {
     if (!card) return
     const width = card.offsetWidth, height = card.offsetHeight
     position = { left: Math.max(8, Math.min(selected.left, innerWidth - width - 8)), top: Math.max(44, Math.min(selected.top, innerHeight - height - 8)) }
+    placed = true
   })
 </script>
 
 <div class="scrim" role="presentation" onpointerdown={() => ui.selectedEvent = null}></div>
-<div class="card" class:editing bind:this={card} style="left: {position.left}px; top: {position.top}px; --colour: {event.colourShown}" role="dialog" aria-label={event.title}>
+<div class="card" class:editing bind:this={card} style="left: {position.left}px; top: {position.top}px; visibility: {placed ? 'visible' : 'hidden'}; --colour: {event.colourShown}" role="dialog" aria-label={event.title}>
   {#if editing}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="form" onkeydown={onFormKey}>

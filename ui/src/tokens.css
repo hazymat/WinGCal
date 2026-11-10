@@ -51,6 +51,10 @@ input[type="text"], input:not([type]) { background: var(--panel); color: var(--f
 input[type="text"]:focus, input:not([type]):focus { border-color: var(--accent); }
 select option { background: var(--panel-solid); color: var(--fg); }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* A desktop widget: a drag never selects text or moves anything; only fields you type in select */
+body { -webkit-user-select: none; user-select: none; }
+input, textarea { -webkit-user-select: text; user-select: text; }
+a, img, svg { -webkit-user-drag: none; }
 /* Chosen rows (lib/selectable.svelte.ts) */
 [data-select-key] { -webkit-user-select: none; user-select: none; }
 [data-select-key].pressing { background: var(--hover); transition: background 450ms; }
@@ -91,3 +95,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   :root[data-skin="paper"] .grid .day .pill { font-size: 13.5px; }
 }
 @container day (max-width: 120px) { :root .grid .day .line .time { display: none; } }
+
+/* Clear glass: optional frosted grain over each panel (Settings › Appearance › Frost grain) */
+:root.clear [data-frost] { position: relative; isolation: isolate; }
+:root.clear [data-frost]::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: var(--clear-grain, 0); mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.1 -0.2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E"); }

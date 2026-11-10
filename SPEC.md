@@ -36,7 +36,7 @@ Implementation: pinned sets the window's owner to the desktop (`Progman`), adds 
 
 As WinSqueeze. Settings › Window › Start and tray:
 
-- **Show an icon in the system tray** (on by default). Left-click shows or hides the widget. The menu has Show/Hide, Refresh from Google, Pinned to the desktop, Skin, Check for updates, Settings and Quit.
+- **Show an icon in the system tray** (on by default). Left-click shows or hides the widget. The menu opens with a small shaded row showing just the version number, then has Show/Hide, Refresh from Google, Pinned to the desktop, Skin, Check for updates, Settings and Quit.
 - **Start hidden in the tray** (off by default).
 - **Close (X) keeps WinGCal running in the tray** (off by default, so Close and Alt+F4 quit). The first time, a tip says where it went.
 - With the icon off (as WinSqueeze): no balloons, and the window is never hidden. The two options become "…to the taskbar" and minimise instead; a pinned widget has no taskbar button, so it starts showing and Close quits. Launching WinGCal again always brings it forward.
@@ -62,9 +62,13 @@ As WinSqueeze: frameless by default (drag from the title strip, resize from the 
 
 On by default for the glass skins (Settings › Appearance › Glass › Clear window). The window itself is see-through, with only a faint tint (Window tint slider, default 6%) and a thin glint around its edge. The title strip, the calendar and the tasks column each sit on their own frosted panel (Panel frost slider, default 42%), so they read as separate things on the desktop. Windows blurs a whole window or nothing, so each panel has a hidden backing window behind it carrying the acrylic blur; the backings follow the window as it moves, resizes, hides and shows. Popovers (event card, quick switcher, tasks overlay, hints) sit over the calendar itself, where blur can't reach, so they are near-solid. Turning Clear window off returns to one acrylic sheet with the transparency slider.
 
+Clear glass sliders: **Window tint** (the see-through window), **Panel tint** (how dark the panels are), **Panel frost** (how much of the blur shows behind the panels, 0 to 100%: the backing windows fade, 0 leaves the panels clear) and **Frost grain** (extra noise over the panels, none by default). The frost always shares the widget's owner and follows it in the z-order, so other windows or a click on the desktop never bring it in front of the calendar.
+
 ### Title strip
 
 Left: month and year of what's shown (click: back to today), previous and next arrows. Right: view switcher (Auto, Month, Week, Agenda; Auto picks by size), skin picker (a dropdown of the skins, each name shown in its own skin's colours and lettering), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
+
+Nothing in the window selects as text or can be dragged: a desktop widget must not change by an accidental drag. Data only changes through a second deliberate step (open the card, then edit).
 
 ## Calendar views
 

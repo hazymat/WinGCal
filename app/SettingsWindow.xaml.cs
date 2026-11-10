@@ -207,8 +207,10 @@ public partial class SettingsWindow : Window
         glassInactiveBox.Click += (sender, args) => { look.GlassWhenInactive = glassInactiveBox.IsChecked == true; Settings.Save(); App.RefreshInactiveGlass(); };
         glassBox.IsChecked = look.Glass; framelessBox.IsChecked = look.Frameless;
         // Clear glass: tint of the see-through window and of the frosted panels
-        void ShowClear() { clearGlassBox.IsChecked = look.ClearGlass; clearControls.Visibility = look.ClearGlass ? Visibility.Visible : Visibility.Collapsed; transparencyRow.Visibility = look.ClearGlass ? Visibility.Collapsed : Visibility.Visible; windowTintText.Text = $"{look.WindowTint}%"; panelTintText.Text = $"{look.PanelTint}%"; }
-        windowTintSlider.Value = look.WindowTint; panelTintSlider.Value = look.PanelTint; ShowClear();
+        void ShowClear() { clearGlassBox.IsChecked = look.ClearGlass; clearControls.Visibility = look.ClearGlass ? Visibility.Visible : Visibility.Collapsed; transparencyRow.Visibility = look.ClearGlass ? Visibility.Collapsed : Visibility.Visible; windowTintText.Text = $"{look.WindowTint}%"; panelTintText.Text = $"{look.PanelTint}%"; panelFrostText.Text = look.PanelFrost == 0 ? "None" : $"{look.PanelFrost}%"; panelGrainText.Text = look.PanelGrain == 0 ? "None" : $"{look.PanelGrain}%"; }
+        windowTintSlider.Value = look.WindowTint; panelTintSlider.Value = look.PanelTint; panelFrostSlider.Value = look.PanelFrost; panelGrainSlider.Value = look.PanelGrain; ShowClear();
+        panelFrostSlider.ValueChanged += (sender, args) => { look.PanelFrost = (int)panelFrostSlider.Value; Settings.Save(); App.ApplyWindowStyle(); ShowClear(); };
+        panelGrainSlider.ValueChanged += (sender, args) => { look.PanelGrain = (int)panelGrainSlider.Value; Settings.Save(); App.ApplySkin(); ShowClear(); };
         clearGlassBox.Click += (sender, args) => { look.ClearGlass = clearGlassBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); App.ApplySkin(); ShowClear(); };
         windowTintSlider.ValueChanged += (sender, args) => { look.WindowTint = (int)windowTintSlider.Value; Settings.Save(); App.ApplySkin(); ShowClear(); };
         panelTintSlider.ValueChanged += (sender, args) => { look.PanelTint = (int)panelTintSlider.Value; Settings.Save(); App.ApplySkin(); ShowClear(); };

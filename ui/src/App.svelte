@@ -19,8 +19,8 @@
   // ---- From the shell ----
   onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
   onShellMessage('skin', message => {
-    ui.skin = message.skin || 'auto'; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.windowTint = message.windowTint ?? ui.windowTint; ui.panelTint = message.panelTint ?? ui.panelTint; ui.lookVersion++
-    writeSetting('windowTint', String(ui.windowTint)); writeSetting('panelTint', String(ui.panelTint))
+    ui.skin = message.skin || 'auto'; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.windowTint = message.windowTint ?? ui.windowTint; ui.panelGrain = message.panelGrain ?? ui.panelGrain; ui.panelTint = message.panelTint ?? ui.panelTint; ui.lookVersion++
+    writeSetting('windowTint', String(ui.windowTint)); writeSetting('panelTint', String(ui.panelTint)); writeSetting('panelGrain', String(ui.panelGrain))
     writeSetting('skin', ui.skin); writeSetting('accent', ui.accent); writeSetting('glassTransparency', String(ui.glassTransparency)); writeSetting('glassTintHue', String(ui.glassTintHue))
   })
   onShellMessage('calendars', message => { app.accounts = message.accounts; app.calendars = message.calendars; app.sampleData = !!message.sample })
@@ -33,14 +33,14 @@
   sendToShell({ type: 'ready' })
   watchFrostPanels()
   // Clear glass: how much tint the window and the panels get (0-100), from Settings › Appearance
-  $effect(() => { const rootStyle = document.documentElement.style; rootStyle.setProperty('--clear-window-tint', String(ui.windowTint / 100)); rootStyle.setProperty('--clear-panel-tint', String(ui.panelTint / 100)) })
+  $effect(() => { const rootStyle = document.documentElement.style; rootStyle.setProperty('--clear-window-tint', String(ui.windowTint / 100)); rootStyle.setProperty('--clear-panel-tint', String(ui.panelTint / 100)); rootStyle.setProperty('--clear-grain', String(ui.panelGrain / 100 * 0.6)) })
 
   // Outside WebView2 (vite dev, mockups): invented calendars
   const params = new URLSearchParams(location.search)
   if (!(window as any).chrome?.webview || params.has('sample')) {
     app.accounts = sampleAccounts; app.calendars = sampleCalendars; app.events = sampleEvents(); app.sampleData = true
     app.window.glass = params.has('glass'); app.window.clear = params.has('clear'); app.window.pinned = params.get('pinned') !== '0'
-    if (params.get('panelTint')) ui.panelTint = Number(params.get('panelTint')); if (params.get('windowTint')) ui.windowTint = Number(params.get('windowTint'))
+    if (params.get('panelTint')) ui.panelTint = Number(params.get('panelTint')); if (params.get('windowTint')) ui.windowTint = Number(params.get('windowTint')); if (params.get('panelGrain')) ui.panelGrain = Number(params.get('panelGrain'))
     if (params.get('skin')) ui.skin = params.get('skin')!
     if (params.get('view')) ui.view = params.get('view') as ViewMode
     if (params.has('tasks')) app.tasks = sampleTasks()
@@ -119,7 +119,7 @@
   }
 </script>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} />
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} />
 
 <div class="shell" class:pinned={app.window.pinned}>
   {#if app.window.frameless && !app.window.pinned && !app.window.maximised}<ResizeEdges />{/if}

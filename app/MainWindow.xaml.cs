@@ -181,7 +181,7 @@ public partial class MainWindow : Window
     }
 
     public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
-    public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint }));
+    public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint, panelGrain = App.Settings.Look.PanelGrain }));
     bool clearActive;
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, clear = clearActive, frameless = App.Settings.Look.Frameless, maximised = WindowState == WindowState.Maximized, pinned = App.Settings.Window.Pinned }));
 
@@ -322,7 +322,7 @@ public partial class MainWindow : Window
         var backdrop = wantGlass && !clear ? AcrylicBackdrop : NoBackdrop;
         glassActive = wantGlass && DwmSetWindowAttribute(windowHandle, BackdropAttribute, ref backdrop, sizeof(int)) == 0;
         clearActive = glassActive && clear;
-        frost?.SetEnabled(clearActive, darkTheme);
+        frost?.SetEnabled(clearActive, darkTheme, look.PanelFrost);
         // Clear: an extended frame with no backdrop is painted in the Windows accent colour, so instead the window keeps its alpha through blur-behind with an empty region (see-through, no blur, no accent)
         var margins = glassActive && !clearActive ? new FrameMargins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new FrameMargins();
         DwmExtendFrameIntoClientArea(windowHandle, ref margins);
