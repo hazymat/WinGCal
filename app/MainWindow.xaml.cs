@@ -34,7 +34,8 @@ public partial class MainWindow : Window
         SourceInitialized += (sender, args) => { pin = new DesktopPin(new WindowInteropHelper(this).Handle); frost = new FrostPanels(this); RestorePlacement(); ApplyWindowStyle(); ApplyPinned(); };
         Activated += (sender, args) => { OnFirstActivation(); if (App.Settings.Window.Pinned) pin?.SendToBottom(); };
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); placementSaveTimer.Stop(); placementSaveTimer.Start(); };
-        LocationChanged += (sender, args) => { if (!placing) { placementSaveTimer.Stop(); placementSaveTimer.Start(); } };
+        LocationChanged += (sender, args) => { if (!placing) { placementSaveTimer.Stop(); placementSaveTimer.Start(); } if (wallpaperFrost) PushWallpaper(); };
+        SizeChanged += (sender, args) => { if (wallpaperFrost) PushWallpaper(); };
         SizeChanged += (sender, args) => { if (!placing) { placementSaveTimer.Stop(); placementSaveTimer.Start(); } };
         placementSaveTimer.Tick += (sender, args) => { placementSaveTimer.Stop(); SavePlacement(); };
         // Plug, unplug, dock, resolution or scaling change: wait for Windows to settle, then go where this setup had it (SPEC.md › Monitor setups)
@@ -91,7 +92,7 @@ public partial class MainWindow : Window
             var message = document.RootElement;
             switch (Text(message, "type"))
             {
-                case "ready": webViewReady = true; _ = ReapplyLookSoonAsync(); PushSkin(); PushWindowState(); PushPrefs(); PushCalendars(); PushTasks(); _ = App.ShowWhatsNewAsync(); break;
+                case "ready": webViewReady = true; pageWallpaper = ""; _ = ReapplyLookSoonAsync(); PushSkin(); PushWindowState(); PushPrefs(); PushCalendars(); PushTasks(); _ = App.ShowWhatsNewAsync(); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "setSkin": App.SetSkin(Text(message, "skin")); break;
                 case "refresh": await App.Store.SyncAsync(); break;
@@ -177,6 +178,26 @@ public partial class MainWindow : Window
     }
 
     public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
+    // ---- Clear glass frost drawn from the wallpaper (Shell/WallpaperFrost.cs) ----
+    bool wallpaperFrost;
+    WallpaperFrost.Picture? wallpaperPicture;
+    string pageWallpaper = ""; // the picture the page holds, so it is sent only when it changes
+    bool PushWallpaper(bool recheck = false)
+    {
+        if (!(Content is FrameworkElement content && PresentationSource.FromVisual(content) != null)) return false;
+        var origin = content.PointToScreen(new Point(0, 0));
+        var centre = new System.Drawing.Point((int)origin.X + (int)(ActualWidth / 2), (int)origin.Y + (int)(ActualHeight / 2));
+        // Moving within the same monitor only shifts the picture; another monitor, or a settings change (new wallpaper), reads it again
+        if (recheck || wallpaperPicture == null || !wallpaperPicture.Monitor.Contains(centre)) wallpaperPicture = WallpaperFrost.For(centre);
+        if (wallpaperPicture == null) return false;
+        var sendImage = webViewReady && pageWallpaper != wallpaperPicture.DataUrl;
+        if (sendImage) pageWallpaper = wallpaperPicture.DataUrl;
+        var monitor = wallpaperPicture.Monitor;
+        Push(JsonSerializer.Serialize(new { type = "wallpaper", image = sendImage ? wallpaperPicture.DataUrl : null, monitor = new { x = monitor.X, y = monitor.Y, width = monitor.Width, height = monitor.Height }, origin = new { x = (int)origin.X, y = (int)origin.Y }, frost = App.Settings.Look.PanelFrost }));
+        return true;
+    }
+    void PushWallpaperOff() { wallpaperPicture = null; pageWallpaper = ""; Push(JsonSerializer.Serialize(new { type = "wallpaper", off = true })); }
+
     public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint, panelGrain = App.Settings.Look.PanelGrain }));
     bool clearActive;
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, clear = clearActive, frameless = App.Settings.Look.Frameless, maximised = WindowState == WindowState.Maximized, pinned = App.Settings.Window.Pinned }));
@@ -318,7 +339,10 @@ public partial class MainWindow : Window
         var backdrop = wantGlass && !clear ? AcrylicBackdrop : NoBackdrop;
         glassActive = wantGlass && DwmSetWindowAttribute(windowHandle, BackdropAttribute, ref backdrop, sizeof(int)) == 0;
         clearActive = glassActive && clear;
-        frost?.SetEnabled(clearActive, darkTheme, look.PanelFrost);
+        // The page draws the frost from the wallpaper (adjustable); Windows' fixed frost is the fallback when the wallpaper can't be read
+        wallpaperFrost = clearActive && look.PanelFrost > 0 && PushWallpaper(true);
+        if (!wallpaperFrost) PushWallpaperOff();
+        frost?.SetEnabled(clearActive && !wallpaperFrost && look.PanelFrost > 0, darkTheme, 100);
         // Clear: an extended frame with no backdrop is painted in the Windows accent colour, so instead the window keeps its alpha through blur-behind with an empty region (see-through, no blur, no accent)
         var margins = glassActive && !clearActive ? new FrameMargins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new FrameMargins();
         DwmExtendFrameIntoClientArea(windowHandle, ref margins);

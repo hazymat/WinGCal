@@ -16,6 +16,7 @@
   import WhatsNew from './parts/WhatsNew.svelte'
   import SkinPicker from './parts/SkinPicker.svelte'
   import SelectionBar from './parts/SelectionBar.svelte'
+  import WallpaperFrost from './parts/WallpaperFrost.svelte'
 
   // ---- From the shell ----
   onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
@@ -24,6 +25,8 @@
     writeSetting('windowTint', String(ui.windowTint)); writeSetting('panelTint', String(ui.panelTint)); writeSetting('panelGrain', String(ui.panelGrain))
     writeSetting('skin', ui.skin); writeSetting('accent', ui.accent); writeSetting('glassTransparency', String(ui.glassTransparency)); writeSetting('glassTintHue', String(ui.glassTintHue))
   })
+  // Clear glass frost drawn from the wallpaper: the picture comes once, then only where the window sits on its monitor
+  onShellMessage('wallpaper', message => { if (message.off) { ui.wallpaper = null; return } ui.wallpaper = { image: message.image ?? ui.wallpaper?.image ?? '', monitor: message.monitor, origin: message.origin, frost: message.frost } })
   onShellMessage('calendars', message => { app.accounts = message.accounts; app.calendars = message.calendars; app.sampleData = !!message.sample })
   onShellMessage('events', message => app.events = message.events)
   onShellMessage('sync', message => { app.syncing = !!message.syncing; app.offline = !!message.offline })
@@ -128,6 +131,7 @@
 
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} onpointerdowncapture={(event) => pickModifier = event.ctrlKey || event.shiftKey || event.metaKey} />
 
+<WallpaperFrost />
 <div class="shell" class:pinned={app.window.pinned}>
   {#if app.window.frameless && !app.window.pinned && !app.window.maximised}<ResizeEdges />{/if}
   <header class="strip" role="presentation" onmousedown={dragWindow} data-frost>
