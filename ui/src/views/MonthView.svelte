@@ -56,7 +56,10 @@
   .other .number { color: var(--fg-quiet); font-weight: 500; }
   .number:hover { background: var(--hover); }
   .today .number { background: var(--accent); color: var(--on-accent); }
-  .today { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent); }
+  /* Today's cell breathes gently so it stands out from the selection */
+  .today { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent); animation: today-pulse 3.2s ease-in-out infinite; }
+  @keyframes today-pulse { 0%, 100% { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent); background-color: color-mix(in srgb, var(--accent) 4%, transparent); } 50% { box-shadow: inset 0 0 0 1.5px var(--accent), inset 0 0 18px color-mix(in srgb, var(--accent) 22%, transparent); background-color: color-mix(in srgb, var(--accent) 12%, transparent); } }
+  @media (prefers-reduced-motion: reduce) { .today { animation: none; } }
   .line, .pill, .more { display: flex; align-items: center; gap: 5px; height: 17px; flex: none; min-width: 0; padding: 0 4px; border: 0; border-radius: 4px; background: none; color: var(--fg); font: inherit; font-size: 12px; text-align: left; cursor: pointer; white-space: nowrap; }
   .line:hover, .more:hover { background: var(--hover); }
   .line.past { color: var(--fg-quiet); }
