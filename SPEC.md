@@ -64,7 +64,7 @@ On by default for the glass skins (Settings › Appearance › Glass › Clear w
 
 ### Title strip
 
-Left: month and year of what's shown (click: back to today), previous and next arrows. Right: view switcher (Auto, Month, Week, Agenda; Auto picks by size), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
+Left: month and year of what's shown (click: back to today), previous and next arrows. Right: view switcher (Auto, Month, Week, Agenda; Auto picks by size), skin picker (a dropdown of the skins, each name shown in its own skin's colours and lettering), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
 
 ## Calendar views
 
@@ -127,7 +127,7 @@ Same layout as WinSqueeze (left sidebar of pages grouped under small headings, w
 ## Skins
 
 - **Glass** (Auto, Dark, Light): frosted, the same tokens as WinSqueeze. The only skins the Glass setting applies to.
-- **Paper:** a lined writing pad: very faint blue rules that events sit on, a faint red line under the title strip and each week, headings, weekday names and day numbers handwritten (Caveat), today (and the selected day in Split) circled in pen; event text in Inter. Circles are drawn by hand in one stroke: off-centre, never round, the end overshooting the start, and seeded by the date so every day's circle is a little different. All-day and multi-day events are their name written in the calendar's colour with a wavering pen arrow under it, running across the days to an arrowhead on the last.
+- **Paper:** a lined writing pad: very faint blue rules that events sit on, a faint red line under the title strip and each week, headings, weekday names and day numbers handwritten (Caveat), today (and the selected day in Split) circled in pen; event text in Inter. Circles are drawn by hand in one stroke: off-centre, never round, the end overshooting the start, and seeded by the date so every day's circle is a little different. All-day and multi-day events are their name written in the calendar's colour with a wavering pen line under it: a one-day event has just the line; a multi-day event's line runs across its days with an arrowhead at each end (pointing back on its first day, forward on its last).
 - **Technical:** graphite with a faint blueprint grid, JetBrains Mono, amber highlight, square corners and dots.
 - **Wall calendar:** textured parchment with a spiral binding along the top, Fraunces for headings and day numbers, Newsreader for text, Sundays in red, today circled.
 

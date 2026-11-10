@@ -93,6 +93,7 @@ public partial class MainWindow : Window
             {
                 case "ready": webViewReady = true; _ = ReapplyLookSoonAsync(); PushSkin(); PushWindowState(); PushPrefs(); PushCalendars(); PushTasks(); _ = App.ShowWhatsNewAsync(); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
+                case "setSkin": App.SetSkin(Text(message, "skin")); break;
                 case "refresh": await App.Store.SyncAsync(); break;
                 case "addAccount": await AddAccountAsync(); break;
                 case "showCalendar": App.Store.SetShown(Text(message, "key"), message.GetProperty("shown").GetBoolean()); App.NotifySettingsChanged(); break;

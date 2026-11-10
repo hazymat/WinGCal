@@ -14,6 +14,7 @@
   import Icon from './parts/Icon.svelte'
   import TasksPanel from './parts/TasksPanel.svelte'
   import WhatsNew from './parts/WhatsNew.svelte'
+  import SkinPicker from './parts/SkinPicker.svelte'
 
   // ---- From the shell ----
   onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
@@ -136,6 +137,7 @@
         <div class="views" role="group" aria-label="View">
           {#each views as [view, label]}<button class:on={ui.view === view} onclick={() => ui.view = view} title={label} aria-pressed={ui.view === view}><Icon name={view} size={16} /></button>{/each}
         </div>
+        <SkinPicker />
       {/if}
       <button class="dots" class:on={ui.switcherOpen} onclick={() => ui.switcherOpen = !ui.switcherOpen} title="Calendars">{#each shownCalendars.slice(0, width < 320 ? 3 : 5) as calendar}<i style="background: {calendar.colour}"></i>{/each}{#if shownCalendars.length === 0}<Icon name="calendar" size={16} />{/if}</button>
       {#if app.tasks.enabled}<button class="tool" class:on={tasksColumn || tasksOverlay} onclick={toggleTasks} title="Tasks"><Icon name="tasks" size={16} /></button>{/if}
