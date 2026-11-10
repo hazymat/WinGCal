@@ -34,6 +34,16 @@ public sealed class GoogleCalendar(GoogleAuth auth)
         return document.RootElement.TryGetProperty("items", out var items) && items.GetArrayLength() > 0 ? items[0].Clone() : null;
     }
 
+    // Edit: only the fields sent change (PATCH); a repeating event's instance id changes just that occurrence
+    public async Task<JsonElement> PatchEventAsync(string email, string calendarId, string eventId, System.Text.Json.Nodes.JsonObject changes, CancellationToken cancel)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Patch, $"{apiBase}/calendars/{Uri.EscapeDataString(calendarId)}/events/{Uri.EscapeDataString(eventId)}") { Content = new StringContent(changes.ToJsonString(), System.Text.Encoding.UTF8, "application/json") };
+        using var response = await SendAsync(email, request, cancel);
+        if (!response.IsSuccessStatusCode) throw new HttpRequestException(await Describe(response), null, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancel));
+        return document.RootElement.Clone();
+    }
+
     public async Task DeleteEventAsync(string email, string calendarId, string eventId, CancellationToken cancel)
     {
         using var request = new HttpRequestMessage(HttpMethod.Delete, $"{apiBase}/calendars/{Uri.EscapeDataString(calendarId)}/events/{Uri.EscapeDataString(eventId)}");
@@ -83,7 +93,7 @@ public sealed class GoogleCalendar(GoogleAuth auth)
     {
         var body = await response.Content.ReadAsStringAsync();
         if (body.Contains("accessNotConfigured") || body.Contains("SERVICE_DISABLED")) return "The Google Calendar API isn't turned on for WinGCal's Google Cloud project (APIs & Services > Library > Google Calendar API > Enable).";
-        if (response.StatusCode == HttpStatusCode.BadRequest) return "Google didn't accept WinGCal's request for its events (error 400). Details are in the log.";
+        if (response.StatusCode == HttpStatusCode.BadRequest && response.RequestMessage?.Method == HttpMethod.Get) return "Google didn't accept WinGCal's request for its events (error 400). Details are in the log.";
         try { using var document = JsonDocument.Parse(body); return $"Google said {(int)response.StatusCode}: {document.RootElement.GetProperty("error").GetProperty("message").GetString()}"; }
         catch { return $"Google said {(int)response.StatusCode}"; }
     }

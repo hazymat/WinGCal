@@ -93,11 +93,13 @@ public partial class MainWindow : Window
             {
                 case "ready": webViewReady = true; _ = ReapplyLookSoonAsync(); PushSkin(); PushWindowState(); PushPrefs(); PushCalendars(); PushTasks(); _ = App.ShowWhatsNewAsync(); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
+                case "setSkin": App.SetSkin(Text(message, "skin")); break;
                 case "refresh": await App.Store.SyncAsync(); break;
                 case "addAccount": await AddAccountAsync(); break;
                 case "showCalendar": App.Store.SetShown(Text(message, "key"), message.GetProperty("shown").GetBoolean()); App.NotifySettingsChanged(); break;
                 case "setPinned": App.Settings.Window.Pinned = message.GetProperty("on").GetBoolean(); App.Settings.Save(); ApplyPinned(); App.NotifySettingsChanged(); break;
-                case "editEvent": if (App.Store.FindEvent(Text(message, "id")) is { Link.Length: > 0 } toEdit) OpenUrl(toEdit.Link); break; // editing in the widget comes in phase 3; Google Calendar opens on the event meanwhile
+                case "editEvent": if (App.Store.FindEvent(Text(message, "id")) is { Link.Length: > 0 } toEdit) OpenUrl(toEdit.Link); break; // "More in Google Calendar": guests, reminders and the rest
+                case "updateEvent": await UpdateEventAsync(message); break;
                 case "deleteEvent": await DeleteEventAsync(Text(message, "id")); break;
                 case "taskDone": await TaskActionAsync(() => App.Store.Tasks.SetCompletedAsync(Text(message, "id"), message.GetProperty("done").GetBoolean())); break;
                 case "taskAdd": await TaskActionAsync(() => App.Store.Tasks.AddAsync(Text(message, "listKey"), Text(message, "title"))); break;
@@ -135,6 +137,21 @@ public partial class MainWindow : Window
         catch (Exception deleteError) { App.ShowTip("Couldn't delete it", deleteError.Message); }
     }
 
+    // The event card's edits: title, times, all day, location, description (only what changed is sent)
+    async Task UpdateEventAsync(JsonElement message)
+    {
+        var changes = new System.Text.Json.Nodes.JsonObject();
+        foreach (var field in new[] { "summary", "location", "description" }) if (message.TryGetProperty(field, out var value)) changes[field] = value.GetString();
+        if (message.TryGetProperty("start", out var start))
+        {
+            var allDay = message.GetProperty("allDay").GetBoolean();
+            System.Text.Json.Nodes.JsonObject When(string text) => allDay ? new() { ["date"] = text, ["dateTime"] = null, ["timeZone"] = null } : new() { ["dateTime"] = text, ["date"] = null };
+            changes["start"] = When(start.GetString() ?? ""); changes["end"] = When(Text(message, "end"));
+        }
+        try { await App.Store.UpdateEventAsync(Text(message, "id"), changes); }
+        catch (Exception updateError) { App.ShowTip("Couldn't save the change", updateError.Message); PushCalendars(); }
+    }
+
     async Task TaskActionAsync(Func<Task> action) { try { await action(); } catch (Exception taskError) { App.ShowTip("Google Tasks didn't take that", taskError.Message); PushTasks(); } }
 
     // ---- To the page ----
@@ -148,7 +165,7 @@ public partial class MainWindow : Window
     {
         var store = App.Store;
         var accounts = App.Settings.Sync.Accounts.Select(email => store.AccountStates.TryGetValue(email, out var state) ? new { email, lastSync = state.LastSync == DateTime.MinValue ? "" : state.LastSync.ToString("o"), error = state.Error } : new { email, lastSync = "", error = "" });
-        var calendars = store.Calendars.Select(calendar => new { key = calendar.Key, account = calendar.Account, name = calendar.Name, colour = store.ColourOf(calendar), shown = store.IsShown(calendar.Key), primary = calendar.Primary, readOnly = calendar.ReadOnly });
+        var calendars = store.Calendars.Select(calendar => new { key = calendar.Key, account = calendar.Account, name = calendar.Name, colour = store.ColourOf(calendar), shown = store.IsShown(calendar.Key), inSwitcher = store.IsInSwitcher(calendar.Key), primary = calendar.Primary, readOnly = calendar.ReadOnly });
         Push(JsonSerializer.Serialize(new { type = "calendars", accounts, calendars }, camel));
         var showDeclined = App.Settings.View.ShowDeclined;
         Push(JsonSerializer.Serialize(new { type = "events", events = store.EventsByCalendar.Values.SelectMany(list => list).Select(item => new { id = item.Id, calendarKey = item.CalendarKey, title = item.Title, start = item.Start, end = item.End, allDay = item.AllDay, location = item.Location, description = item.Description, meetUrl = item.MeetUrl, recurring = item.Recurring, colour = item.Colour, declined = item.Declined && !showDeclined }) }, camel));

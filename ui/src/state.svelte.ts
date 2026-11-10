@@ -1,7 +1,7 @@
 import { sendToShell } from './bridge'
 import { parseWhen, startOfDay } from './lib/dates'
 
-export type Calendar = { key: string; account: string; name: string; colour: string; shown: boolean; primary?: boolean; readOnly?: boolean }
+export type Calendar = { key: string; account: string; name: string; colour: string; shown: boolean; inSwitcher?: boolean; primary?: boolean; readOnly?: boolean }
 export type CalendarEvent = { id: string; calendarKey: string; title: string; start: string; end: string; allDay: boolean; location?: string; description?: string; meetUrl?: string; recurring?: boolean; colour?: string; declined?: boolean }
 export type Placed = CalendarEvent & { startAt: Date; endAt: Date; colourShown: string }
 export type TaskList = { key: string; account: string; name: string; shown: boolean }

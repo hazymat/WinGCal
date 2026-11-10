@@ -129,6 +129,14 @@ public sealed class CalendarStore
         await Tasks.SyncAsync();
     }
 
+    public bool IsInSwitcher(string key) => !settings().Sync.OutOfSwitcher.Contains(key);
+    public void SetInSwitcher(string key, bool inSwitcher)
+    {
+        var left = settings().Sync.OutOfSwitcher;
+        if (inSwitcher) left.Remove(key); else if (!left.Contains(key)) left.Add(key);
+        settings().Save(); Changed?.Invoke();
+    }
+
     public void SetShown(string key, bool shown)
     {
         var hidden = settings().Sync.HiddenCalendars;
@@ -143,6 +151,17 @@ public sealed class CalendarStore
         if (found == null || calendar == null) return;
         await Api.DeleteEventAsync(calendar.Account, calendar.Id, found.EventId, CancellationToken.None);
         EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Where(item => item.Id != uiEventId).ToList();
+        SaveCache(); Changed?.Invoke();
+    }
+
+    public async Task UpdateEventAsync(string uiEventId, System.Text.Json.Nodes.JsonObject changes)
+    {
+        var found = FindEvent(uiEventId);
+        var calendar = found == null ? null : Calendars.FirstOrDefault(candidate => candidate.Key == found.CalendarKey);
+        if (found == null || calendar == null) return;
+        var saved = await Api.PatchEventAsync(calendar.Account, calendar.Id, found.EventId, changes, CancellationToken.None);
+        var updated = ToUiEvent(calendar, saved);
+        EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Select(item => item.Id == uiEventId ? updated : item).Where(item => item != null).Select(item => item!).ToList();
         SaveCache(); Changed?.Invoke();
     }
 

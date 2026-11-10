@@ -83,3 +83,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 :root.clear .notice { margin: 0; }
 /* Popovers sit over the calendar, and the frost behind the window can only blur the desktop, so they are near solid */
 :root.clear .card, :root.clear .switcher, :root.clear .hint, :root.clear .tasks.overlay, :root.clear .whats-new { background: rgb(var(--clear-rgb) / 0.97); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 12px 32px rgba(0, 0, 0, 0.4); }
+
+/* Narrow month cells: smaller event text, then no times, so more of each title fits */
+@container day (max-width: 170px) {
+  :root .grid .day .line, :root .grid .day .pill, :root .grid .day .more { font-size: 10.5px; gap: 3px; }
+  :root .grid .day .line .time { font-size: 9.5px; }
+  :root[data-skin="paper"] .grid .day .pill { font-size: 13.5px; }
+}
+@container day (max-width: 120px) { :root .grid .day .line .time { display: none; } }

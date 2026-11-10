@@ -32,7 +32,7 @@
         <button class="number" onclick={() => { ui.focus = day; ui.view = 'week' }} title="Open this week">{day.getDate() === 1 ? day.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</button>
         {#each list.shown as event (event.id)}
           {#if event.allDay}
-            <button class="pill" class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : event.title}<HandArrow seed={event.id + dayKey(day)} head={!continuesAfter(event, day)} /></button>
+            <button class="pill" class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : event.title}<HandArrow {event} {day} /></button>
           {:else}
             <button class="line" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{event.title}</span></button>
           {/if}
@@ -48,7 +48,7 @@
   .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); padding: 0 6px; }
   .weekdays div { padding: 2px 8px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-quiet); }
   .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); gap: 1px; margin: 0 6px 6px; border-radius: 10px; overflow: hidden; background: var(--line); }
-  .day { position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 0; padding: 3px 4px; background: var(--cell); overflow: hidden; }
+  .day { container: day / inline-size; position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 0; padding: 3px 4px; background: var(--cell); overflow: hidden; }
   .day.weekend { background: var(--cell-weekend); }
   .day.other { background: var(--cell-other); }
   .day.other > :not(.number) { opacity: 0.6; }

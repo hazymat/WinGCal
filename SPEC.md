@@ -64,7 +64,7 @@ On by default for the glass skins (Settings › Appearance › Glass › Clear w
 
 ### Title strip
 
-Left: month and year of what's shown (click: back to today), previous and next arrows. Right: view switcher (Auto, Month, Week, Agenda; Auto picks by size), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
+Left: month and year of what's shown (click: back to today), previous and next arrows. Right: view switcher (Auto, Month, Week, Agenda; Auto picks by size), skin picker (a dropdown of the skins, each name shown in its own skin's colours and lettering), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
 
 ## Calendar views
 
@@ -76,13 +76,15 @@ The layout follows the window's size (CSS breakpoints in device-independent pixe
 - **Month** (large): a traditional six-week grid; each day shows as many events as fit, then "+3 more". Today has an accent ring. Weekends shaded slightly.
 - **Mini month** (a corner of Week and Agenda when there's room): click a day to go there.
 
-Clicking an event opens a glass detail card: title, time, calendar, location (opens Maps), video link, description (HTML shown safely), attendees, reminders. Edit and Delete in the card. Double-click an empty slot (or the + button) creates an event; drag in Week to set its time.
+Clicking an event opens a glass detail card: title, time, calendar, location (opens Maps), video link, description (HTML shown safely), attendees, reminders. Edit and Delete in the card. Editing happens in the card itself (never the browser): the pencil, or a click on the title, time or notes, turns it into a form (title, all day, start and end date and time, place, notes; moving the start keeps the length). Save sends only what changed; Esc or Cancel leaves it. A repeating event's edit changes that occurrence only for now. "More in Google Calendar" opens the event there for guests, reminders and the rest. Double-click an empty slot (or the + button) creates an event; drag in Week to set its time.
 
 Week starts on the Windows setting (Monday in the UK). Times follow Windows' 12/24-hour setting.
 
 ### Calendar switcher (quick)
 
 A button in the title strip showing coloured dots for the calendars on view. It opens a glass popover: calendars grouped by account, a tick and colour dot each, click to show or hide. Changes apply immediately and are the same choice as Settings › Calendars.
+
+Settings › Calendars lists every calendar with two ticks: Show (the same choice as the switcher) and In switcher. The switcher lists only the calendars ticked In switcher (all of them by default), so rarely changed calendars stay out of it; a calendar left out keeps whatever Show it has.
 
 ## Google accounts and sync
 
@@ -125,7 +127,7 @@ Same layout as WinSqueeze (left sidebar of pages grouped under small headings, w
 ## Skins
 
 - **Glass** (Auto, Dark, Light): frosted, the same tokens as WinSqueeze. The only skins the Glass setting applies to.
-- **Paper:** a lined writing pad: very faint blue rules that events sit on, a faint red line under the title strip and each week, headings, weekday names and day numbers handwritten (Caveat), today (and the selected day in Split) circled in pen; event text in Inter. Circles are drawn by hand in one stroke: off-centre, never round, the end overshooting the start, and seeded by the date so every day's circle is a little different. All-day and multi-day events are their name written in the calendar's colour with a wavering pen arrow under it, running across the days to an arrowhead on the last.
+- **Paper:** a lined writing pad: very faint blue rules that events sit on, a faint red line under the title strip and each week, headings, weekday names and day numbers handwritten (Caveat), today (and the selected day in Split) circled in pen; event text in Inter. Circles are drawn by hand in one stroke: off-centre, never round, the end overshooting the start, and seeded by the date so every day's circle is a little different. All-day and multi-day events are their name written in the calendar's colour with a wavering pen line under it: a one-day event has just the line; a multi-day event's line runs across its days with an arrowhead at each end (pointing back on its first day, forward on its last).
 - **Technical:** graphite with a faint blueprint grid, JetBrains Mono, amber highlight, square corners and dots.
 - **Wall calendar:** textured parchment with a spiral binding along the top, Fraunces for headings and day numbers, Newsreader for text, Sundays in red, today circled.
 
