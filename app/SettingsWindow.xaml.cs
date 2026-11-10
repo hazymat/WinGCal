@@ -34,7 +34,7 @@ public partial class SettingsWindow : Window
 
     // ---- Lists that follow the store: accounts, calendars, task lists, monitor setups ----
     record AccountRow(string Email, string Status, Brush StatusBrush);
-    record CalendarRow(string Key, string Name, bool Shown, Brush ColourBrush, string AccountHeading, Visibility HeadingVisibility);
+    record CalendarRow(string Key, string Name, bool Shown, Brush ColourBrush, string AccountHeading, Visibility HeadingVisibility, bool InSwitcher = true);
     record SetupRow(string Key, string Name, string CurrentLabel, string Detail);
     record ExportRow(string Email) { public bool Chosen { get; set; } = true; }
     void FillLists()
@@ -52,7 +52,8 @@ public partial class SettingsWindow : Window
         noClientCallout.Visibility = GoogleAuth.HasClient ? Visibility.Collapsed : Visibility.Visible;
         addAccountButton.IsEnabled = GoogleAuth.HasClient;
         string previousAccount = "";
-        calendarsList.ItemsSource = store.Calendars.Select(calendar => { var first = calendar.Account != previousAccount; previousAccount = calendar.Account; return new CalendarRow(calendar.Key, calendar.Name, store.IsShown(calendar.Key), BrushOf(store.ColourOf(calendar)), calendar.Account, first ? Visibility.Visible : Visibility.Collapsed); }).ToList();
+        calendarsList.ItemsSource = store.Calendars.Select(calendar => { var first = calendar.Account != previousAccount; previousAccount = calendar.Account; return new CalendarRow(calendar.Key, calendar.Name, store.IsShown(calendar.Key), BrushOf(store.ColourOf(calendar)), calendar.Account, first ? Visibility.Visible : Visibility.Collapsed, store.IsInSwitcher(calendar.Key)); }).ToList();
+        calendarsHeader.Visibility = store.Calendars.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         noCalendarsText.Visibility = store.Calendars.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         noCalendarsText.Text = NoCalendarsReason();
         previousAccount = "";
@@ -81,6 +82,7 @@ public partial class SettingsWindow : Window
         await App.Store.RemoveAccountAsync(email);
     }
     void CalendarShown_Click(object sender, RoutedEventArgs args) { if (sender is CheckBox { Tag: string key } box) App.Store.SetShown(key, box.IsChecked == true); }
+    void CalendarInSwitcher_Click(object sender, RoutedEventArgs args) { if (sender is CheckBox { Tag: string key } box) App.Store.SetInSwitcher(key, box.IsChecked == true); }
     void CalendarColour_Click(object sender, RoutedEventArgs args)
     {
         if (sender is not Button { Tag: string key }) return;

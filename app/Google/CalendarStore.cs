@@ -129,6 +129,14 @@ public sealed class CalendarStore
         await Tasks.SyncAsync();
     }
 
+    public bool IsInSwitcher(string key) => !settings().Sync.OutOfSwitcher.Contains(key);
+    public void SetInSwitcher(string key, bool inSwitcher)
+    {
+        var left = settings().Sync.OutOfSwitcher;
+        if (inSwitcher) left.Remove(key); else if (!left.Contains(key)) left.Add(key);
+        settings().Save(); Changed?.Invoke();
+    }
+
     public void SetShown(string key, bool shown)
     {
         var hidden = settings().Sync.HiddenCalendars;

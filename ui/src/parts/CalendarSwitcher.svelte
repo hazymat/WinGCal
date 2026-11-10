@@ -2,21 +2,23 @@
   import { app, ui, toggleCalendar } from '../state.svelte'
   import { sendToShell } from '../bridge'
   // The quick calendar switcher: calendars grouped by account, click to show or hide (same choice as Settings › Calendars)
-  const accounts = $derived(Array.from(new Set(app.calendars.map(calendar => calendar.account))))
+  // Only the calendars ticked "In switcher" in Settings › Calendars
+  const listed = $derived(app.calendars.filter(calendar => calendar.inSwitcher !== false))
+  const accounts = $derived(Array.from(new Set(listed.map(calendar => calendar.account))))
 </script>
 
 <div class="scrim" role="presentation" onpointerdown={() => ui.switcherOpen = false}></div>
 <div class="switcher" role="dialog" aria-label="Calendars">
   {#each accounts as account}
     <div class="account">{account}</div>
-    {#each app.calendars.filter(calendar => calendar.account === account) as calendar (calendar.key)}
+    {#each listed.filter(calendar => calendar.account === account) as calendar (calendar.key)}
       <button class="calendar" class:off={!calendar.shown} style="--colour: {calendar.colour}" onclick={() => toggleCalendar(calendar.key)} aria-pressed={calendar.shown}>
         <span class="box">{#if calendar.shown}<svg viewBox="0 0 12 12" width="10" height="10"><path d="M2.5 6.2l2.4 2.4 4.6-5" /></svg>{/if}</span>
         <span class="name">{calendar.name}</span>
       </button>
     {/each}
   {/each}
-  {#if accounts.length === 0}<div class="none">No calendars yet</div>{/if}
+  {#if accounts.length === 0}<div class="none">{app.calendars.length ? 'No calendars in the switcher' : 'No calendars yet'}</div>{/if}
   <button class="manage" onclick={() => { ui.switcherOpen = false; sendToShell({ type: 'openSettings', tab: 'Calendars' }) }}>Accounts and calendars…</button>
 </div>
 

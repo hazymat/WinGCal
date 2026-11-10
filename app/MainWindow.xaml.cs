@@ -148,7 +148,7 @@ public partial class MainWindow : Window
     {
         var store = App.Store;
         var accounts = App.Settings.Sync.Accounts.Select(email => store.AccountStates.TryGetValue(email, out var state) ? new { email, lastSync = state.LastSync == DateTime.MinValue ? "" : state.LastSync.ToString("o"), error = state.Error } : new { email, lastSync = "", error = "" });
-        var calendars = store.Calendars.Select(calendar => new { key = calendar.Key, account = calendar.Account, name = calendar.Name, colour = store.ColourOf(calendar), shown = store.IsShown(calendar.Key), primary = calendar.Primary, readOnly = calendar.ReadOnly });
+        var calendars = store.Calendars.Select(calendar => new { key = calendar.Key, account = calendar.Account, name = calendar.Name, colour = store.ColourOf(calendar), shown = store.IsShown(calendar.Key), inSwitcher = store.IsInSwitcher(calendar.Key), primary = calendar.Primary, readOnly = calendar.ReadOnly });
         Push(JsonSerializer.Serialize(new { type = "calendars", accounts, calendars }, camel));
         var showDeclined = App.Settings.View.ShowDeclined;
         Push(JsonSerializer.Serialize(new { type = "events", events = store.EventsByCalendar.Values.SelectMany(list => list).Select(item => new { id = item.Id, calendarKey = item.CalendarKey, title = item.Title, start = item.Start, end = item.End, allDay = item.AllDay, location = item.Location, description = item.Description, meetUrl = item.MeetUrl, recurring = item.Recurring, colour = item.Colour, declined = item.Declined && !showDeclined }) }, camel));
