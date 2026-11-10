@@ -118,6 +118,10 @@ public sealed class EventPopup : Window
         var look = App.Settings.Look;
         var dark = App.MainShell.DarkTheme ? 1 : 0; DwmSetWindowAttribute(handle, 20, ref dark, sizeof(int));
         var corners = 2; DwmSetWindowAttribute(handle, 33, ref corners, sizeof(int));
+        // No Windows caption: its buttons and accent-coloured title bar otherwise show through the glass
+        var style = GetWindowLong(handle, -16); var wantedStyle = style & ~(0x00C00000 | 0x00080000);
+        if (wantedStyle != style) { SetWindowLong(handle, -16, wantedStyle); SetWindowPos(handle, IntPtr.Zero, 0, 0, 0, 0, 0x0027 /*NOMOVE|NOSIZE|NOZORDER|FRAMECHANGED*/); }
+        var captionColour = unchecked((int)0xFFFFFFFE); DwmSetWindowAttribute(handle, 35, ref captionColour, sizeof(int));
         var backdrop = look.IsGlassSkin ? 3 : 1;
         glassOn = look.IsGlassSkin && DwmSetWindowAttribute(handle, 38, ref backdrop, sizeof(int)) == 0;
         var margins = glassOn ? new Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new Margins(); DwmExtendFrameIntoClientArea(handle, ref margins);
@@ -127,5 +131,8 @@ public sealed class EventPopup : Window
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr windowHandle, int attribute, ref int value, int size);
     [DllImport("dwmapi.dll")] static extern int DwmExtendFrameIntoClientArea(IntPtr windowHandle, ref Margins margins);
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
+    [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr windowHandle, int index);
+    [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr windowHandle, int index, int value);
+    [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr windowHandle, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam);
 }
