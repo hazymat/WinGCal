@@ -122,7 +122,7 @@ public partial class MainWindow : Window
     {
         if (!GoogleAuth.HasClient) { App.ShowTip("Google sign-in isn't set up yet", "This build doesn't have WinGCal's Google sign-in key yet. It comes with a later update."); return; }
         signInCancel?.Cancel(); signInCancel = new CancellationTokenSource();
-        try { var email = await App.Store.AddAccountAsync(signInCancel.Token); App.NotifySettingsChanged(); App.ShowTip("Signed in", $"{email} is added. Pick which calendars show from the coloured dots."); }
+        try { var email = await App.Store.AddAccountAsync(signInCancel.Token); App.NotifySettingsChanged(); var syncError = App.Store.AccountStates.TryGetValue(email, out var state) ? state.Error : ""; if (syncError.Length == 0) App.ShowTip("Signed in", $"{email} is added. Pick which calendars show from the coloured dots."); }
         catch (OperationCanceledException) { }
         catch (Exception signInError) { App.ShowTip("Sign-in didn't work", signInError.Message); }
     }

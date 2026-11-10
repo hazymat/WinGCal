@@ -76,6 +76,7 @@ public sealed class GoogleCalendar(GoogleAuth auth)
     static async Task<string> Describe(HttpResponseMessage response)
     {
         var body = await response.Content.ReadAsStringAsync();
+        if (body.Contains("accessNotConfigured") || body.Contains("SERVICE_DISABLED")) return "The Google Calendar API isn't turned on for WinGCal's Google Cloud project (APIs & Services > Library > Google Calendar API > Enable).";
         try { using var document = JsonDocument.Parse(body); return $"Google said {(int)response.StatusCode}: {document.RootElement.GetProperty("error").GetProperty("message").GetString()}"; }
         catch { return $"Google said {(int)response.StatusCode}"; }
     }
