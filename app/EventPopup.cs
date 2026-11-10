@@ -34,18 +34,27 @@ public sealed class EventPopup : Window
         Width = 400; Height = mode == Kind.Batch ? 470 : 540; MinWidth = 320; MinHeight = 300;
         Background = Brushes.Transparent; Content = webView;
         WindowChrome.SetWindowChrome(this, new WindowChrome { CaptionHeight = 0, ResizeBorderThickness = new Thickness(6), GlassFrameThickness = new Thickness(-1), UseAeroCaptionButtons = false, CornerRadius = new CornerRadius(8) });
-        // Opens near the pointer, nudged so a new one doesn't sit exactly on the last
-        var pointer = System.Windows.Forms.Control.MousePosition; var area = System.Windows.Forms.Screen.FromPoint(pointer).WorkingArea;
-        var dpi = VisualTreeHelper.GetDpi(Application.Current.MainWindow ?? this).DpiScaleX;
-        var offset = (openCount++ % 6) * 24;
-        Left = Math.Clamp(pointer.X / dpi + 16 + offset, area.Left / dpi, area.Right / dpi - Width); Top = Math.Clamp(pointer.Y / dpi - 40 + offset, area.Top / dpi, area.Bottom / dpi - Height);
         WindowStartupLocation = WindowStartupLocation.Manual;
-        SourceInitialized += (sender, args) => ApplyGlass();
-        Loaded += async (sender, args) => await StartAsync();
+        SourceInitialized += (sender, args) => { ApplyGlass(); PlaceNearPointer(); };
+        Loaded += async (sender, args) => { PlaceNearPointer(); await StartAsync(); };
         App.Store.Changed += OnStoreChanged;
         Closed += (sender, args) => App.Store.Changed -= OnStoreChanged;
     }
     static int openCount;
+    // Opens near the pointer on the pointer's own monitor, nudged so a new one doesn't sit exactly on the last. Done in screen pixels with that monitor's scale: WPF's Left/Top use the main screen's scale, which lands on the wrong monitor when monitors differ
+    System.Drawing.Point? placedAt; int placedOffset;
+    void PlaceNearPointer()
+    {
+        var handle = new WindowInteropHelper(this).Handle; if (handle == IntPtr.Zero) return;
+        if (placedAt == null) { placedAt = System.Windows.Forms.Control.MousePosition; placedOffset = (openCount++ % 6) * 24; }
+        var pointer = placedAt.Value; var area = System.Windows.Forms.Screen.FromPoint(pointer).WorkingArea;
+        var scale = GetDpiForMonitor(MonitorFromPoint(pointer, 2), 0, out var dpiX, out _) == 0 ? dpiX / 96.0 : 1;
+        int width = (int)(Width * scale), height = (int)(Height * scale), offset = (int)(placedOffset * scale);
+        var left = Math.Clamp(pointer.X + (int)(16 * scale) + offset, area.Left, Math.Max(area.Left, area.Right - width)); var top = Math.Clamp(pointer.Y - (int)(40 * scale) + offset, area.Top, Math.Max(area.Top, area.Bottom - height));
+        SetWindowPos(handle, IntPtr.Zero, left, top, width, height, 0x0014 /*NOZORDER|NOACTIVATE*/);
+    }
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(System.Drawing.Point point, int flags);
+    [DllImport("shcore.dll")] static extern int GetDpiForMonitor(IntPtr monitor, int dpiType, out uint dpiX, out uint dpiY);
 
     async Task StartAsync()
     {
@@ -125,12 +134,21 @@ public sealed class EventPopup : Window
         var backdrop = look.IsGlassSkin ? 3 : 1;
         glassOn = look.IsGlassSkin && DwmSetWindowAttribute(handle, 38, ref backdrop, sizeof(int)) == 0;
         var margins = glassOn ? new Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new Margins(); DwmExtendFrameIntoClientArea(handle, ref margins);
+        // Glass stays when another window is in front (as the calendar, Settings › Appearance › Glass when inactive). Our hook goes in front of WindowChrome's
+        if (HwndSource.FromHwnd(handle) is { } hwndSource) { hwndSource.RemoveHook(KeepGlassHook); hwndSource.AddHook(KeepGlassHook); }
+        if (glassOn && !IsActive) DefWindowProc(handle, 0x0086, look.GlassWhenInactive ? (IntPtr)1 : IntPtr.Zero, (IntPtr)(-1));
         if (HwndSource.FromHwnd(handle)?.CompositionTarget is { } target) target.BackgroundColor = glassOn ? Colors.Transparent : Color.FromRgb(16, 17, 20);
     }
     [StructLayout(LayoutKind.Sequential)] struct Margins { public int Left, Right, Top, Bottom; }
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr windowHandle, int attribute, ref int value, int size);
     [DllImport("dwmapi.dll")] static extern int DwmExtendFrameIntoClientArea(IntPtr windowHandle, ref Margins margins);
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
+    [DllImport("user32.dll")] static extern IntPtr DefWindowProc(IntPtr windowHandle, int messageId, IntPtr wParam, IntPtr lParam);
+    IntPtr KeepGlassHook(IntPtr handle, int messageId, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (messageId == 0x0086 /*WM_NCACTIVATE*/ && wParam == IntPtr.Zero && glassOn && App.Settings.Look.GlassWhenInactive) { handled = true; return DefWindowProc(handle, messageId, (IntPtr)1, (IntPtr)(-1)); } // -1: no native caption painted over ours
+        return IntPtr.Zero;
+    }
     [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr windowHandle, int index);
     [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr windowHandle, int index, int value);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr windowHandle, IntPtr insertAfter, int x, int y, int width, int height, uint flags);

@@ -20,11 +20,13 @@
     const startAt = parseWhen(event.start), endAt = parseWhen(event.end), lastDay = event.allDay ? addDays(endAt, -1) : endAt
     return { title: event.title, allDay: event.allDay, startDate: dayKey(startAt), startTime: event.allDay ? '09:00' : clock(startAt), endDate: dayKey(lastDay), endTime: event.allDay ? '10:00' : clock(endAt), location: event.location ?? '', description: notesOf(event.description), calendarKey: event.calendarKey }
   }
-  let draft = $state<Draft>(fromEvent()), original = $state<Draft>(fromEvent()), saving = $state(false), justSaved = $state(false), confirmingDelete = $state(false), wholeSeries = $state(false)
+  let draft = $state<Draft>(fromEvent()), original = $state<Draft>(fromEvent()), saving = $state(false), confirmingDelete = $state(false), wholeSeries = $state(false)
   const dirty = $derived(JSON.stringify(draft) !== JSON.stringify(original))
   // The event changed elsewhere (sync, another window): follow it unless this one has unsaved edits
   $effect(() => { const fresh = fromEvent(); if (JSON.stringify(fresh) !== JSON.stringify(original) && !dirty) { draft = fresh; original = fromEvent() } })
-  $effect(() => { if (savedAt) { saving = false; original = JSON.parse(JSON.stringify(draft)); justSaved = true; setTimeout(() => justSaved = false, 1600) } })
+  // Save closes the window once Google has the change; Cancel (or Esc) closes it without saving
+  $effect(() => { if (savedAt) { saving = false; original = JSON.parse(JSON.stringify(draft)); closeWindow() } })
+  const closeWindow = () => sendToShell({ type: 'windowControl', action: 'close' })
   $effect(() => { if (problem) saving = false })
   function withOffset(dateText: string, timeText: string) {
     const local = new Date(`${dateText}T${timeText}:00`), minutes = -local.getTimezoneOffset(), sign = minutes >= 0 ? '+' : '-'
@@ -56,13 +58,13 @@
   function onKey(keyEvent: KeyboardEvent) {
     if ((keyEvent.key === 's' && keyEvent.ctrlKey) || (keyEvent.key === 'Enter' && (keyEvent.ctrlKey || !(keyEvent.target as HTMLElement).matches('textarea')))) { keyEvent.preventDefault(); save() }
   }
-  let titleInput: HTMLInputElement | undefined = $state()
+  let titleInput: HTMLTextAreaElement | undefined = $state()
   $effect(() => { if (!event) titleInput?.focus() })
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="form" onkeydown={onKey} style="--colour: {event?.colour || calendar?.colour || '#4f8ef7'}">
-  <div class="title-row"><span class="swatch"></span><input class="title" bind:this={titleInput} bind:value={draft.title} placeholder={event ? 'Title' : 'Add a title'} disabled={readOnly} /></div>
+  <div class="title-row"><span class="swatch"></span><textarea class="title" rows="1" bind:this={titleInput} bind:value={draft.title} placeholder={event ? 'Title' : 'Add a title'} disabled={readOnly} onkeydown={(keyEvent) => { if (keyEvent.key === 'Enter') keyEvent.preventDefault() }}></textarea></div>
   <div class="row quiet"><Icon name="calendar" size={15} />
     {#if event}<span>{calendar?.name}{calendar ? ' · ' + calendar.account : ''}{readOnly ? ' (read only)' : ''}</span>
     {:else}<select bind:value={draft.calendarKey}>{#each writable as option}<option value={option.key}>{option.name} · {option.account}</option>{/each}</select>{/if}
@@ -87,7 +89,7 @@
       {#if event && !readOnly}<button class="ghost icon" onclick={() => confirmingDelete = true} title="Delete"><Icon name="trash" size={16} /></button>{/if}
       {#if event?.link}<a class="more" href={event.link} target="_blank" rel="noreferrer" title="Guests, reminders and the rest">Open in Google</a>{/if}
       <span class="grow"></span>
-      {#if justSaved}<span class="saved"><Icon name="check" size={14} />Saved</span>{/if}
+      <button class="ghost" onclick={closeWindow}>{readOnly ? 'Close' : 'Cancel'}</button>
       {#if !readOnly}<button class="primary" disabled={!!draftProblem || saving || (!!event && !dirty)} onclick={save}>{saving ? 'Saving…' : event ? 'Save' : 'Add event'}</button>{/if}
     </div>
   {/if}
@@ -95,12 +97,12 @@
 
 <style>
   .form { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 16px 14px; }
-  .title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-  .swatch { width: 14px; height: 14px; border-radius: 4px; background: var(--colour); flex: none; }
+  .title-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; background: var(--colour); flex: none; margin-top: 9px; }
   input:not([type="checkbox"]):not([type="radio"]), textarea, select { min-width: 0; background: color-mix(in srgb, var(--fg) 6%, transparent); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font: inherit; font-size: 13px; outline: none; color-scheme: light dark; }
   input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   input:disabled, textarea:disabled { opacity: 0.75; }
-  .title { flex: 1; font-size: 17px !important; font-weight: 650; padding: 7px 10px !important; }
+  .title { flex: 1; font-size: 14px !important; font-weight: 650; line-height: 1.3; padding: 6px 10px !important; resize: none; field-sizing: content; min-height: 0; max-height: 5.4em; overflow-y: auto; } /* wraps rather than cutting long titles off */
   .row { display: flex; align-items: center; gap: 10px; min-height: 30px; font-size: 13px; }
   .row :global(svg) { color: var(--fg-quiet); flex: none; }
   .row input:not([type="checkbox"]), .row select { flex: 1; }
@@ -125,7 +127,6 @@
   .ghost { background: var(--hover); color: var(--fg); }
   .ghost.icon { display: grid; place-items: center; width: 34px; padding: 0; color: var(--fg-quiet); }
   .danger { background: #d9453a; color: white; }
-  .saved { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--fg-quiet); }
   .confirm { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, #d9453a 12%, transparent); font-size: 13px; }
   .confirm label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
   .confirm .buttons { justify-content: flex-end; }

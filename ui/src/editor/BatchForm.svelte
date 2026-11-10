@@ -32,7 +32,7 @@
   {#if targets.length > 1}<label class="row"><input type="checkbox" bind:checked={change.calendar} /><span class="label">Calendar</span><select bind:value={values.calendar} onchange={() => change.calendar = true}>{#each targets as target}<option value={target.key}>{target.name}</option>{/each}</select></label>{/if}
   {#if events.some(event => event.recurring)}<p class="hint">Repeating events change only these occurrences, and can't move to another calendar.</p>{/if}
   {#if problem}<p class="problem">{problem}</p>{/if}
-  <div class="buttons"><button class="primary" disabled={!anything || saving} onclick={apply}>{saving ? 'Changing…' : `Change ${events.length} events`}</button></div>
+  <div class="buttons"><button class="ghost" onclick={() => sendToShell({ type: 'windowControl', action: 'close' })}>Cancel</button><button class="primary" disabled={!anything || saving} onclick={apply}>{saving ? 'Changing…' : `Change ${events.length} events`}</button></div>
 </div>
 
 <style>
@@ -47,7 +47,8 @@
   .row input:focus, .row select:focus { border-color: var(--accent); }
   .hint { margin: -2px 0 4px 99px; font-size: 11.5px; color: var(--fg-quiet); }
   .problem { color: var(--danger, #e5534b); font-size: 12px; }
-  .buttons { display: flex; justify-content: flex-end; margin-top: 10px; }
+  .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+  .ghost { background: var(--hover); color: var(--fg); }
   button { height: 32px; padding: 0 16px; border: 0; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: var(--accent); color: white; }
   button:disabled { opacity: 0.45; cursor: default; }
 </style>
