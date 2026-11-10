@@ -72,10 +72,10 @@
     <div class="body" style="--days: {dayCount}; height: {hourHeight * 24}px">
       <div class="hours">{#each Array.from({ length: 24 }, (unused, hour) => hour) as hour}<div class="hour" style="top: {hour * hourHeight}px">{hour ? formatHour(hour) : ''}</div>{/each}</div>
       {#each days as day}
-        <div class="column" class:today={sameDay(day, today)}>
+        <div class="column" data-newday={dayKey(day)} data-hour-height={hourHeight} class:today={sameDay(day, today)}>
           {#each layout(day) as item (item.event.id)}
             {@const height = Math.max(18, (item.bottom - item.top) / 60 * hourHeight - 2)}
-            <button class="event" class:short={height < 36} class:past={item.event.endAt < now} style="--colour: {item.event.colourShown}; top: {item.top / 60 * hourHeight + 1}px; height: {height}px; left: calc({item.column} * 100% / {item.columns} + 2px); width: calc(100% / {item.columns} - 4px)" class:picked={ui.picked.includes(item.event.id)} onclick={(clickEvent) => onpick(item.event, clickEvent.currentTarget)}>
+            <button class="event" class:short={height < 36} class:past={item.event.endAt < now} style="--colour: {item.event.colourShown}; top: {item.top / 60 * hourHeight + 1}px; height: {height}px; left: calc({item.column} * 100% / {item.columns} + 2px); width: calc(100% / {item.columns} - 4px)" class:picked={ui.picked.includes(item.event.id)} data-event={item.event.id} onclick={(clickEvent) => onpick(item.event, clickEvent.currentTarget)}>
               <span class="title">{item.event.title}</span><span class="time">{formatTime(item.event.startAt)}{height >= 36 ? ' – ' + formatTime(item.event.endAt) : ''}</span>
             </button>
           {/each}

@@ -29,7 +29,7 @@
   <div class="list" bind:this={list} onscroll={onListScroll}>
     {#each days as { day, list }, index (day.getTime())}
       {#if index === 0 || day.getDate() === 1 || days[index - 1].day.getMonth() !== day.getMonth()}{#if index > 0}<div class="month-break">{monthName(day)}</div>{/if}{/if}
-      <section class="day" class:today={sameDay(day, today)} data-day={dayKey(day)}>
+      <section class="day" class:today={sameDay(day, today)} data-day={dayKey(day)} data-newday={dayKey(day)}>
         <div class="when"><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</span></div>
         <div class="items">
           {#if list.length === 0}<div class="empty">{sameDay(day, today) ? 'Nothing on today' : 'Nothing on ' + shortDate(day)}</div>{/if}

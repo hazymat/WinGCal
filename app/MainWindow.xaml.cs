@@ -60,7 +60,7 @@ public partial class MainWindow : Window
 
     async Task InitWebViewAsync()
     {
-        var environment = await CoreWebView2Environment.CreateAsync(null, Path.Combine(AppPaths.DataFolder, "WebView2"));
+        var environment = await WebEnvironment();
         await webView.EnsureCoreWebView2Async(environment);
         webView.DefaultBackgroundColor = glassActive || App.Settings.Look.Frameless ? System.Drawing.Color.Transparent : System.Drawing.Color.FromArgb(16, 17, 20);
         webView.CoreWebView2.SetVirtualHostNameToFolderMapping(uiHost, Path.Combine(AppContext.BaseDirectory, "wwwroot"), CoreWebView2HostResourceAccessKind.DenyCors);
@@ -82,6 +82,14 @@ public partial class MainWindow : Window
     void Push(string messageJson) { if (webViewReady) Dispatcher.BeginInvoke(() => webView.CoreWebView2?.PostWebMessageAsJson(messageJson)); }
     void Reply(JsonElement message, object? data) { if (message.TryGetProperty("requestId", out var requestId)) Push($"{{\"type\":\"result\",\"id\":{requestId.GetInt64()},\"data\":{JsonSerializer.Serialize(data, camel)}}}"); }
     static string Text(JsonElement message, string name) => message.TryGetProperty(name, out var value) ? value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : value.GetRawText() : "";
+    // One WebView2 environment for the calendar and its glass event windows (they share one browser process)
+    static Task<CoreWebView2Environment>? webEnvironment;
+    public static Task<CoreWebView2Environment> WebEnvironment() => webEnvironment ??= CoreWebView2Environment.CreateAsync(null, Path.Combine(AppPaths.DataFolder, "WebView2"));
+    public const string UiHost = uiHost;
+    public bool DarkTheme => darkTheme;
+    public string PrefsMessage() { var culture = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat;         var view = App.Settings.View; return JsonSerializer.Serialize(new { type = "prefs", weekStart = view.WeekStart >= 0 ? view.WeekStart : (int)culture.FirstDayOfWeek, hour12 = view.Clock == "auto" ? culture.ShortTimePattern.Contains('h') : view.Clock == "12" }); }
+    public string SkinMessage() => JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint, panelGrain = App.Settings.Look.PanelGrain });
+    public static void OpenLink(string url) => OpenUrl(url);
     static void OpenUrl(string url) { if (url.StartsWith("https://") || url.StartsWith("http://") || url.StartsWith("mailto:")) Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
 
     async Task OnUiMessageAsync(string messageJson)
@@ -100,10 +108,10 @@ public partial class MainWindow : Window
                 case "showCalendar": App.Store.SetShown(Text(message, "key"), message.GetProperty("shown").GetBoolean()); App.NotifySettingsChanged(); break;
                 case "setPinned": App.Settings.Window.Pinned = message.GetProperty("on").GetBoolean(); App.Settings.Save(); ApplyPinned(); App.NotifySettingsChanged(); break;
                 case "editEvent": if (App.Store.FindEvent(Text(message, "id")) is { Link.Length: > 0 } toEdit) OpenUrl(toEdit.Link); break; // "More in Google Calendar": guests, reminders and the rest
-                case "openEditor": App.OpenEventEditor(Text(message, "id"), Text(message, "focus")); break;
-                case "deleteEvent": await DeleteEventAsync(Text(message, "id")); break;
+                case "openEditor": App.OpenEventEditor(Text(message, "id")); break;
+                case "newEvent": App.OpenNewEvent(Text(message, "day"), Text(message, "time")); break;
                 case "batchEdit": App.OpenBatchEditor(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList()); break;
-                case "deleteEvents": await DeleteEventsAsync(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList()); break;
+                case "deleteEvents": await DeleteEventsAsync(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList(), message.TryGetProperty("series", out var series) && series.GetBoolean()); break;
                 case "taskDone": await TaskActionAsync(() => App.Store.Tasks.SetCompletedAsync(Text(message, "id"), message.GetProperty("done").GetBoolean())); break;
                 case "taskAdd": await TaskActionAsync(() => App.Store.Tasks.AddAsync(Text(message, "listKey"), Text(message, "title"))); break;
                 case "taskDelete": await TaskActionAsync(() => App.Store.Tasks.DeleteAsync(Text(message, "id"))); break;
@@ -132,21 +140,13 @@ public partial class MainWindow : Window
         catch (Exception signInError) { App.ShowTip("Sign-in didn't work", signInError.Message); }
     }
 
-    async Task DeleteEventAsync(string uiEventId)
-    {
-        if (App.Store.FindEvent(uiEventId) is not { } toDelete) return;
-        if (MessageBox.Show(this, $"Delete “{toDelete.Title}”{(toDelete.Recurring ? " (this one only)" : "")}?", "WinGCal", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
-        try { await App.Store.DeleteEventAsync(uiEventId); }
-        catch (Exception deleteError) { App.ShowTip("Couldn't delete it", deleteError.Message); }
-    }
-
-    async Task DeleteEventsAsync(List<string> uiEventIds)
+    // The page asks first (a glass dialog with the repeat choice); this only deletes
+    async Task DeleteEventsAsync(List<string> uiEventIds, bool wholeSeries)
     {
         var toDelete = uiEventIds.Select(id => App.Store.FindEvent(id)).Where(found => found != null).Select(found => found!).ToList();
         if (toDelete.Count == 0) return;
-        if (MessageBox.Show(this, toDelete.Count == 1 ? $"Delete “{toDelete[0].Title}”?" : $"Delete these {toDelete.Count} events?\n\n" + string.Join("\n", toDelete.Take(8).Select(found => "• " + found.Title)) + (toDelete.Count > 8 ? $"\n…and {toDelete.Count - 8} more" : "") + (toDelete.Any(found => found.Recurring) ? "\n\nRepeating events: only these occurrences." : ""), "WinGCal", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
         var failed = new List<string>();
-        foreach (var found in toDelete) { try { await App.Store.DeleteEventAsync(found.Id); } catch (Exception deleteError) { failed.Add($"{found.Title}: {deleteError.Message}"); } }
+        foreach (var found in toDelete) { try { await App.Store.DeleteEventAsync(found.Id, wholeSeries); } catch (Exception deleteError) { failed.Add($"{found.Title}: {deleteError.Message}"); } }
         if (failed.Count > 0) App.ShowTip(failed.Count == 1 ? "Couldn't delete one event" : $"Couldn't delete {failed.Count} events", string.Join(" ", failed));
     }
 
@@ -172,9 +172,7 @@ public partial class MainWindow : Window
 
     public void PushPrefs()
     {
-        var culture = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat;
-        var view = App.Settings.View;
-        Push(JsonSerializer.Serialize(new { type = "prefs", weekStart = view.WeekStart >= 0 ? view.WeekStart : (int)culture.FirstDayOfWeek, hour12 = view.Clock == "auto" ? culture.ShortTimePattern.Contains('h') : view.Clock == "12" }));
+        Push(PrefsMessage());
         PushCalendars();
     }
 
@@ -199,7 +197,7 @@ public partial class MainWindow : Window
     }
     void PushWallpaperOff() { wallpaperPicture = null; pageWallpaper = ""; Push(JsonSerializer.Serialize(new { type = "wallpaper", off = true })); }
 
-    public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint, panelGrain = App.Settings.Look.PanelGrain }));
+    public void PushSkin() { Push(SkinMessage()); App.PushSkinToPopups(); }
     bool clearActive;
     void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, clear = clearActive, frameless = App.Settings.Look.Frameless, maximised = WindowState == WindowState.Maximized, pinned = App.Settings.Window.Pinned }));
 

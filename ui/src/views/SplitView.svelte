@@ -53,7 +53,7 @@
   <div class="month" style="width: {monthWidth}px" onwheel={onMonthWheel}>
     {#each gridDays.slice(0, 7) as day}<span class="weekday" class:weekend={isWeekend(day)}>{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
     {#each gridDays as day (day.getTime())}
-      <button class="cell" class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:other={day.getMonth() !== monthStart.getMonth()} class:today={sameDay(day, today)} class:selected={sameDay(day, ui.focus)} onclick={() => pickDay(day)}>
+      <button class="cell" data-newday={dayKey(day)} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:other={day.getMonth() !== monthStart.getMonth()} class:today={sameDay(day, today)} class:selected={sameDay(day, ui.focus)} onclick={() => pickDay(day)}>
         <span class="number">{day.getDate()}</span>{#if sameDay(day, today) || sameDay(day, ui.focus)}<HandCircle seed={dayKey(day)} />{/if}<span class="dots">{#each dots(day) as colour}<i style="background: {colour}"></i>{/each}</span>
       </button>
     {/each}
@@ -61,7 +61,7 @@
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="days" bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={() => userScrolling = true} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
     {#each listDays.filter(entry => entry.list.length > 0 || sameDay(entry.day, today) || sameDay(entry.day, ui.focus)) as { day, list: dayEvents } (day.getTime())}
-      <section data-day={dayKey(day)} class:today={sameDay(day, today)}>
+      <section data-day={dayKey(day)} data-newday={dayKey(day)} class:today={sameDay(day, today)}>
         <h3>{dayLabel(day)}</h3>
         <div class="day-items" class:two={listWidth >= 480 && dayEvents.length > 1}>
         {#if dayEvents.length === 0}<div class="empty">Nothing on</div>{/if}

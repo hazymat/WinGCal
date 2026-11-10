@@ -28,7 +28,7 @@
   <div class="grid" bind:clientHeight={gridHeight}>
     {#each days as day (day.getTime())}
       {@const list = dayEvents(day)}
-      <div class="day" class:other={day.getMonth() !== firstOfMonth.getMonth()} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:today={sameDay(day, today)}>
+      <div class="day" data-newday={dayKey(day)} class:other={day.getMonth() !== firstOfMonth.getMonth()} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:today={sameDay(day, today)}>
         <button class="number" onclick={() => { ui.focus = day; ui.view = 'week' }} title="Open this week">{day.getDate() === 1 ? day.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</button>
         {#each list.shown as event (event.id)}
           {#if event.allDay}

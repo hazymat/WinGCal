@@ -8,7 +8,6 @@
   import WeekView from './views/WeekView.svelte'
   import AgendaView from './views/AgendaView.svelte'
   import SplitView from './views/SplitView.svelte'
-  import EventCard from './parts/EventCard.svelte'
   import CalendarSwitcher from './parts/CalendarSwitcher.svelte'
   import ResizeEdges from './parts/ResizeEdges.svelte'
   import Icon from './parts/Icon.svelte'
@@ -18,6 +17,7 @@
   import SelectionBar from './parts/SelectionBar.svelte'
   import WallpaperFrost from './parts/WallpaperFrost.svelte'
   import MoreMenu from './parts/MoreMenu.svelte'
+  import ConfirmDelete from './parts/ConfirmDelete.svelte'
 
   // ---- From the shell ----
   onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
@@ -122,7 +122,7 @@
     if (heldId === event.id) { heldId = ''; return } // the click that ends a press and hold
     // While events are picked, a click adds or removes one (× or Esc ends picking)
     if (ui.picked.length > 0) { ui.picked = ui.picked.includes(event.id) ? ui.picked.filter(id => id !== event.id) : ui.picked.concat(event.id); return }
-    openCard(event, target)
+    sendToShell({ type: 'openEditor', id: event.id }) // its own glass window (SPEC.md › Event windows)
   }
   // Press and hold an event to start picking several (SPEC.md › Multi-select); moving the pointer (scrolling) cancels it
   let holdTimer = 0, heldId = '', holdStart = { x: 0, y: 0 }
@@ -135,7 +135,15 @@
     holdTimer = setTimeout(() => { const id = element.dataset.event!; heldId = id; ui.selectedEvent = null; if (!ui.picked.includes(id)) ui.picked = ui.picked.concat(id) }, 450)
   }
   function moveHold(pointer: PointerEvent) { if (holdTimer && Math.hypot(pointer.clientX - holdStart.x, pointer.clientY - holdStart.y) > 6) { clearTimeout(holdTimer); holdTimer = 0 } }
-  function openCard(event: Placed, target: HTMLElement) { const box = target.getBoundingClientRect(); ui.selectedEvent = { event, left: box.right + 6 > innerWidth - 340 ? box.left - 346 : box.right + 6, top: box.top - 10 } }
+  // Double-click an empty spot of a day: a new event that day (all day), or at that time in Week
+  function newEventAt(pointer: MouseEvent) {
+    const target = pointer.target as HTMLElement
+    if (target.closest('[data-event], .strip, .selection-bar')) return
+    const cell = target.closest<HTMLElement>('[data-newday]'); if (!cell) return
+    let time = ''
+    if (cell.dataset.hourHeight) { const minutes = Math.min(1425, Math.max(0, Math.floor((pointer.clientY - cell.getBoundingClientRect().top) / Number(cell.dataset.hourHeight) * 4) * 15)); time = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}` }
+    sendToShell({ type: 'newEvent', day: cell.dataset.newday, time })
+  }
   function onKey(event: KeyboardEvent) {
     if ((event.target as HTMLElement).closest('input, textarea')) return
     if (event.key === 'Escape') { ui.selectedEvent = null; ui.picked = []; ui.switcherOpen = false; tasksOverlay = false }
@@ -148,7 +156,7 @@
   }
 </script>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} onpointerdowncapture={startHold} onpointermove={moveHold} onpointerup={() => { clearTimeout(holdTimer); holdTimer = 0 }} />
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} ondblclick={newEventAt} onpointerdowncapture={startHold} onpointermove={moveHold} onpointerup={() => { clearTimeout(holdTimer); holdTimer = 0 }} />
 
 <WallpaperFrost />
 <div class="shell" class:pinned={app.window.pinned}>
@@ -208,11 +216,11 @@
   {#if tasksOverlay && !tasksColumn && app.tasks.enabled}<TasksPanel overlay onclose={() => tasksOverlay = false} />{/if}
   {#if ui.hint}<div class="hint" role="status">{#if app.window.pinned}<Icon name="lock" size={14} />{/if}{ui.hint}</div>{/if}
   {#if ui.switcherOpen}<CalendarSwitcher />{/if}
-  {#if ui.selectedEvent}<EventCard />{/if}
 </div>
 
 <WhatsNew />
 <SelectionBar />
+<ConfirmDelete />
 
 <style>
   .shell { position: relative; display: flex; flex-direction: column; height: 100vh; }

@@ -8,7 +8,7 @@ namespace WinGCal.Google;
 
 public record CalendarInfo(string Key, string Account, string Id, string Name, string Colour, bool Primary, bool ReadOnly, string TimeZone, bool SelectedInGoogle);
 // One event as the window draws it (SPEC.md › Calendar views); the full Google resource is only kept for export
-public record UiEvent(string Id, string EventId, string CalendarKey, string Title, string Start, string End, bool AllDay, string Location, string Description, string MeetUrl, bool Recurring, string Colour, bool Declined, string Link);
+public record UiEvent(string Id, string EventId, string CalendarKey, string Title, string Start, string End, bool AllDay, string Location, string Description, string MeetUrl, bool Recurring, string Colour, bool Declined, string Link, string RecurringId = "");
 public record AccountState(string Email, DateTime LastSync, string Error);
 
 // The accounts' calendars and events within the sync range, refreshed in the background and cached on disk so the widget opens instantly offline
@@ -160,13 +160,15 @@ public sealed class CalendarStore
         settings().Save(); Changed?.Invoke();
     }
 
-    public async Task DeleteEventAsync(string uiEventId)
+    // wholeSeries: a repeating event's whole series goes (Google deletes the series' main event), else only this occurrence
+    public async Task DeleteEventAsync(string uiEventId, bool wholeSeries = false)
     {
         var found = EventsByCalendar.SelectMany(pair => pair.Value).FirstOrDefault(item => item.Id == uiEventId);
         var calendar = found == null ? null : Calendars.FirstOrDefault(candidate => candidate.Key == found.CalendarKey);
         if (found == null || calendar == null) return;
-        await Api.DeleteEventAsync(calendar.Account, calendar.Id, found.EventId, CancellationToken.None);
-        EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Where(item => item.Id != uiEventId).ToList();
+        var series = wholeSeries && found.RecurringId.Length > 0 ? found.RecurringId : "";
+        await Api.DeleteEventAsync(calendar.Account, calendar.Id, series.Length > 0 ? series : found.EventId, CancellationToken.None);
+        EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Where(item => item.Id != uiEventId && (series.Length == 0 || item.RecurringId != series)).ToList();
         SaveCache(); Changed?.Invoke();
     }
 
@@ -179,6 +181,16 @@ public sealed class CalendarStore
         var updated = ToUiEvent(calendar, saved);
         EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Select(item => item.Id == uiEventId ? updated : item).Where(item => item != null).Select(item => item!).ToList();
         SaveCache(); Changed?.Invoke();
+    }
+
+    public async Task<UiEvent?> CreateEventAsync(string calendarKey, System.Text.Json.Nodes.JsonObject newEvent)
+    {
+        var calendar = Calendars.FirstOrDefault(candidate => candidate.Key == calendarKey) ?? throw new InvalidOperationException("That calendar isn't available");
+        var saved = await Api.InsertEventAsync(calendar.Account, calendar.Id, newEvent, CancellationToken.None);
+        var created = ToUiEvent(calendar, saved);
+        if (created != null) EventsByCalendar[calendar.Key] = EventsByCalendar.GetValueOrDefault(calendar.Key, new()).Append(created).ToList();
+        SaveCache(); Changed?.Invoke();
+        return created;
     }
 
     public async Task MoveEventAsync(string uiEventId, string destinationKey)
@@ -215,7 +227,7 @@ public sealed class CalendarStore
         var declined = item.TryGetProperty("attendees", out var attendees) && attendees.EnumerateArray().Any(attendee => attendee.TryGetProperty("self", out var self) && self.GetBoolean() && Text(attendee, "responseStatus") == "declined");
         var colourId = int.TryParse(Text(item, "colorId"), out var colourNumber) && colourNumber > 0 && colourNumber < eventColours.Length ? eventColours[colourNumber] : "";
         var eventId = Text(item, "id");
-        return new UiEvent($"{calendar.Key}|{eventId}", eventId, calendar.Key, Text(item, "summary") is { Length: > 0 } title ? title : "(No title)", startText, endText, allDay, Text(item, "location"), Text(item, "description"), meetUrl, item.TryGetProperty("recurringEventId", out _), colourId, declined, Text(item, "htmlLink"));
+        return new UiEvent($"{calendar.Key}|{eventId}", eventId, calendar.Key, Text(item, "summary") is { Length: > 0 } title ? title : "(No title)", startText, endText, allDay, Text(item, "location"), Text(item, "description"), meetUrl, item.TryGetProperty("recurringEventId", out _), colourId, declined, Text(item, "htmlLink"), Text(item, "recurringEventId"));
     }
 
     static string Text(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";

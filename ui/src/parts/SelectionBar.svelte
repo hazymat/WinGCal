@@ -11,7 +11,7 @@
     navigator.clipboard?.writeText(chosen.map(event => `${weekdayShort(event.startAt)} ${shortDate(event.startAt)}${event.allDay ? '' : ' ' + formatTime(event.startAt) + ' – ' + formatTime(event.endAt)}  ${event.title}`).join('\n'))
     copied = true; setTimeout(() => copied = false, 1400)
   }
-  function remove() { sendToShell({ type: 'deleteEvents', ids: ui.picked.slice() }); ui.picked = [] }
+  function remove() { ui.confirmDelete = ui.picked.slice() }
 </script>
 
 {#if count > 0}
