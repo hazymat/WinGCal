@@ -340,7 +340,8 @@ public partial class MainWindow : Window
     {
         if (App.IsQuitting) return;
         closingArgs.Cancel = true;
-        if (!App.Settings.General.CloseToTray || !App.Settings.General.ShowTrayIcon) { Dispatcher.BeginInvoke(() => App.Quit()); return; } // after this Closing: Close() inside it throws
+        if (!App.Settings.General.CloseToTray || (!App.Settings.General.ShowTrayIcon && App.Settings.Window.Pinned)) { Dispatcher.BeginInvoke(() => App.Quit()); return; } // after this Closing: Close() inside it throws
+        if (!App.Settings.General.ShowTrayIcon) { WindowState = WindowState.Minimized; return; } // no tray icon: keeps running on the taskbar
         SavePlacement(); App.Settings.Save(); HideToTray();
         if (!App.Settings.General.CloseToTrayTipShown) { App.ShowTip("WinGCal is still running", "Closing the window hides it to the tray. Quit from the tray menu."); App.Settings.General.CloseToTrayTipShown = true; App.Settings.Save(); }
     }

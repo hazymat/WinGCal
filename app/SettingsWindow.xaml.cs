@@ -234,7 +234,7 @@ public partial class SettingsWindow : Window
         startWithWindowsBox.IsChecked = Settings.General.StartWithWindows; startWithWindowsBox.IsEnabled = !AppPaths.IsPortable;
         startWithWindowsBox.Click += (sender, args) => { Settings.General.StartWithWindows = startWithWindowsBox.IsChecked == true; Settings.Save(); try { StartupRegistration.Apply(Settings.General.StartWithWindows); } catch { } };
         var general = Settings.General;
-        void ShowTrayChoices() { trayIconBox.IsChecked = general.ShowTrayIcon; startMinimisedBox.IsChecked = general.StartMinimised; closeToTrayBox.IsChecked = general.CloseToTray; startMinimisedBox.IsEnabled = closeToTrayBox.IsEnabled = general.ShowTrayIcon; }
+        void ShowTrayChoices() { trayIconBox.IsChecked = general.ShowTrayIcon; startMinimisedBox.IsChecked = general.StartMinimised; closeToTrayBox.IsChecked = general.CloseToTray; var place = general.ShowTrayIcon ? "tray" : "taskbar"; startMinimisedBox.Content = general.ShowTrayIcon ? "Start hidden in the tray" : "Start minimised to the taskbar"; closeToTrayBox.Content = $"Close (X) keeps WinGCal running in the {place} (otherwise it quits)"; }
         ShowTrayChoices();
         trayIconBox.Click += (sender, args) => { general.ShowTrayIcon = trayIconBox.IsChecked == true; Settings.Save(); App.ApplyTray(); ShowTrayChoices(); };
         startMinimisedBox.Click += (sender, args) => { general.StartMinimised = startMinimisedBox.IsChecked == true; Settings.Save(); };

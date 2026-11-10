@@ -35,7 +35,9 @@ public partial class App : Application
         Store = new CalendarStore(() => Settings);
         mainWindow = new MainWindow();
         ApplyTray();
-        if (Settings.General.StartMinimised && Settings.General.ShowTrayIcon) mainWindow.EnsureHandle(); else mainWindow.Show(); // start hidden in the tray
+        // Start hidden in the tray, or with no tray icon minimised to the taskbar (a pinned widget has no taskbar button, so it just shows)
+        if (Settings.General.StartMinimised && Settings.General.ShowTrayIcon) mainWindow.EnsureHandle();
+        else { if (Settings.General.StartMinimised && !Settings.Window.Pinned) mainWindow.WindowState = WindowState.Minimized; mainWindow.Show(); }
         Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         Updater.Start();
         versionBeforeThisRun = Settings.General.LastRunVersion;
