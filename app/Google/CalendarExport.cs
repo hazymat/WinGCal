@@ -17,7 +17,7 @@ public static class CalendarExport
         await using (var writer = new Utf8JsonWriter(file, new JsonWriterOptions { Indented = true }))
         {
             writer.WriteStartObject();
-            writer.WriteString("format", "wingcal-export"); writer.WriteNumber("version", 1); writer.WriteString("exportedAt", DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")); writer.WriteString("app", "WinGCal " + appVersion);
+            writer.WriteString("format", "wingcal-export"); writer.WriteNumber("version", 1); writer.WriteString("exportedAt", DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture)); writer.WriteString("app", "WinGCal " + appVersion);
             writer.WriteStartArray("accounts");
             foreach (var (email, calendars) in lists)
             {
