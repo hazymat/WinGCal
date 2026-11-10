@@ -58,12 +58,14 @@
   function onKey(keyEvent: KeyboardEvent) {
     if ((keyEvent.key === 's' && keyEvent.ctrlKey) || (keyEvent.key === 'Enter' && (keyEvent.ctrlKey || !(keyEvent.target as HTMLElement).matches('textarea')))) { keyEvent.preventDefault(); save() }
   }
-  let titleInput: HTMLTextAreaElement | undefined = $state()
+  let titleInput: HTMLTextAreaElement | undefined = $state(), form: HTMLDivElement | undefined = $state()
+  // The delete question grows the window by whatever no longer fits, rather than leaving it to scroll
+  $effect(() => { if (!confirmingDelete || !form) return; requestAnimationFrame(() => { if (!form) return; const overflow = form.scrollHeight - form.clientHeight; if (overflow > 0) sendToShell({ type: 'growWindow', by: overflow }) }) })
   $effect(() => { if (!event) titleInput?.focus() })
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="form" onkeydown={onKey} style="--colour: {event?.colour || calendar?.colour || '#4f8ef7'}">
+<div class="form" bind:this={form} onkeydown={onKey} style="--colour: {event?.colour || calendar?.colour || '#4f8ef7'}">
   <div class="title-row"><span class="swatch"></span><textarea class="title" rows="1" bind:this={titleInput} bind:value={draft.title} placeholder={event ? 'Title' : 'Add a title'} disabled={readOnly} onkeydown={(keyEvent) => { if (keyEvent.key === 'Enter') keyEvent.preventDefault() }}></textarea></div>
   <div class="row quiet"><Icon name="calendar" size={15} />
     {#if event}<span>{calendar?.name}{calendar ? ' · ' + calendar.account : ''}{readOnly ? ' (read only)' : ''}</span>

@@ -95,6 +95,10 @@ public sealed class EventPopup : Window
                 case "ready": ready = true; PushSkin(); Push(App.MainShell.PrefsMessage()); PushContent(); break;
                 case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1, (IntPtr)2, IntPtr.Zero); break;
                 case "windowControl": if (Text(message, "action") == "minimise") WindowState = WindowState.Minimized; else Close(); break;
+                case "growWindow":
+                    // Taller by what the page asks for, up to the screen; moves up if the bottom would run off
+                    if (message.TryGetProperty("by", out var growBy) && growBy.TryGetDouble(out var extra)) { var screen = System.Windows.Forms.Screen.FromHandle(new WindowInteropHelper(this).Handle).WorkingArea; var scale = VisualTreeHelper.GetDpi(this).DpiScaleY; double bottom = screen.Bottom / scale, top = screen.Top / scale; Height = Math.Min(Height + extra + 4, bottom - top); if (Top + Height > bottom) Top = Math.Max(top, bottom - Height); }
+                    break;
                 case "openUrl": MainWindow.OpenLink(Text(message, "url")); break;
                 case "saveEvent": await App.Store.UpdateEventAsync(EventId, EventChanges.FromMessage(message)); Push("{\"type\":\"saved\"}"); break;
                 case "createEvent":
