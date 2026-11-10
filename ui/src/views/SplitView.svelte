@@ -1,4 +1,5 @@
 <script lang="ts">
+  import HandCircle from '../parts/HandCircle.svelte'
   import { ui, eventsOn, type Placed } from '../state.svelte'
   import { addDays, addMonths, sameDay, startOfDay, startOfWeek, prefs, formatTime, dayKey, weekdayShort, shortDate } from '../lib/dates'
   import Icon from '../parts/Icon.svelte'
@@ -51,7 +52,7 @@
     {#each gridDays.slice(0, 7) as day}<span class="weekday" class:weekend={isWeekend(day)}>{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
     {#each gridDays as day (day.getTime())}
       <button class="cell" class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:other={day.getMonth() !== monthStart.getMonth()} class:today={sameDay(day, today)} class:selected={sameDay(day, ui.focus)} onclick={() => pickDay(day)}>
-        <span class="number">{day.getDate()}</span><span class="dots">{#each dots(day) as colour}<i style="background: {colour}"></i>{/each}</span>
+        <span class="number">{day.getDate()}</span>{#if sameDay(day, today) || sameDay(day, ui.focus)}<HandCircle seed={dayKey(day)} />{/if}<span class="dots">{#each dots(day) as colour}<i style="background: {colour}"></i>{/each}</span>
       </button>
     {/each}
   </div>

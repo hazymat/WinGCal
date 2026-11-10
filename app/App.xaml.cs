@@ -18,6 +18,7 @@ public partial class App : Application
     MainWindow mainWindow = null!;
     SettingsWindow? settingsWindow;
     Mutex? singleInstanceMutex;
+    TrayIcon? trayIcon;
 
     protected override void OnStartup(StartupEventArgs startupArgs)
     {
@@ -33,7 +34,10 @@ public partial class App : Application
         try { StartupRegistration.Apply(Settings.General.StartWithWindows && !AppPaths.IsPortable); } catch { }
         Store = new CalendarStore(() => Settings);
         mainWindow = new MainWindow();
-        mainWindow.Show();
+        ApplyTray();
+        // Start hidden in the tray, or with no tray icon minimised to the taskbar (a pinned widget has no taskbar button, so it just shows)
+        if (Settings.General.StartMinimised && Settings.General.ShowTrayIcon) mainWindow.EnsureHandle();
+        else { if (Settings.General.StartMinimised && !Settings.Window.Pinned) mainWindow.WindowState = WindowState.Minimized; mainWindow.Show(); }
         Updater.Changed += () => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke());
         Updater.Start();
         versionBeforeThisRun = Settings.General.LastRunVersion;
@@ -84,9 +88,20 @@ public partial class App : Application
     public void ForgetSetup(string key) => mainWindow.ForgetSetup(key);
     public string CurrentSetupKey => mainWindow.CurrentSetupKey;
     public void NotifySettingsChanged() => SettingsChanged?.Invoke();
-    public void ShowMainWindow() { if (IsQuitting) return; mainWindow.Show(); if (mainWindow.WindowState == WindowState.Minimized) mainWindow.WindowState = WindowState.Normal; mainWindow.Activate(); }
-    // No tray: tips show as a message in the window
-    public void ShowTip(string title, string text) => Tip?.Invoke(title, text);
+    public void ShowMainWindow() { if (!IsQuitting) mainWindow.ShowFromTray(); }
+
+    // ---- Tray (SPEC.md › Window › Tray) ----
+    public void ApplyTray()
+    {
+        if (Settings.General.ShowTrayIcon && trayIcon == null) trayIcon = new TrayIcon();
+        if (!Settings.General.ShowTrayIcon && trayIcon != null) { trayIcon.Dispose(); trayIcon = null; if (!mainWindow.IsVisible) ShowMainWindow(); } // no icon: never leave it hidden
+    }
+    public bool MainWindowShowing => mainWindow.IsVisible;
+    public void ToggleMainWindow() { if (mainWindow.IsVisible && mainWindow.IsActive || mainWindow.IsVisible && Settings.Window.Pinned) mainWindow.HideToTray(); else ShowMainWindow(); }
+    public void SetPinned(bool pinned) { Settings.Window.Pinned = pinned; Settings.Save(); ShowMainWindow(); mainWindow.ApplyPinned(); NotifySettingsChanged(); }
+    public void SetSkin(string skin) { Settings.Look.Skin = skin; Settings.Save(); ApplySkin(); ApplyWindowStyle(); NotifySettingsChanged(); }
+    // Tips show in the window, or from the tray while the window is hidden
+    public void ShowTip(string title, string text) { if (trayIcon != null && !mainWindow.IsVisible) trayIcon.ShowTip(title, text); else Tip?.Invoke(title, text); }
 
     public void OpenSettings(string tabName = "")
     {
@@ -100,7 +115,7 @@ public partial class App : Application
         if (IsQuitting) return;
         if (Exporting && MessageBox.Show("An export is in progress. Quit anyway? The file won't be finished.", "WinGCal", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
         IsQuitting = true;
-        try { mainWindow.SavePlacement(); Settings.Save(); settingsWindow?.Close(); if (!windowClosing) mainWindow.Close(); }
+        try { mainWindow.SavePlacement(); Settings.Save(); settingsWindow?.Close(); trayIcon?.Dispose(); trayIcon = null; if (!windowClosing) mainWindow.Close(); }
         catch (Exception quitError) { CrashReporter.Write("While quitting", quitError, false); }
         finally { Shutdown(); }
     }

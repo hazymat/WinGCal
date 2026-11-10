@@ -1,6 +1,8 @@
 <script lang="ts">
+  import HandCircle from '../parts/HandCircle.svelte'
+  import HandArrow from '../parts/HandArrow.svelte'
   import { ui, eventsOn, type Placed } from '../state.svelte'
-  import { addDays, sameDay, startOfDay, startOfWeek, formatTime, weekdayShort, prefs, dayMs } from '../lib/dates'
+  import { addDays, sameDay, startOfDay, startOfWeek, formatTime, weekdayShort, prefs, dayMs, dayKey } from '../lib/dates'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   // Six weeks from the week holding the 1st, so every month fits and the grid never jumps in height
@@ -27,10 +29,10 @@
     {#each days as day (day.getTime())}
       {@const list = dayEvents(day)}
       <div class="day" class:other={day.getMonth() !== firstOfMonth.getMonth()} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:today={sameDay(day, today)}>
-        <button class="number" onclick={() => { ui.focus = day; ui.view = 'week' }} title="Open this week">{day.getDate() === 1 ? day.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : day.getDate()}</button>
+        <button class="number" onclick={() => { ui.focus = day; ui.view = 'week' }} title="Open this week">{day.getDate() === 1 ? day.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</button>
         {#each list.shown as event (event.id)}
           {#if event.allDay}
-            <button class="pill" class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : event.title}</button>
+            <button class="pill" class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : event.title}<HandArrow seed={event.id + dayKey(day)} head={!continuesAfter(event, day)} /></button>
           {:else}
             <button class="line" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{event.title}</span></button>
           {/if}

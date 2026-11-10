@@ -1,6 +1,7 @@
 <script lang="ts">
+  import HandCircle from '../parts/HandCircle.svelte'
   import { ui, eventsOn, type Placed } from '../state.svelte'
-  import { addDays, sameDay, startOfDay, formatTime, weekdayShort, shortDate, monthName } from '../lib/dates'
+  import { addDays, sameDay, startOfDay, formatTime, weekdayShort, shortDate, monthName, dayKey } from '../lib/dates'
   import MiniMonth from '../parts/MiniMonth.svelte'
   import Icon from '../parts/Icon.svelte'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
@@ -18,7 +19,7 @@
     {#each days as { day, list }, index (day.getTime())}
       {#if index === 0 || day.getDate() === 1 || days[index - 1].day.getMonth() !== day.getMonth()}{#if index > 0}<div class="month-break">{monthName(day)}</div>{/if}{/if}
       <section class="day" class:today={sameDay(day, today)}>
-        <div class="when"><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}</span></div>
+        <div class="when"><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</span></div>
         <div class="items">
           {#if list.length === 0}<div class="empty">{sameDay(day, today) ? 'Nothing on today' : 'Nothing on ' + shortDate(day)}</div>{/if}
           {#each list as event (event.id)}
