@@ -32,9 +32,9 @@
         <button class="number" onclick={() => { ui.focus = day; ui.view = 'week' }} title="Open this week">{day.getDate() === 1 ? day.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</button>
         {#each list.shown as event (event.id)}
           {#if event.allDay}
-            <button class="pill" class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : event.title}<HandArrow {event} {day} /></button>
+            <button class="pill" class:picked={ui.picked.includes(event.id)} class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : event.title}<HandArrow {event} {day} /></button>
           {:else}
-            <button class="line" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{event.title}</span></button>
+            <button class="line" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{event.title}</span></button>
           {/if}
         {/each}
         {#if list.more > 0}<button class="more" onclick={() => { ui.focus = day; ui.view = 'agenda' }}>+{list.more} more</button>{/if}

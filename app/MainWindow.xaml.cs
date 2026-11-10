@@ -99,8 +99,9 @@ public partial class MainWindow : Window
                 case "showCalendar": App.Store.SetShown(Text(message, "key"), message.GetProperty("shown").GetBoolean()); App.NotifySettingsChanged(); break;
                 case "setPinned": App.Settings.Window.Pinned = message.GetProperty("on").GetBoolean(); App.Settings.Save(); ApplyPinned(); App.NotifySettingsChanged(); break;
                 case "editEvent": if (App.Store.FindEvent(Text(message, "id")) is { Link.Length: > 0 } toEdit) OpenUrl(toEdit.Link); break; // "More in Google Calendar": guests, reminders and the rest
-                case "updateEvent": await UpdateEventAsync(message); break;
+                case "openEditor": App.OpenEventEditor(Text(message, "id"), Text(message, "focus")); break;
                 case "deleteEvent": await DeleteEventAsync(Text(message, "id")); break;
+                case "deleteEvents": await DeleteEventsAsync(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList()); break;
                 case "taskDone": await TaskActionAsync(() => App.Store.Tasks.SetCompletedAsync(Text(message, "id"), message.GetProperty("done").GetBoolean())); break;
                 case "taskAdd": await TaskActionAsync(() => App.Store.Tasks.AddAsync(Text(message, "listKey"), Text(message, "title"))); break;
                 case "taskDelete": await TaskActionAsync(() => App.Store.Tasks.DeleteAsync(Text(message, "id"))); break;
@@ -137,19 +138,14 @@ public partial class MainWindow : Window
         catch (Exception deleteError) { App.ShowTip("Couldn't delete it", deleteError.Message); }
     }
 
-    // The event card's edits: title, times, all day, location, description (only what changed is sent)
-    async Task UpdateEventAsync(JsonElement message)
+    async Task DeleteEventsAsync(List<string> uiEventIds)
     {
-        var changes = new System.Text.Json.Nodes.JsonObject();
-        foreach (var field in new[] { "summary", "location", "description" }) if (message.TryGetProperty(field, out var value)) changes[field] = value.GetString();
-        if (message.TryGetProperty("start", out var start))
-        {
-            var allDay = message.GetProperty("allDay").GetBoolean();
-            System.Text.Json.Nodes.JsonObject When(string text) => allDay ? new() { ["date"] = text, ["dateTime"] = null, ["timeZone"] = null } : new() { ["dateTime"] = text, ["date"] = null };
-            changes["start"] = When(start.GetString() ?? ""); changes["end"] = When(Text(message, "end"));
-        }
-        try { await App.Store.UpdateEventAsync(Text(message, "id"), changes); }
-        catch (Exception updateError) { App.ShowTip("Couldn't save the change", updateError.Message); PushCalendars(); }
+        var toDelete = uiEventIds.Select(id => App.Store.FindEvent(id)).Where(found => found != null).Select(found => found!).ToList();
+        if (toDelete.Count == 0) return;
+        if (MessageBox.Show(this, toDelete.Count == 1 ? $"Delete “{toDelete[0].Title}”?" : $"Delete these {toDelete.Count} events?\n\n" + string.Join("\n", toDelete.Take(8).Select(found => "• " + found.Title)) + (toDelete.Count > 8 ? $"\n…and {toDelete.Count - 8} more" : "") + (toDelete.Any(found => found.Recurring) ? "\n\nRepeating events: only these occurrences." : ""), "WinGCal", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+        var failed = new List<string>();
+        foreach (var found in toDelete) { try { await App.Store.DeleteEventAsync(found.Id); } catch (Exception deleteError) { failed.Add($"{found.Title}: {deleteError.Message}"); } }
+        if (failed.Count > 0) App.ShowTip(failed.Count == 1 ? "Couldn't delete one event" : $"Couldn't delete {failed.Count} events", string.Join(" ", failed));
     }
 
     async Task TaskActionAsync(Func<Task> action) { try { await action(); } catch (Exception taskError) { App.ShowTip("Google Tasks didn't take that", taskError.Message); PushTasks(); } }

@@ -17,6 +17,7 @@ public partial class App : Application
     public event Action<string, string>? Tip;
     MainWindow mainWindow = null!;
     SettingsWindow? settingsWindow;
+    readonly List<EventWindow> eventWindows = new();
     Mutex? singleInstanceMutex;
     TrayIcon? trayIcon;
 
@@ -110,12 +111,21 @@ public partial class App : Application
         settingsWindow.Show(); settingsWindow.Activate();
     }
 
+    // One edit window per event: opening it again brings that window forward
+    public void OpenEventEditor(string uiEventId, string focus)
+    {
+        if (eventWindows.FirstOrDefault(window => window.EventId == uiEventId) is { } openWindow) { if (openWindow.WindowState == WindowState.Minimized) openWindow.WindowState = WindowState.Normal; openWindow.Activate(); return; }
+        if (Store.FindEvent(uiEventId) is not { } editedEvent) return;
+        var editor = new EventWindow(editedEvent, focus); eventWindows.Add(editor); editor.Closed += (sender, args) => eventWindows.Remove(editor);
+        editor.Show(); editor.Activate();
+    }
+
     public void Quit(bool windowClosing = false)
     {
         if (IsQuitting) return;
         if (Exporting && MessageBox.Show("An export is in progress. Quit anyway? The file won't be finished.", "WinGCal", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
         IsQuitting = true;
-        try { mainWindow.SavePlacement(); Settings.Save(); settingsWindow?.Close(); trayIcon?.Dispose(); trayIcon = null; if (!windowClosing) mainWindow.Close(); }
+        try { mainWindow.SavePlacement(); Settings.Save(); settingsWindow?.Close(); foreach (var editor in eventWindows.ToList()) editor.Close(); trayIcon?.Dispose(); trayIcon = null; if (!windowClosing) mainWindow.Close(); }
         catch (Exception quitError) { CrashReporter.Write("While quitting", quitError, false); }
         finally { Shutdown(); }
     }

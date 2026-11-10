@@ -1,0 +1,32 @@
+<Window x:Class="WinGCal.EventWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Edit event" Icon="Assets/WinGCal.ico" Width="500" SizeToContent="Height" MinWidth="420" WindowStartupLocation="CenterScreen" Background="#F7F8FA">
+  <Window.Resources>
+    <Style TargetType="TextBlock" x:Key="Label"><Setter Property="Foreground" Value="#555" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="Width" Value="52" /></Style>
+    <Style TargetType="TextBox"><Setter Property="Padding" Value="6,4" /><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
+    <Style TargetType="ComboBox"><Setter Property="Width" Value="90" /><Setter Property="Margin" Value="8,0,0,0" /><Setter Property="IsEditable" Value="True" /><Setter Property="MaxDropDownHeight" Value="260" /></Style>
+    <Style TargetType="DatePicker"><Setter Property="Width" Value="150" /><Setter Property="SelectedDateFormat" Value="Short" /></Style>
+    <Style TargetType="Button"><Setter Property="Padding" Value="14,5" /><Setter Property="Margin" Value="8,0,0,0" /></Style>
+    <Style TargetType="TextBlock" x:Key="Glyph"><Setter Property="FontFamily" Value="Segoe MDL2 Assets" /><Setter Property="FontSize" Value="14" /><Setter Property="Foreground" Value="#777" /><Setter Property="Width" Value="26" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  </Window.Resources>
+  <StackPanel Margin="16,14,16,14">
+    <!-- One white card like Settings: calendar, title, when, place, notes -->
+    <Border Background="White" BorderBrush="#E3E5E8" BorderThickness="1" CornerRadius="8" Padding="16,14">
+      <StackPanel>
+        <DockPanel Margin="0,0,0,8"><Border x:Name="calendarSwatch" Width="12" Height="12" CornerRadius="3" Margin="0,0,8,0" /><TextBlock x:Name="calendarName" Foreground="#666" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" /></DockPanel>
+        <TextBox x:Name="titleBox" FontSize="17" FontWeight="SemiBold" Padding="8,6" />
+        <DockPanel Margin="0,14,0,0"><TextBlock Style="{StaticResource Glyph}" Text="&#xE823;" /><CheckBox x:Name="allDayBox" Content="All day" VerticalAlignment="Center" /></DockPanel>
+        <DockPanel Margin="26,10,0,0"><TextBlock Style="{StaticResource Label}" Text="Starts" /><DatePicker x:Name="startDatePicker" /><ComboBox x:Name="startTimeBox" /></DockPanel>
+        <DockPanel Margin="26,8,0,0"><TextBlock Style="{StaticResource Label}" Text="Ends" /><DatePicker x:Name="endDatePicker" /><ComboBox x:Name="endTimeBox" /></DockPanel>
+        <TextBlock x:Name="problemText" Foreground="Firebrick" FontSize="12" Margin="26,6,0,0" Visibility="Collapsed" />
+        <DockPanel x:Name="repeatNote" Margin="0,10,0,0" Visibility="Collapsed"><TextBlock Style="{StaticResource Glyph}" Text="&#xE8EE;" /><TextBlock Foreground="#666" Text="Repeating event: this changes this occurrence only" VerticalAlignment="Center" TextWrapping="Wrap" /></DockPanel>
+        <DockPanel Margin="0,14,0,0"><TextBlock Style="{StaticResource Glyph}" Text="&#xE707;" /><TextBox x:Name="locationBox" /></DockPanel>
+        <DockPanel Margin="0,10,0,0"><TextBlock Style="{StaticResource Glyph}" Text="&#xE70B;" VerticalAlignment="Top" Margin="0,6,0,0" /><TextBox x:Name="notesBox" AcceptsReturn="True" TextWrapping="Wrap" Height="120" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto" /></DockPanel>
+      </StackPanel>
+    </Border>
+    <TextBlock x:Name="saveError" Foreground="Firebrick" TextWrapping="Wrap" Margin="2,10,0,0" Visibility="Collapsed" />
+    <DockPanel Margin="0,14,0,0">
+      <TextBlock VerticalAlignment="Center"><Hyperlink x:Name="moreLink" ToolTip="Guests, reminders and the rest">More in Google Calendar</Hyperlink></TextBlock>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="cancelButton" Content="Cancel" IsCancel="True" /><Button x:Name="saveButton" Content="Save" FontWeight="SemiBold" IsDefault="True" /></StackPanel>
+    </DockPanel>
+  </StackPanel>
+</Window>

@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  export type IconName = 'pin' | 'settings' | 'minimise' | 'maximise' | 'restore' | 'close' | 'previous' | 'next' | 'refresh' | 'plus' | 'month' | 'week' | 'agenda' | 'split' | 'auto' | 'location' | 'video' | 'repeat' | 'clock' | 'calendar' | 'edit' | 'trash' | 'lock' | 'offline' | 'tasks' | 'check' | 'skin'
+  export type IconName = 'pin' | 'settings' | 'minimise' | 'maximise' | 'restore' | 'close' | 'previous' | 'next' | 'refresh' | 'plus' | 'month' | 'week' | 'agenda' | 'split' | 'auto' | 'location' | 'video' | 'repeat' | 'clock' | 'calendar' | 'edit' | 'trash' | 'lock' | 'offline' | 'tasks' | 'check' | 'skin' | 'copy'
 </script>
 <script lang="ts">
   // SVG icons: text glyphs render off-centre with colour fringes in WebView2
@@ -31,6 +31,7 @@
   {:else if name === 'clock'}<circle cx="12" cy="12" r="8" class="stroke" /><path d="M12 7.5V12l3 2" class="stroke" />
   {:else if name === 'calendar'}<rect x="4" y="5.5" width="16" height="14.5" rx="2" class="stroke" /><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" class="stroke" />
   {:else if name === 'edit'}<path d="M5 19l1-4.5L15.5 5l3.5 3.5L9.5 18z M13.5 7l3.5 3.5" class="stroke" />
+  {:else if name === 'copy'}<rect x="8.5" y="8.5" width="11" height="11" rx="2" class="stroke" /><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5" class="stroke" />
   {:else if name === 'trash'}<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7" class="stroke" />
   {:else if name === 'lock'}<rect x="6" y="10.5" width="12" height="9" rx="2" class="stroke" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" class="stroke" />
   {:else if name === 'offline'}<path d="M4 9.5a12 12 0 0 1 16 0M7 13a7.5 7.5 0 0 1 10 0M10 16.4a3 3 0 0 1 4 0M4.5 4.5l15 15" class="stroke" />{/if}
