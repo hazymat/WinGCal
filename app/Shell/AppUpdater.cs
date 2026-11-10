@@ -124,7 +124,7 @@ public sealed class AppUpdater
             await updateManager.DownloadUpdatesAsync(foundUpdate);
             readyManager = updateManager; readyUpdate = foundUpdate;
             SetStatus($"WinGCal {ReadyVersion} is downloaded and ready. Restart to update.");
-            App.ShowTip("Update ready", $"WinGCal {ReadyVersion} is ready. Click Restart to update in the window or Settings › About.");
+            if (!App.MainWindowShowing) App.ShowTip("Update ready", $"WinGCal {ReadyVersion} is ready. Click Restart to update in the window or Settings › About."); // the window has its own Restart bar; the tip is only for when it is hidden in the tray
         }
     }
 
@@ -185,7 +185,7 @@ public sealed class AppUpdater
         portableStagedPath = await DownloadPortableAsync(newestTag);
         portableReadyVersion = newestVersion;
         SetStatus($"WinGCal {ReadyVersion} is downloaded and ready. Restart to update.");
-        App.ShowTip("Update ready", $"WinGCal {ReadyVersion} is ready. Click Restart to update in the window or Settings › About.");
+        if (!App.MainWindowShowing) App.ShowTip("Update ready", $"WinGCal {ReadyVersion} is ready. Click Restart to update in the window or Settings › About."); // the window has its own Restart bar; the tip is only for when it is hidden in the tray
     }
 
     static async Task<string> DownloadPortableAsync(string releaseTag)
