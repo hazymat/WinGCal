@@ -3,7 +3,7 @@
   import { ui, placedEvents } from '../state.svelte'
   import { formatTime, weekdayShort, shortDate } from '../lib/dates'
   import Icon from './Icon.svelte'
-  // Ctrl- or Shift-click picks several events; their actions float in a rounded bar near the bottom, over the calendar (nothing moves up)
+  // Press and hold (or Ctrl/Shift-click) picks several events; their actions float in a rounded bar near the bottom, over the calendar (nothing moves up)
   const count = $derived(ui.picked.length)
   let copied = $state(false)
   function copy() {
@@ -16,9 +16,10 @@
 
 {#if count > 0}
   <div class="selection-bar" role="toolbar" aria-label="Selected events">
-    <span class="count">{count} {count === 1 ? 'event' : 'events'} selected</span>
-    <button onclick={copy}><Icon name="copy" size={15} />{copied ? 'Copied' : 'Copy'}</button>
-    <button class="danger" onclick={remove}><Icon name="trash" size={15} />Delete</button>
+    <span class="count">{count}<span class="label">{' '}{count === 1 ? 'event' : 'events'}</span>{' '}selected</span>
+    <button onclick={() => sendToShell({ type: 'batchEdit', ids: ui.picked.slice() })} title="Change the date, time, place or calendar of all of them"><Icon name="edit" size={15} /><span class="label">Edit…</span></button>
+    <button onclick={copy}><Icon name="copy" size={15} /><span class="label">{copied ? 'Copied' : 'Copy'}</span></button>
+    <button class="danger" onclick={remove}><Icon name="trash" size={15} /><span class="label">Delete</span></button>
     <button class="clear" onclick={() => ui.picked = []} title="Clear selection (Esc)"><Icon name="close" size={14} /></button>
   </div>
 {/if}
@@ -31,4 +32,6 @@
   button:hover { background: var(--hover); }
   .danger:hover { color: var(--danger); }
   .clear { width: 30px; padding: 0; justify-content: center; color: var(--fg-quiet); }
+  /* Narrow windows: icons only, so the bar always fits */
+  @media (max-width: 460px) { .label { display: none; } button { padding: 0 9px; } }
 </style>

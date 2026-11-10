@@ -165,6 +165,18 @@ public sealed class CalendarStore
         SaveCache(); Changed?.Invoke();
     }
 
+    public async Task MoveEventAsync(string uiEventId, string destinationKey)
+    {
+        var found = FindEvent(uiEventId);
+        var calendar = found == null ? null : Calendars.FirstOrDefault(candidate => candidate.Key == found.CalendarKey);
+        var destination = Calendars.FirstOrDefault(candidate => candidate.Key == destinationKey);
+        if (found == null || calendar == null || destination == null || destination.Key == calendar.Key) return;
+        var moved = await Api.MoveEventAsync(calendar.Account, calendar.Id, found.EventId, destination.Id, CancellationToken.None);
+        EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Where(item => item.Id != uiEventId).ToList();
+        if (ToUiEvent(destination, moved) is { } arrived) EventsByCalendar[destination.Key] = EventsByCalendar.GetValueOrDefault(destination.Key, new()).Append(arrived).ToList();
+        SaveCache(); Changed?.Invoke();
+    }
+
     public UiEvent? FindEvent(string uiEventId) => EventsByCalendar.SelectMany(pair => pair.Value).FirstOrDefault(item => item.Id == uiEventId);
 
     static CalendarInfo ToCalendar(string email, JsonElement entry)

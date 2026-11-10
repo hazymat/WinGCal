@@ -63,7 +63,7 @@
         <h3>{dayLabel(day)}</h3>
         {#if dayEvents.length === 0}<div class="empty">Nothing on</div>{/if}
         {#each dayEvents as event (event.id)}
-          <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
+          <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
             <i class="dot"></i>
             <span class="time">{event.allDay ? allDayLabel(event, day) : formatTime(event.startAt) + ' – ' + formatTime(event.endAt)}{#if event.meetUrl}<Icon name="video" size={12} />{/if}</span>
             <span class="title">{event.title}</span>

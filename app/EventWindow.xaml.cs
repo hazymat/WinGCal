@@ -63,7 +63,7 @@ public partial class EventWindow : Window
 
     bool AllDay => allDayBox.IsChecked == true;
     void ShowTimes() { var timeVisibility = AllDay ? Visibility.Collapsed : Visibility.Visible; startTimeBox.Visibility = timeVisibility; endTimeBox.Visibility = timeVisibility; }
-    static TimeSpan? ParseTime(string text) => TimeSpan.TryParseExact(text.Trim().Replace('.', ':'), new[] { @"h\:mm", @"hh\:mm", "hhmm", "%h" }, CultureInfo.InvariantCulture, out var time) && time < TimeSpan.FromDays(1) ? time : null;
+    internal static TimeSpan? ParseTime(string text) => TimeSpan.TryParseExact(text.Trim().Replace('.', ':'), new[] { @"h\:mm", @"hh\:mm", "hhmm", "%h" }, CultureInfo.InvariantCulture, out var time) && time < TimeSpan.FromDays(1) ? time : null;
     DateTime? At(DatePicker picker, ComboBox timeBox) => picker.SelectedDate is not { } date ? null : AllDay ? date.Date : ParseTime(timeBox.Text) is { } time ? date.Date + time : null;
     DateTime? CurrentStart() => At(startDatePicker, startTimeBox);
     DateTime? CurrentEnd() => At(endDatePicker, endTimeBox);
@@ -77,8 +77,8 @@ public partial class EventWindow : Window
     void Check() { var problem = Problem(); problemText.Text = problem; problemText.Visibility = problem.Length > 0 ? Visibility.Visible : Visibility.Collapsed; saveButton.IsEnabled = problem.Length == 0; }
 
     // "2026-11-10T14:00:00+00:00": local time with its offset, as Google wants it
-    static string WithOffset(DateTime local) => new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local)).ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture);
-    static string DayText(DateTime day) => day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    internal static string WithOffset(DateTime local) => new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local)).ToString("yyyy-MM-dd'T'HH:mm:sszzz", CultureInfo.InvariantCulture);
+    internal static string DayText(DateTime day) => day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     async Task SaveAsync()
     {

@@ -57,8 +57,8 @@
     {#each days as day}
       <div class="day-list" class:today={sameDay(day, today)}>
         {#each eventsOn(events, day) as event (event.id)}
-          {#if event.allDay}<button class="pill" style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{event.title}<HandArrow {event} {day} /></button>
-          {:else}<button class="line" class:past={event.endAt < now} class:picked={ui.picked.includes(event.id)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{event.title}</span></button>{/if}
+          {#if event.allDay}<button class="pill" style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{event.title}<HandArrow {event} {day} /></button>
+          {:else}<button class="line" class:past={event.endAt < now} class:picked={ui.picked.includes(event.id)} data-event={event.id} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{event.title}</span></button>{/if}
         {/each}
       </div>
     {/each}
@@ -66,7 +66,7 @@
   {:else}
   <div class="allday" style="--days: {dayCount}">
     <div class="gutter"></div>
-    {#each days as day}<div class="allday-cell">{#each allDayOn(day) as event (event.id)}<button class="pill" style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{event.title}<HandArrow {event} {day} /></button>{/each}</div>{/each}
+    {#each days as day}<div class="allday-cell">{#each allDayOn(day) as event (event.id)}<button class="pill" style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{event.title}<HandArrow {event} {day} /></button>{/each}</div>{/each}
   </div>
   <div class="scroller" bind:this={scroller}>
     <div class="body" style="--days: {dayCount}; height: {hourHeight * 24}px">

@@ -116,8 +116,22 @@
   let pickModifier = false // Ctrl or Shift held on the click: add to the selection rather than open the card
   function pick(event: Placed, target: HTMLElement) {
     if (pickModifier) { const open = ui.selectedEvent?.event.id; if (open && !ui.picked.includes(open) && open !== event.id) ui.picked.push(open); ui.selectedEvent = null; ui.picked = ui.picked.includes(event.id) ? ui.picked.filter(id => id !== event.id) : ui.picked.concat(event.id); return }
-    ui.picked = []; openCard(event, target)
+    if (heldId === event.id) { heldId = ''; return } // the click that ends a press and hold
+    // While events are picked, a click adds or removes one (× or Esc ends picking)
+    if (ui.picked.length > 0) { ui.picked = ui.picked.includes(event.id) ? ui.picked.filter(id => id !== event.id) : ui.picked.concat(event.id); return }
+    openCard(event, target)
   }
+  // Press and hold an event to start picking several (SPEC.md › Multi-select); moving the pointer (scrolling) cancels it
+  let holdTimer = 0, heldId = '', holdStart = { x: 0, y: 0 }
+  function startHold(pointer: PointerEvent) {
+    pickModifier = pointer.ctrlKey || pointer.shiftKey || pointer.metaKey
+    clearTimeout(holdTimer); heldId = ''
+    const element = (pointer.target as HTMLElement).closest?.<HTMLElement>('[data-event]')
+    if (!element || pointer.button !== 0) return
+    holdStart = { x: pointer.clientX, y: pointer.clientY }
+    holdTimer = setTimeout(() => { const id = element.dataset.event!; heldId = id; ui.selectedEvent = null; if (!ui.picked.includes(id)) ui.picked = ui.picked.concat(id) }, 450)
+  }
+  function moveHold(pointer: PointerEvent) { if (holdTimer && Math.hypot(pointer.clientX - holdStart.x, pointer.clientY - holdStart.y) > 6) { clearTimeout(holdTimer); holdTimer = 0 } }
   function openCard(event: Placed, target: HTMLElement) { const box = target.getBoundingClientRect(); ui.selectedEvent = { event, left: box.right + 6 > innerWidth - 340 ? box.left - 346 : box.right + 6, top: box.top - 10 } }
   function onKey(event: KeyboardEvent) {
     if ((event.target as HTMLElement).closest('input, textarea')) return
@@ -131,7 +145,7 @@
   }
 </script>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} onpointerdowncapture={(event) => pickModifier = event.ctrlKey || event.shiftKey || event.metaKey} />
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} onpointerdowncapture={startHold} onpointermove={moveHold} onpointerup={() => { clearTimeout(holdTimer); holdTimer = 0 }} />
 
 <WallpaperFrost />
 <div class="shell" class:pinned={app.window.pinned}>

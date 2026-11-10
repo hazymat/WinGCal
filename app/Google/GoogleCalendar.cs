@@ -35,6 +35,16 @@ public sealed class GoogleCalendar(GoogleAuth auth)
     }
 
     // Edit: only the fields sent change (PATCH); a repeating event's instance id changes just that occurrence
+    // Moves an event to another calendar of the same account; returns the event as it is now
+    public async Task<JsonElement> MoveEventAsync(string email, string calendarId, string eventId, string destinationCalendarId, CancellationToken cancel)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBase}/calendars/{Uri.EscapeDataString(calendarId)}/events/{Uri.EscapeDataString(eventId)}/move?destination={Uri.EscapeDataString(destinationCalendarId)}");
+        using var response = await SendAsync(email, request, cancel);
+        if (!response.IsSuccessStatusCode) throw new HttpRequestException(await Describe(response), null, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancel));
+        return document.RootElement.Clone();
+    }
+
     public async Task<JsonElement> PatchEventAsync(string email, string calendarId, string eventId, System.Text.Json.Nodes.JsonObject changes, CancellationToken cancel)
     {
         using var request = new HttpRequestMessage(HttpMethod.Patch, $"{apiBase}/calendars/{Uri.EscapeDataString(calendarId)}/events/{Uri.EscapeDataString(eventId)}") { Content = new StringContent(changes.ToJsonString(), System.Text.Encoding.UTF8, "application/json") };

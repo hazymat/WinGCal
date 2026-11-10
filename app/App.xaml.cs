@@ -17,7 +17,7 @@ public partial class App : Application
     public event Action<string, string>? Tip;
     MainWindow mainWindow = null!;
     SettingsWindow? settingsWindow;
-    readonly List<EventWindow> eventWindows = new();
+    readonly List<Window> eventWindows = new();
     Mutex? singleInstanceMutex;
     TrayIcon? trayIcon;
 
@@ -114,9 +114,17 @@ public partial class App : Application
     // One edit window per event: opening it again brings that window forward
     public void OpenEventEditor(string uiEventId, string focus)
     {
-        if (eventWindows.FirstOrDefault(window => window.EventId == uiEventId) is { } openWindow) { if (openWindow.WindowState == WindowState.Minimized) openWindow.WindowState = WindowState.Normal; openWindow.Activate(); return; }
+        if (eventWindows.OfType<EventWindow>().FirstOrDefault(window => window.EventId == uiEventId) is { } openWindow) { if (openWindow.WindowState == WindowState.Minimized) openWindow.WindowState = WindowState.Normal; openWindow.Activate(); return; }
         if (Store.FindEvent(uiEventId) is not { } editedEvent) return;
         var editor = new EventWindow(editedEvent, focus); eventWindows.Add(editor); editor.Closed += (sender, args) => eventWindows.Remove(editor);
+        editor.Show(); editor.Activate();
+    }
+
+    public void OpenBatchEditor(List<string> uiEventIds)
+    {
+        var picked = uiEventIds.Select(id => Store.FindEvent(id)).Where(found => found != null).Select(found => found!).Where(found => Store.Calendars.FirstOrDefault(calendar => calendar.Key == found.CalendarKey) is { ReadOnly: false }).ToList();
+        if (picked.Count == 0) return;
+        var editor = new BatchEditWindow(picked); eventWindows.Add(editor); editor.Closed += (sender, args) => eventWindows.Remove(editor);
         editor.Show(); editor.Activate();
     }
 

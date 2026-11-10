@@ -102,6 +102,7 @@ public partial class MainWindow : Window
                 case "editEvent": if (App.Store.FindEvent(Text(message, "id")) is { Link.Length: > 0 } toEdit) OpenUrl(toEdit.Link); break; // "More in Google Calendar": guests, reminders and the rest
                 case "openEditor": App.OpenEventEditor(Text(message, "id"), Text(message, "focus")); break;
                 case "deleteEvent": await DeleteEventAsync(Text(message, "id")); break;
+                case "batchEdit": App.OpenBatchEditor(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList()); break;
                 case "deleteEvents": await DeleteEventsAsync(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList()); break;
                 case "taskDone": await TaskActionAsync(() => App.Store.Tasks.SetCompletedAsync(Text(message, "id"), message.GetProperty("done").GetBoolean())); break;
                 case "taskAdd": await TaskActionAsync(() => App.Store.Tasks.AddAsync(Text(message, "listKey"), Text(message, "title"))); break;
