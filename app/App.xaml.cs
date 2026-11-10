@@ -17,7 +17,7 @@ public partial class App : Application
     public event Action<string, string>? Tip;
     MainWindow mainWindow = null!;
     SettingsWindow? settingsWindow;
-    readonly List<EventWindow> eventWindows = new();
+    readonly List<Window> eventWindows = new();
     Mutex? singleInstanceMutex;
     TrayIcon? trayIcon;
 
@@ -111,14 +111,18 @@ public partial class App : Application
         settingsWindow.Show(); settingsWindow.Activate();
     }
 
-    // One edit window per event: opening it again brings that window forward
-    public void OpenEventEditor(string uiEventId, string focus)
+    // Glass event windows (SPEC.md › Event windows): one per event (opening it again brings it forward), any number of new ones
+    public MainWindow MainShell => mainWindow;
+    public void OpenEventEditor(string uiEventId)
     {
-        if (eventWindows.FirstOrDefault(window => window.EventId == uiEventId) is { } openWindow) { if (openWindow.WindowState == WindowState.Minimized) openWindow.WindowState = WindowState.Normal; openWindow.Activate(); return; }
-        if (Store.FindEvent(uiEventId) is not { } editedEvent) return;
-        var editor = new EventWindow(editedEvent, focus); eventWindows.Add(editor); editor.Closed += (sender, args) => eventWindows.Remove(editor);
-        editor.Show(); editor.Activate();
+        if (eventWindows.OfType<EventPopup>().FirstOrDefault(window => window.Mode == EventPopup.Kind.Event && window.EventId == uiEventId) is { } openWindow) { if (openWindow.WindowState == WindowState.Minimized) openWindow.WindowState = WindowState.Normal; openWindow.Activate(); return; }
+        if (Store.FindEvent(uiEventId) == null) return;
+        ShowPopup(new EventPopup(EventPopup.Kind.Event, uiEventId));
     }
+    public void OpenNewEvent(string day, string time) => ShowPopup(new EventPopup(EventPopup.Kind.New, day: day, time: time));
+    public void OpenBatchEditor(List<string> uiEventIds) => ShowPopup(new EventPopup(EventPopup.Kind.Batch, ids: uiEventIds));
+    void ShowPopup(EventPopup popup) { eventWindows.Add(popup); popup.Closed += (sender, args) => eventWindows.Remove(popup); popup.Show(); popup.Activate(); }
+    public void PushSkinToPopups() { foreach (var popup in eventWindows.OfType<EventPopup>()) popup.PushSkin(); }
 
     public void Quit(bool windowClosing = false)
     {

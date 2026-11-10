@@ -7,7 +7,7 @@
 
   // Short, wide windows (SPEC.md › Calendar views › Split): a browsable month on the left, a scrolling day list on the right that follows the selected day
   const today = startOfDay(new Date())
-  let paneHeight = $state(300), paneWidth = $state(700)
+  let paneHeight = $state(300), paneWidth = $state(700), listWidth = $state(400)
   const monthStart = $derived(new Date(ui.focus.getFullYear(), ui.focus.getMonth(), 1))
   const gridDays = $derived(Array.from({ length: 42 }, (unused, index) => addDays(startOfWeek(monthStart, prefs.weekStart), index)))
   // Cells stay roughly square: the month takes what the height allows, never more than half the width
@@ -18,7 +18,7 @@
   // The day list covers a window of days around an anchor; it moves when the selection nears either end
   let anchor = $state(addMonths(ui.focus, -2))
   const listDays = $derived(Array.from({ length: Math.round((addMonths(anchor, 9).getTime() - anchor.getTime()) / 86_400_000) }, (unused, index) => addDays(anchor, index)).map(day => ({ day, list: eventsOn(events, day) })))
-  let list: HTMLDivElement
+  let list: HTMLDivElement | undefined = $state()
   let focusFromScroll = 0 // the day the list itself chose, so it isn't scrolled back to
   let userScrolling = false // only the person's own scrolling picks the day; layout shifts (fonts, resizes) don't
   const dayLabel = (day: Date) => { const offset = Math.round((day.getTime() - today.getTime()) / 86_400_000); return offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : offset === -1 ? 'Yesterday' : `${weekdayShort(day)} ${shortDate(day)}` }
@@ -31,10 +31,10 @@
     requestAnimationFrame(() => scrollToDay(focus, true))
   })
   $effect(() => { document.fonts?.ready.then(() => { if (!userScrolling) scrollToDay(ui.focus, false) }) })
-  function scrollToDay(day: Date, smooth: boolean) { userScrolling = false; const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (section) list.scrollTo({ top: section.offsetTop, behavior: smooth ? 'smooth' : 'instant' }) }
+  function scrollToDay(day: Date, smooth: boolean) { userScrolling = false; const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (section && list) list.scrollTo({ top: section.offsetTop, behavior: smooth ? 'smooth' : 'instant' }) }
   // The top day in the list becomes the selected day
   function onScroll() {
-    if (!userScrolling) return
+    if (!userScrolling || !list) return
     const top = list.scrollTop + 6
     const section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > top)
     if (!section) return
@@ -42,6 +42,8 @@
     if (sameDay(day, ui.focus)) return
     focusFromScroll = day.getTime(); ui.focus = day
   }
+  // A resize reflows the list: that isn't the person scrolling, so stay on the selected day
+  $effect(() => { if (!list) return; const observer = new ResizeObserver(() => { userScrolling = false; scrollToDay(ui.focus, false) }); observer.observe(list); return () => observer.disconnect() })
   function pickDay(day: Date) { focusFromScroll = 0; ui.focus = day }
   // The wheel over the month turns its pages
   function onMonthWheel(event: WheelEvent) { event.preventDefault(); if (Math.abs(event.deltaY) < 4) return; const target = addMonths(monthStart, event.deltaY > 0 ? 1 : -1); pickDay(target.getMonth() === today.getMonth() && target.getFullYear() === today.getFullYear() ? today : target) }
@@ -51,31 +53,33 @@
   <div class="month" style="width: {monthWidth}px" onwheel={onMonthWheel}>
     {#each gridDays.slice(0, 7) as day}<span class="weekday" class:weekend={isWeekend(day)}>{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
     {#each gridDays as day (day.getTime())}
-      <button class="cell" class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:other={day.getMonth() !== monthStart.getMonth()} class:today={sameDay(day, today)} class:selected={sameDay(day, ui.focus)} onclick={() => pickDay(day)}>
+      <button class="cell" data-newday={dayKey(day)} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:other={day.getMonth() !== monthStart.getMonth()} class:today={sameDay(day, today)} class:selected={sameDay(day, ui.focus)} onclick={() => pickDay(day)}>
         <span class="number">{day.getDate()}</span>{#if sameDay(day, today) || sameDay(day, ui.focus)}<HandCircle seed={dayKey(day)} />{/if}<span class="dots">{#each dots(day) as colour}<i style="background: {colour}"></i>{/each}</span>
       </button>
     {/each}
   </div>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div class="days" bind:this={list} onscroll={onScroll} onwheel={() => userScrolling = true} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
-    {#each listDays as { day, list: dayEvents } (day.getTime())}
-      <section data-day={dayKey(day)} class:today={sameDay(day, today)}>
+  <div class="days" bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={() => userScrolling = true} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
+    {#each listDays.filter(entry => entry.list.length > 0 || sameDay(entry.day, today) || sameDay(entry.day, ui.focus)) as { day, list: dayEvents } (day.getTime())}
+      <section data-day={dayKey(day)} data-newday={dayKey(day)} class:today={sameDay(day, today)}>
         <h3>{dayLabel(day)}</h3>
+        <div class="day-items" class:two={listWidth >= 480 && dayEvents.length > 1}>
         {#if dayEvents.length === 0}<div class="empty">Nothing on</div>{/if}
         {#each dayEvents as event (event.id)}
-          <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
+          <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
             <i class="dot"></i>
             <span class="time">{event.allDay ? allDayLabel(event, day) : formatTime(event.startAt) + ' – ' + formatTime(event.endAt)}{#if event.meetUrl}<Icon name="video" size={12} />{/if}</span>
             <span class="title">{event.title}</span>
           </button>
         {/each}
+        </div>
       </section>
     {/each}
   </div>
 </div>
 
 <style>
-  .split { display: flex; gap: 14px; height: 100%; min-height: 0; padding: 0 10px 10px 12px; }
+  .split { display: flex; gap: 14px; height: 100%; min-height: 0; padding: 0 10px 16px 12px; box-sizing: border-box; }
   .month { flex: none; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); gap: 3px; align-content: stretch; }
   .weekday { text-align: center; font-size: 11px; font-weight: 600; color: var(--fg-quiet); padding: 2px 0 4px; border-bottom: 1px solid var(--line); }
   .weekday.weekend { color: var(--fg-quiet); opacity: 0.75; }
@@ -89,14 +93,16 @@
   .dots { position: absolute; left: 0; right: 0; bottom: 12%; display: flex; justify-content: center; gap: 2px; }
   .dots i { width: 4px; height: 4px; border-radius: 50%; }
   .days { flex: 1; min-width: 0; overflow-y: auto; position: relative; scrollbar-width: thin; mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 14px), transparent); }
-  section { padding-bottom: 6px; }
-  h3 { margin: 0; padding: 3px 2px 5px; font-size: 15px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
+  section { padding-bottom: 8px; }
+  h3 { margin: 0; padding: 2px 4px 3px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-quiet); }
   .today h3 { color: var(--accent); }
-  .empty { padding: 2px 4px 6px 22px; font-size: 12.5px; color: var(--fg-quiet); }
-  .item { display: grid; grid-template-columns: 12px 1fr; column-gap: 10px; width: 100%; padding: 4px 4px 5px; border: 0; border-radius: 8px; background: none; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+  .empty { padding: 1px 4px 2px 21px; font-size: 12px; color: var(--fg-quiet); }
+  .day-items { display: grid; grid-template-columns: 1fr; column-gap: 6px; }
+  .day-items.two { grid-template-columns: 1fr 1fr; }
+  .item { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; padding: 3px 4px; border: 0; border-radius: 6px; background: none; color: var(--fg); font: inherit; font-size: 12.5px; line-height: 1.35; text-align: left; cursor: pointer; }
   .item:hover { background: var(--hover); }
   .item.past { opacity: 0.55; }
-  .dot { grid-row: 1; align-self: center; width: 11px; height: 11px; border-radius: 50%; background: var(--colour); }
-  .time { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--fg-quiet); font-variant-numeric: tabular-nums; }
-  .title { grid-column: 2; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--colour); }
+  .time { flex: none; display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--fg-quiet); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .title { min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

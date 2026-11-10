@@ -8,7 +8,6 @@
   import WeekView from './views/WeekView.svelte'
   import AgendaView from './views/AgendaView.svelte'
   import SplitView from './views/SplitView.svelte'
-  import EventCard from './parts/EventCard.svelte'
   import CalendarSwitcher from './parts/CalendarSwitcher.svelte'
   import ResizeEdges from './parts/ResizeEdges.svelte'
   import Icon from './parts/Icon.svelte'
@@ -16,6 +15,9 @@
   import WhatsNew from './parts/WhatsNew.svelte'
   import SkinPicker from './parts/SkinPicker.svelte'
   import SelectionBar from './parts/SelectionBar.svelte'
+  import WallpaperFrost from './parts/WallpaperFrost.svelte'
+  import MoreMenu from './parts/MoreMenu.svelte'
+  import ConfirmDelete from './parts/ConfirmDelete.svelte'
 
   // ---- From the shell ----
   onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
@@ -24,6 +26,8 @@
     writeSetting('windowTint', String(ui.windowTint)); writeSetting('panelTint', String(ui.panelTint)); writeSetting('panelGrain', String(ui.panelGrain))
     writeSetting('skin', ui.skin); writeSetting('accent', ui.accent); writeSetting('glassTransparency', String(ui.glassTransparency)); writeSetting('glassTintHue', String(ui.glassTintHue))
   })
+  // Clear glass frost drawn from the wallpaper: the picture comes once, then only where the window sits on its monitor
+  onShellMessage('wallpaper', message => { if (message.off) { ui.wallpaper = null; return } ui.wallpaper = { image: message.image ?? ui.wallpaper?.image ?? '', monitor: message.monitor, origin: message.origin, frost: message.frost } })
   onShellMessage('calendars', message => { app.accounts = message.accounts; app.calendars = message.calendars; app.sampleData = !!message.sample })
   onShellMessage('events', message => app.events = message.events)
   onShellMessage('sync', message => { app.syncing = !!message.syncing; app.offline = !!message.offline })
@@ -91,10 +95,14 @@
   const shownView = $derived(ui.view === 'auto' ? autoView : ui.view)
   $effect(() => writeSetting('view', ui.view))
   const narrow = $derived(width < 560)
+  // Small windows: the strip keeps the month, arrows, Today, a More menu and the pin (SPEC.md › Strip)
+  const compact = $derived(width < 440)
   const events = $derived(placedEvents())
   const shortMonth = (date: Date) => date.toLocaleDateString(undefined, { month: 'short' })
   // Shorter as the window narrows: "November 2026", "Nov 2026", "Nov"
-  const heading = $derived(width < 300 ? shortMonth(ui.focus) : width < 460 ? `${shortMonth(ui.focus)} ${ui.focus.getFullYear()}` : shownView === 'week' && width >= 560 ? weekHeading(startOfWeek(ui.focus, prefs.weekStart)) : `${monthName(ui.focus)} ${ui.focus.getFullYear()}`)
+  // The month name is left out rather than cut to a stub ("N…") when the strip is too crowded for it
+  let headingRoom = $state(0), headingNatural = $state(0)
+  const heading = $derived(width < 380 ? shortMonth(ui.focus) : width < 460 ? `${shortMonth(ui.focus)} ${ui.focus.getFullYear()}` : shownView === 'week' && width >= 560 ? weekHeading(startOfWeek(ui.focus, prefs.weekStart)) : `${monthName(ui.focus)} ${ui.focus.getFullYear()}`)
   function weekHeading(weekStart: Date) { const weekEnd = addDays(weekStart, 6); return weekStart.getMonth() === weekEnd.getMonth() ? `${monthName(weekStart)} ${weekStart.getFullYear()}` : `${shortDate(weekStart)} – ${shortDate(weekEnd)}` }
   function step(direction: number) {
     if (shownView === 'month' || shownView === 'split') ui.focus = addMonths(ui.focus, direction)
@@ -111,9 +119,31 @@
   let pickModifier = false // Ctrl or Shift held on the click: add to the selection rather than open the card
   function pick(event: Placed, target: HTMLElement) {
     if (pickModifier) { const open = ui.selectedEvent?.event.id; if (open && !ui.picked.includes(open) && open !== event.id) ui.picked.push(open); ui.selectedEvent = null; ui.picked = ui.picked.includes(event.id) ? ui.picked.filter(id => id !== event.id) : ui.picked.concat(event.id); return }
-    ui.picked = []; openCard(event, target)
+    if (heldId === event.id) { heldId = ''; return } // the click that ends a press and hold
+    // While events are picked, a click adds or removes one (× or Esc ends picking)
+    if (ui.picked.length > 0) { ui.picked = ui.picked.includes(event.id) ? ui.picked.filter(id => id !== event.id) : ui.picked.concat(event.id); return }
+    sendToShell({ type: 'openEditor', id: event.id }) // its own glass window (SPEC.md › Event windows)
   }
-  function openCard(event: Placed, target: HTMLElement) { const box = target.getBoundingClientRect(); ui.selectedEvent = { event, left: box.right + 6 > innerWidth - 340 ? box.left - 346 : box.right + 6, top: box.top - 10 } }
+  // Press and hold an event to start picking several (SPEC.md › Multi-select); moving the pointer (scrolling) cancels it
+  let holdTimer = 0, heldId = '', holdStart = { x: 0, y: 0 }
+  function startHold(pointer: PointerEvent) {
+    pickModifier = pointer.ctrlKey || pointer.shiftKey || pointer.metaKey
+    clearTimeout(holdTimer); heldId = ''
+    const element = (pointer.target as HTMLElement).closest?.<HTMLElement>('[data-event]')
+    if (!element || pointer.button !== 0) return
+    holdStart = { x: pointer.clientX, y: pointer.clientY }
+    holdTimer = setTimeout(() => { const id = element.dataset.event!; heldId = id; ui.selectedEvent = null; if (!ui.picked.includes(id)) ui.picked = ui.picked.concat(id) }, 450)
+  }
+  function moveHold(pointer: PointerEvent) { if (holdTimer && Math.hypot(pointer.clientX - holdStart.x, pointer.clientY - holdStart.y) > 6) { clearTimeout(holdTimer); holdTimer = 0 } }
+  // Double-click an empty spot of a day: a new event that day (all day), or at that time in Week
+  function newEventAt(pointer: MouseEvent) {
+    const target = pointer.target as HTMLElement
+    if (target.closest('[data-event], .strip, .selection-bar')) return
+    const cell = target.closest<HTMLElement>('[data-newday]'); if (!cell) return
+    let time = ''
+    if (cell.dataset.hourHeight) { const minutes = Math.min(1425, Math.max(0, Math.floor((pointer.clientY - cell.getBoundingClientRect().top) / Number(cell.dataset.hourHeight) * 4) * 15)); time = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}` }
+    sendToShell({ type: 'newEvent', day: cell.dataset.newday, time })
+  }
   function onKey(event: KeyboardEvent) {
     if ((event.target as HTMLElement).closest('input, textarea')) return
     if (event.key === 'Escape') { ui.selectedEvent = null; ui.picked = []; ui.switcherOpen = false; tasksOverlay = false }
@@ -126,16 +156,19 @@
   }
 </script>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} onpointerdowncapture={(event) => pickModifier = event.ctrlKey || event.shiftKey || event.metaKey} />
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} ondblclick={newEventAt} onpointerdowncapture={startHold} onpointermove={moveHold} onpointerup={() => { clearTimeout(holdTimer); holdTimer = 0 }} />
 
+<WallpaperFrost />
 <div class="shell" class:pinned={app.window.pinned}>
   {#if app.window.frameless && !app.window.pinned && !app.window.maximised}<ResizeEdges />{/if}
   <header class="strip" role="presentation" onmousedown={dragWindow} data-frost>
-    <div class="heading">
-      <button class="today" class:on={isToday} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
-      {#if width >= 320}
+    <div class="heading" bind:clientWidth={headingRoom}>
+      <span class="today measure" aria-hidden="true" bind:clientWidth={headingNatural}>{heading}</span>
+      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 220 ? 64 : 0) - (isToday ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
+      {#if width >= 220}
         <button class="step" onclick={() => step(-1)} aria-label="Previous"><Icon name="previous" size={16} /></button>
         <button class="step" onclick={() => step(1)} aria-label="Next"><Icon name="next" size={16} /></button>
+        {#if !isToday}<button class="back-today" onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">Today</button>{/if}
       {/if}
     </div>
     <div class="tools">
@@ -146,10 +179,12 @@
         </div>
         <SkinPicker />
       {/if}
+      {#if compact}<MoreMenu {views} />{:else}
       <button class="dots" class:on={ui.switcherOpen} onclick={() => ui.switcherOpen = !ui.switcherOpen} title="Calendars">{#each shownCalendars.slice(0, width < 320 ? 3 : 5) as calendar}<i style="background: {calendar.colour}"></i>{/each}{#if shownCalendars.length === 0}<Icon name="calendar" size={16} />{/if}</button>
       {#if app.tasks.enabled}<button class="tool" class:on={tasksColumn || tasksOverlay} onclick={toggleTasks} title="Tasks"><Icon name="tasks" size={16} /></button>{/if}
       {#if width >= 400}<button class="tool" class:spinning={app.syncing} onclick={() => sendToShell({ type: 'refresh' })} title="Refresh from Google"><Icon name="refresh" size={16} /></button>{/if}
       <button class="tool" onclick={() => sendToShell({ type: 'openSettings' })} title="Settings"><Icon name="settings" size={16} /></button>
+      {/if}
       <button class="tool pin" class:on={app.window.pinned} onclick={togglePin} aria-pressed={app.window.pinned} title={app.window.pinned ? 'Pinned to the desktop (click to unpin and move)' : 'Pin to the desktop'}><Icon name="pin" size={15} /></button>
       {#if app.window.frameless && !app.window.pinned}
         <div class="window-controls">
@@ -181,18 +216,23 @@
   {#if tasksOverlay && !tasksColumn && app.tasks.enabled}<TasksPanel overlay onclose={() => tasksOverlay = false} />{/if}
   {#if ui.hint}<div class="hint" role="status">{#if app.window.pinned}<Icon name="lock" size={14} />{/if}{ui.hint}</div>{/if}
   {#if ui.switcherOpen}<CalendarSwitcher />{/if}
-  {#if ui.selectedEvent}<EventCard />{/if}
 </div>
 
 <WhatsNew />
 <SelectionBar />
+<ConfirmDelete />
 
 <style>
   .shell { position: relative; display: flex; flex-direction: column; height: 100vh; }
   .strip { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; min-height: 36px; -webkit-user-select: none; user-select: none; }
-  .heading { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; }
+  .heading { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; gap: 2px; }
   .today { min-width: 0; padding: 2px 8px; margin-right: 4px; border: 0; border-radius: 8px; background: none; color: var(--fg); font: inherit; font-size: 18px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; letter-spacing: -0.01em; }
   .today:hover { background: var(--hover); }
+  .today.measure { position: absolute; visibility: hidden; pointer-events: none; }
+  .today.cut { display: none; }
+  /* Back to today: only while away from it, quiet until hovered */
+  .back-today { flex: none; height: 22px; padding: 0 9px; margin-left: 4px; border: 0; border-radius: 11px; background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--fg-quiet); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+  .back-today:hover { background: var(--hover); color: var(--fg); }
   .step, .tool, .window-controls button { display: grid; place-items: center; width: 32px; height: 30px; flex: none; border: 0; border-radius: 7px; background: none; color: var(--fg-quiet); cursor: pointer; }
   .step:hover, .tool:hover, .window-controls button:hover { background: var(--hover); color: var(--fg); }
   .tools { display: flex; align-items: center; gap: 2px; flex: none; }

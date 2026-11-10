@@ -82,6 +82,8 @@ public partial class SettingsWindow : Window
         await App.Store.RemoveAccountAsync(email);
     }
     void CalendarShown_Click(object sender, RoutedEventArgs args) { if (sender is CheckBox { Tag: string key } box) App.Store.SetShown(key, box.IsChecked == true); }
+    void CalendarUp_Click(object sender, RoutedEventArgs args) { if (sender is Button { Tag: string key }) App.Store.MoveCalendar(key, -1); }
+    void CalendarDown_Click(object sender, RoutedEventArgs args) { if (sender is Button { Tag: string key }) App.Store.MoveCalendar(key, 1); }
     void CalendarInSwitcher_Click(object sender, RoutedEventArgs args) { if (sender is CheckBox { Tag: string key } box) App.Store.SetInSwitcher(key, box.IsChecked == true); }
     void CalendarColour_Click(object sender, RoutedEventArgs args)
     {
