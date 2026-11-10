@@ -121,7 +121,7 @@ Same layout as WinSqueeze (left sidebar of pages grouped under small headings, w
 ## Skins
 
 - **Glass** (Auto, Dark, Light): frosted, the same tokens as WinSqueeze. The only skins the Glass setting applies to.
-- **Paper:** a lined writing pad: very faint blue rules that events sit on, a faint red line under the title strip and each week, headings, weekday names and day numbers handwritten (Caveat), today circled in red pen; event text in Inter.
+- **Paper:** a lined writing pad: very faint blue rules that events sit on, a faint red line under the title strip and each week, headings, weekday names and day numbers handwritten (Caveat), today (and the selected day in Split) circled in pen; event text in Inter. Circles are drawn by hand in one stroke: off-centre, never round, the end overshooting the start, and seeded by the date so every day's circle is a little different. All-day and multi-day events are their name written in the calendar's colour with a wavering pen arrow under it, running across the days to an arrowhead on the last.
 - **Technical:** graphite with a faint blueprint grid, JetBrains Mono, amber highlight, square corners and dots.
 - **Wall calendar:** textured parchment with a spiral binding along the top, Fraunces for headings and day numbers, Newsreader for text, Sundays in red, today circled.
 
