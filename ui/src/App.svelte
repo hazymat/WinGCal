@@ -17,6 +17,7 @@
   import SkinPicker from './parts/SkinPicker.svelte'
   import SelectionBar from './parts/SelectionBar.svelte'
   import WallpaperFrost from './parts/WallpaperFrost.svelte'
+  import MoreMenu from './parts/MoreMenu.svelte'
 
   // ---- From the shell ----
   onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
@@ -94,12 +95,14 @@
   const shownView = $derived(ui.view === 'auto' ? autoView : ui.view)
   $effect(() => writeSetting('view', ui.view))
   const narrow = $derived(width < 560)
+  // Small windows: the strip keeps the month, arrows, Today, a More menu and the pin (SPEC.md › Strip)
+  const compact = $derived(width < 440)
   const events = $derived(placedEvents())
   const shortMonth = (date: Date) => date.toLocaleDateString(undefined, { month: 'short' })
   // Shorter as the window narrows: "November 2026", "Nov 2026", "Nov"
   // The month name is left out rather than cut to a stub ("N…") when the strip is too crowded for it
   let headingRoom = $state(0), headingNatural = $state(0)
-  const heading = $derived(width < 300 ? shortMonth(ui.focus) : width < 460 ? `${shortMonth(ui.focus)} ${ui.focus.getFullYear()}` : shownView === 'week' && width >= 560 ? weekHeading(startOfWeek(ui.focus, prefs.weekStart)) : `${monthName(ui.focus)} ${ui.focus.getFullYear()}`)
+  const heading = $derived(width < 380 ? shortMonth(ui.focus) : width < 460 ? `${shortMonth(ui.focus)} ${ui.focus.getFullYear()}` : shownView === 'week' && width >= 560 ? weekHeading(startOfWeek(ui.focus, prefs.weekStart)) : `${monthName(ui.focus)} ${ui.focus.getFullYear()}`)
   function weekHeading(weekStart: Date) { const weekEnd = addDays(weekStart, 6); return weekStart.getMonth() === weekEnd.getMonth() ? `${monthName(weekStart)} ${weekStart.getFullYear()}` : `${shortDate(weekStart)} – ${shortDate(weekEnd)}` }
   function step(direction: number) {
     if (shownView === 'month' || shownView === 'split') ui.focus = addMonths(ui.focus, direction)
@@ -153,8 +156,8 @@
   <header class="strip" role="presentation" onmousedown={dragWindow} data-frost>
     <div class="heading" bind:clientWidth={headingRoom}>
       <span class="today measure" aria-hidden="true" bind:clientWidth={headingNatural}>{heading}</span>
-      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 320 ? 64 : 0) - (isToday ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
-      {#if width >= 320}
+      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 220 ? 64 : 0) - (isToday ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
+      {#if width >= 220}
         <button class="step" onclick={() => step(-1)} aria-label="Previous"><Icon name="previous" size={16} /></button>
         <button class="step" onclick={() => step(1)} aria-label="Next"><Icon name="next" size={16} /></button>
         {#if !isToday}<button class="back-today" onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">Today</button>{/if}
@@ -168,10 +171,12 @@
         </div>
         <SkinPicker />
       {/if}
+      {#if compact}<MoreMenu {views} />{:else}
       <button class="dots" class:on={ui.switcherOpen} onclick={() => ui.switcherOpen = !ui.switcherOpen} title="Calendars">{#each shownCalendars.slice(0, width < 320 ? 3 : 5) as calendar}<i style="background: {calendar.colour}"></i>{/each}{#if shownCalendars.length === 0}<Icon name="calendar" size={16} />{/if}</button>
       {#if app.tasks.enabled}<button class="tool" class:on={tasksColumn || tasksOverlay} onclick={toggleTasks} title="Tasks"><Icon name="tasks" size={16} /></button>{/if}
       {#if width >= 400}<button class="tool" class:spinning={app.syncing} onclick={() => sendToShell({ type: 'refresh' })} title="Refresh from Google"><Icon name="refresh" size={16} /></button>{/if}
       <button class="tool" onclick={() => sendToShell({ type: 'openSettings' })} title="Settings"><Icon name="settings" size={16} /></button>
+      {/if}
       <button class="tool pin" class:on={app.window.pinned} onclick={togglePin} aria-pressed={app.window.pinned} title={app.window.pinned ? 'Pinned to the desktop (click to unpin and move)' : 'Pin to the desktop'}><Icon name="pin" size={15} /></button>
       {#if app.window.frameless && !app.window.pinned}
         <div class="window-controls">
