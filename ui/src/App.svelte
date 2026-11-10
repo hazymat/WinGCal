@@ -260,8 +260,8 @@
   .window-controls button { width: 36px; }
   .window-controls .close:hover { background: #c42b1c; color: #fff; }
   .offline { display: flex; align-items: center; gap: 5px; margin-right: 8px; font-size: 12px; color: var(--warn); }
-  .notice { display: flex; align-items: center; gap: 10px; margin: 0 8px 6px; padding: 6px 10px; border-radius: 10px; background: var(--accent-soft); font-size: 13px; }
-  .notice span { flex: 1; }
+  .notice { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: 0 8px 6px; padding: 6px 10px; border-radius: 10px; background: var(--accent-soft); font-size: 13px; }
+  .notice span { min-width: 0; text-align: right; }
   .notice.problem { background: color-mix(in srgb, var(--danger) 18%, transparent); }
   .body { flex: 1; min-height: 0; display: flex; }
   .view { flex: 1; min-width: 0; min-height: 0; }
