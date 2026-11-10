@@ -24,7 +24,16 @@ public sealed class FrostPanels : IDisposable
         owner.Closed += (sender, args) => Dispose();
     }
 
-    public void SetEnabled(bool on, bool dark) { enabled = on; if (dark != darkTheme) { darkTheme = dark; foreach (var backing in backings) Style(backing); } Sync(); }
+    // frost 0..100: how much of the blur shows (the backing windows fade through layered alpha; 0 leaves the panels clear)
+    byte frostAlpha = 255;
+    bool syncing, resyncQueued;
+    public void SetEnabled(bool on, bool dark, int frost = 100)
+    {
+        enabled = on && frost > 0; frostAlpha = (byte)Math.Round(Math.Clamp(frost, 0, 100) * 2.55);
+        if (dark != darkTheme) { darkTheme = dark; foreach (var backing in backings) Style(backing); }
+        foreach (var backing in backings) SetLayeredWindowAttributes(new WindowInteropHelper(backing).Handle, 0, frostAlpha, LayeredAlpha);
+        Sync();
+    }
     public void Update(List<Panel> reported) { panels = reported; Sync(); }
 
     // Places the backing windows behind the panels, in screen pixels from the page's top-left corner
@@ -34,26 +43,30 @@ public sealed class FrostPanels : IDisposable
         var showing = enabled && owner.IsVisible && owner.WindowState != WindowState.Minimized && ownerHandle != IntPtr.Zero;
         var origin = showing && owner.Content is FrameworkElement content && PresentationSource.FromVisual(content) != null ? content.PointToScreen(new Point(0, 0)) : new Point();
         var wanted = showing ? panels : new List<Panel>();
-        // Pinned, the widget sits at the bottom of the desktop: "just below the widget" can't go lower than the bottom, so the frost goes to the very bottom instead (still behind the widget)
-        var insertAfter = GetWindow(ownerHandle, OwnerRelation) != IntPtr.Zero ? BottomWindow : ownerHandle;
+        // The frost shares the widget's owner (none, or the desktop when pinned): a click on the desktop raises the desktop's owned windows, and frost owned by the desktop while the widget isn't would jump in front of it
+        var widgetOwner = GetWindow(ownerHandle, OwnerRelation);
+        syncing = true;
         while (backings.Count < wanted.Count) backings.Add(CreateBacking());
         for (var index = 0; index < backings.Count; index++)
         {
             var handle = new WindowInteropHelper(backings[index]).Handle;
             if (index >= wanted.Count) { ShowWindow(handle, HideWindow); continue; }
             var panel = wanted[index];
-            SetWindowPos(handle, insertAfter, (int)origin.X + panel.X, (int)origin.Y + panel.Y, panel.Width, panel.Height, NoActivate | ShowWindowFlag | NoOwnerZOrder);
+            if (GetWindow(handle, OwnerRelation) != widgetOwner) SetWindowLongPtr(handle, OwnerIndex, widgetOwner);
+            SetWindowPos(handle, ownerHandle, (int)origin.X + panel.X, (int)origin.Y + panel.Y, panel.Width, panel.Height, NoActivate | ShowWindowFlag | NoOwnerZOrder);
         }
+        syncing = false;
     }
 
     Window CreateBacking()
     {
         var backing = new Window { WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, ShowActivated = false, Focusable = false, Background = Brushes.Transparent, Width = 1, Height = 1, Left = -32000, Top = -32000, Title = "WinGCal frost" };
         var handle = new WindowInteropHelper(backing).EnsureHandle();
-        var extendedStyle = GetWindowLongPtr(handle, ExtendedStyleIndex).ToInt64() | ToolWindowStyle | NoActivateStyle | TransparentStyle;
+        var extendedStyle = GetWindowLongPtr(handle, ExtendedStyleIndex).ToInt64() | ToolWindowStyle | NoActivateStyle | TransparentStyle | LayeredStyle;
         SetWindowLongPtr(handle, ExtendedStyleIndex, new IntPtr(extendedStyle));
+        SetLayeredWindowAttributes(handle, 0, frostAlpha, LayeredAlpha);
         // Owned by the desktop, like the pinned widget, so Show desktop leaves the frost where the widget is
-        SetWindowLongPtr(handle, OwnerIndex, FindWindow("Progman", null));
+        SetWindowLongPtr(handle, OwnerIndex, GetWindow(new WindowInteropHelper(owner).Handle, OwnerRelation));
         var source = HwndSource.FromHwnd(handle);
         if (source?.CompositionTarget != null) source.CompositionTarget.BackgroundColor = Colors.Transparent;
         source?.AddHook(BackingHook);
@@ -78,6 +91,8 @@ public sealed class FrostPanels : IDisposable
     {
         if (message == NonClientActivate && wParam == IntPtr.Zero) { handled = true; return DefWindowProc(handle, message, (IntPtr)1, (IntPtr)(-1)); }
         if (message == MouseActivate) { handled = true; return (IntPtr)NoActivateAnswer; }
+        // Something else moved the frost in the z-order (Windows raising owned windows, say): put it back behind the widget
+        if (message == WindowPositionChanged && !syncing && !resyncQueued) { resyncQueued = true; owner.Dispatcher.BeginInvoke(() => { resyncQueued = false; Sync(); }); }
         return IntPtr.Zero;
     }
     // Follow the main window as it moves, resizes or changes place in the z-order
@@ -91,6 +106,8 @@ public sealed class FrostPanels : IDisposable
 
     // ---- Win32 ----
     const int ExtendedStyleIndex = -20, OwnerIndex = -8, HideWindow = 0, NonClientActivate = 0x0086, MouseActivate = 0x0021, NoActivateAnswer = 3, WindowPositionChanged = 0x0047;
+    const long LayeredStyle = 0x80000; const uint LayeredAlpha = 2;
+    [DllImport("user32.dll")] static extern bool SetLayeredWindowAttributes(IntPtr handle, uint colourKey, byte alpha, uint flags);
     const long ToolWindowStyle = 0x80, NoActivateStyle = 0x08000000, TransparentStyle = 0x20;
     const uint NoActivate = 0x10, ShowWindowFlag = 0x40, NoOwnerZOrder = 0x200;
     const int DarkModeAttribute = 20, CornerAttribute = 33, RoundCorners = 2, BorderColourAttribute = 34, BackdropAttribute = 38, AcrylicBackdrop = 3;

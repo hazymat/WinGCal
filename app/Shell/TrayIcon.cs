@@ -14,6 +14,8 @@ public sealed class TrayIcon : IDisposable
         var trayMenu = new ContextMenuStrip();
         showItem.Font = new Font(showItem.Font, System.Drawing.FontStyle.Bold);
         showItem.Click += (sender, args) => App.ToggleMainWindow();
+        // The version, just the number, in a small shaded row at the top
+        trayMenu.Items.Add(new ToolStripMenuItem(App.Updater.CurrentVersion) { Enabled = false, BackColor = Color.FromArgb(236, 236, 236), Font = new Font(SystemFonts.MenuFont ?? Control.DefaultFont, System.Drawing.FontStyle.Regular) });
         trayMenu.Items.Add(showItem);
         trayMenu.Items.Add("Refresh from Google", null, async (sender, args) => await App.Store.SyncAsync());
         trayMenu.Items.Add(new ToolStripSeparator());
