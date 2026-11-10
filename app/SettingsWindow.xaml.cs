@@ -54,6 +54,7 @@ public partial class SettingsWindow : Window
         string previousAccount = "";
         calendarsList.ItemsSource = store.Calendars.Select(calendar => { var first = calendar.Account != previousAccount; previousAccount = calendar.Account; return new CalendarRow(calendar.Key, calendar.Name, store.IsShown(calendar.Key), BrushOf(store.ColourOf(calendar)), calendar.Account, first ? Visibility.Visible : Visibility.Collapsed); }).ToList();
         noCalendarsText.Visibility = store.Calendars.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        noCalendarsText.Text = NoCalendarsReason();
         previousAccount = "";
         taskListsList.ItemsSource = Settings.Tasks.Enabled ? store.Tasks.Lists.Select(list => { var first = list.Account != previousAccount; previousAccount = list.Account; return new CalendarRow(list.Key, list.Name, store.Tasks.IsShown(list.Key), Brushes.Transparent, list.Account, first ? Visibility.Visible : Visibility.Collapsed); }).ToList() : null;
         var needAccess = Settings.Tasks.Enabled ? Settings.Sync.Accounts.Where(email => !Settings.Tasks.Accounts.Contains(email)).ToList() : new();
@@ -127,7 +128,7 @@ public partial class SettingsWindow : Window
             catch (Exception lookupError) { rows.Add(new FirstEventRow(calendar.Name, "Couldn't check", lookupError.Message)); }
             firstEventsTable.ItemsSource = rows.ToList(); firstEventsTable.Visibility = Visibility.Visible;
         }
-        firstEventsStatus.Text = rows.Count == 0 ? "Sign in on Accounts first." : "";
+        firstEventsStatus.Text = rows.Count == 0 ? NoCalendarsReason() : "";
         firstEventsButton.IsEnabled = true;
     }
 
@@ -325,5 +326,7 @@ public partial class SettingsWindow : Window
         return string.Join(Environment.NewLine, lines);
     }
 
+    // No calendars: not signed in, or signed in but the sync failed (say so rather than "sign in")
+    string NoCalendarsReason() => App.Settings.Sync.Accounts.Count == 0 ? "Sign in on Accounts first." : App.Store.Syncing ? "Getting your calendars from Google…" : App.Store.AccountStates.Values.FirstOrDefault(state => state.Error != "") is { } failed ? $"No calendars yet: {failed.Email} couldn't sync. {failed.Error}" : "No calendars yet. They appear after the next sync.";
     static void OpenUrl(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 }
