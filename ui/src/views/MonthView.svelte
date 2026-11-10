@@ -48,7 +48,7 @@
   .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); padding: 0 6px; }
   .weekdays div { padding: 2px 8px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-quiet); }
   .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); gap: 1px; margin: 0 6px 6px; border-radius: 10px; overflow: hidden; background: var(--line); }
-  .day { position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 0; padding: 3px 4px; background: var(--cell); overflow: hidden; }
+  .day { container: day / inline-size; position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 0; padding: 3px 4px; background: var(--cell); overflow: hidden; }
   .day.weekend { background: var(--cell-weekend); }
   .day.other { background: var(--cell-other); }
   .day.other > :not(.number) { opacity: 0.6; }

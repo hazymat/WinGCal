@@ -154,6 +154,17 @@ public sealed class CalendarStore
         SaveCache(); Changed?.Invoke();
     }
 
+    public async Task UpdateEventAsync(string uiEventId, System.Text.Json.Nodes.JsonObject changes)
+    {
+        var found = FindEvent(uiEventId);
+        var calendar = found == null ? null : Calendars.FirstOrDefault(candidate => candidate.Key == found.CalendarKey);
+        if (found == null || calendar == null) return;
+        var saved = await Api.PatchEventAsync(calendar.Account, calendar.Id, found.EventId, changes, CancellationToken.None);
+        var updated = ToUiEvent(calendar, saved);
+        EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Select(item => item.Id == uiEventId ? updated : item).Where(item => item != null).Select(item => item!).ToList();
+        SaveCache(); Changed?.Invoke();
+    }
+
     public UiEvent? FindEvent(string uiEventId) => EventsByCalendar.SelectMany(pair => pair.Value).FirstOrDefault(item => item.Id == uiEventId);
 
     static CalendarInfo ToCalendar(string email, JsonElement entry)
