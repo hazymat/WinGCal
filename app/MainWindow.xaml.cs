@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     App App => App.Instance;
     static readonly JsonSerializerOptions camel = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     DesktopPin? pin;
+    FrostPanels? frost;
     readonly DispatcherTimer placementSaveTimer = new() { Interval = TimeSpan.FromMilliseconds(600) };
     readonly DispatcherTimer displaysSettleTimer = new() { Interval = TimeSpan.FromMilliseconds(1500) };
     CancellationTokenSource? signInCancel;
@@ -30,7 +31,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Loaded += async (sender, args) => await InitWebViewAsync();
-        SourceInitialized += (sender, args) => { pin = new DesktopPin(new WindowInteropHelper(this).Handle); RestorePlacement(); ApplyWindowStyle(); ApplyPinned(); };
+        SourceInitialized += (sender, args) => { pin = new DesktopPin(new WindowInteropHelper(this).Handle); frost = new FrostPanels(this); RestorePlacement(); ApplyWindowStyle(); ApplyPinned(); };
         Activated += (sender, args) => { OnFirstActivation(); if (App.Settings.Window.Pinned) pin?.SendToBottom(); };
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); placementSaveTimer.Stop(); placementSaveTimer.Start(); };
         LocationChanged += (sender, args) => { if (!placing) { placementSaveTimer.Stop(); placementSaveTimer.Start(); } };
@@ -103,6 +104,7 @@ public partial class MainWindow : Window
                 case "taskDelete": await TaskActionAsync(() => App.Store.Tasks.DeleteAsync(Text(message, "id"))); break;
                 case "showTaskList": App.Store.Tasks.SetShown(Text(message, "key"), message.GetProperty("shown").GetBoolean()); App.NotifySettingsChanged(); break;
                 case "applyUpdate": await App.Updater.RestartToUpdateAsync(); break;
+                case "frostPanels": frost?.Update(message.GetProperty("panels").EnumerateArray().Select(panel => new FrostPanels.Panel(panel.GetProperty("x").GetInt32(), panel.GetProperty("y").GetInt32(), panel.GetProperty("width").GetInt32(), panel.GetProperty("height").GetInt32())).ToList()); break;
                 case "edgeColour": SetEdgeColour(Text(message, "colour")); break;
                 case "resizeWindow": if (!App.Settings.Window.Pinned && resizeHitCodes.TryGetValue(Text(message, "edge"), out var hitCode)) { ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)hitCode, IntPtr.Zero); } break;
                 case "dragWindow": if (!App.Settings.Window.Pinned) { ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1 /*WM_NCLBUTTONDOWN*/, (IntPtr)2 /*HTCAPTION*/, IntPtr.Zero); webView.Focus(); } break;
@@ -162,8 +164,9 @@ public partial class MainWindow : Window
     }
 
     public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
-    public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue }));
-    void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, frameless = App.Settings.Look.Frameless, maximised = WindowState == WindowState.Maximized, pinned = App.Settings.Window.Pinned }));
+    public void PushSkin() => Push(JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint }));
+    bool clearActive;
+    void PushWindowState() => Push(JsonSerializer.Serialize(new { type = "window", glass = glassActive, clear = clearActive, frameless = App.Settings.Look.Frameless, maximised = WindowState == WindowState.Maximized, pinned = App.Settings.Window.Pinned }));
 
     // ---- Pin (SPEC.md › Window › Pin) ----
     public void ApplyPinned()
@@ -293,8 +296,12 @@ public partial class MainWindow : Window
         DwmSetWindowAttribute(windowHandle, BorderColourAttribute, ref borderColour, sizeof(int));
         // Acrylic needs Windows 11 22H2+; elsewhere the call fails and the UI stays opaque
         var wantGlass = look.Glass && look.IsGlassSkin;
-        var backdrop = wantGlass ? AcrylicBackdrop : NoBackdrop;
+        // Clear glass: no frost on the window itself (it stays see-through); FrostPanels frosts behind each panel instead
+        var clear = wantGlass && look.ClearGlass;
+        var backdrop = wantGlass && !clear ? AcrylicBackdrop : NoBackdrop;
         glassActive = wantGlass && DwmSetWindowAttribute(windowHandle, BackdropAttribute, ref backdrop, sizeof(int)) == 0;
+        clearActive = glassActive && clear;
+        frost?.SetEnabled(clearActive, darkTheme);
         var margins = glassActive ? new FrameMargins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new FrameMargins();
         DwmExtendFrameIntoClientArea(windowHandle, ref margins);
         var hwndSource = HwndSource.FromHwnd(windowHandle);

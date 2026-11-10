@@ -201,6 +201,12 @@ public partial class SettingsWindow : Window
         glassInactiveBox.IsChecked = look.GlassWhenInactive;
         glassInactiveBox.Click += (sender, args) => { look.GlassWhenInactive = glassInactiveBox.IsChecked == true; Settings.Save(); App.RefreshInactiveGlass(); };
         glassBox.IsChecked = look.Glass; framelessBox.IsChecked = look.Frameless;
+        // Clear glass: tint of the see-through window and of the frosted panels
+        void ShowClear() { clearGlassBox.IsChecked = look.ClearGlass; clearControls.Visibility = look.ClearGlass ? Visibility.Visible : Visibility.Collapsed; transparencyRow.Visibility = look.ClearGlass ? Visibility.Collapsed : Visibility.Visible; windowTintText.Text = $"{look.WindowTint}%"; panelTintText.Text = $"{look.PanelTint}%"; }
+        windowTintSlider.Value = look.WindowTint; panelTintSlider.Value = look.PanelTint; ShowClear();
+        clearGlassBox.Click += (sender, args) => { look.ClearGlass = clearGlassBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); App.ApplySkin(); ShowClear(); };
+        windowTintSlider.ValueChanged += (sender, args) => { look.WindowTint = (int)windowTintSlider.Value; Settings.Save(); App.ApplySkin(); ShowClear(); };
+        panelTintSlider.ValueChanged += (sender, args) => { look.PanelTint = (int)panelTintSlider.Value; Settings.Save(); App.ApplySkin(); ShowClear(); };
         glassControls.IsEnabled = look.Glass;
         glassBox.Click += (sender, args) => { look.Glass = glassBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); glassControls.IsEnabled = look.Glass; };
         framelessBox.Click += (sender, args) => { look.Frameless = framelessBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); };

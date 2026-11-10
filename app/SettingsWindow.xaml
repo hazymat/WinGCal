@@ -213,7 +213,20 @@
             <TextBlock Style="{StaticResource Quiet}" Text="For the glass skins. Paper, Technical and Wall calendar are solid." />
             <CheckBox x:Name="glassBox" Content="Let the desktop show through the window, frosted (Windows 11)" Margin="0,4,0,8" />
             <StackPanel x:Name="glassControls">
-              <WrapPanel Margin="0,0,0,4">
+              <CheckBox x:Name="clearGlassBox" Content="Clear window, frosted panels: the window is see-through with a glint at its edge, and each part of it is its own pane of frosted glass" Margin="0,0,0,8" />
+              <StackPanel x:Name="clearControls">
+                <WrapPanel Margin="0,0,0,4">
+                  <TextBlock Text="Window tint" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
+                  <Slider x:Name="windowTintSlider" Minimum="0" Maximum="60" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+                  <TextBlock x:Name="windowTintText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </WrapPanel>
+                <WrapPanel Margin="0,0,0,8">
+                  <TextBlock Text="Panel tint" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
+                  <Slider x:Name="panelTintSlider" Minimum="0" Maximum="90" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+                  <TextBlock x:Name="panelTintText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </WrapPanel>
+              </StackPanel>
+              <WrapPanel Margin="0,0,0,4" x:Name="transparencyRow">
                 <TextBlock Text="Transparency" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
                 <Slider x:Name="glassTransparencySlider" Minimum="0" Maximum="100" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
                 <TextBlock x:Name="glassTransparencyText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />

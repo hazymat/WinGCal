@@ -21,7 +21,7 @@ Same family as WinSqueeze and WinTapeRecorder: C# .NET 8 WPF shell hosting WebVi
 
 A pin button near the top right of the title strip (the WinSqueeze pin glyph; upright and lit in the accent when on).
 
-| | Pinned (default) | Unpinned |
+| | Pinned | Unpinned (first install) |
 |---|---|---|
 | Move and resize | Locked | Drag the title strip, resize from the edges |
 | Win+D (Show desktop) | Stays showing, with the desktop icons | Minimises with everything else |
@@ -57,6 +57,10 @@ Per setup WinGCal remembers: which monitor the widget is on (by that monitor's i
 ### Frameless and glass
 
 As WinSqueeze: frameless by default (drag from the title strip, resize from the edges when unpinned), Windows 11 acrylic glass behind a tinted page, transparency and tint sliders, glass kept when another app is in front.
+
+### Clear glass
+
+On by default for the glass skins (Settings › Appearance › Glass › Clear window). The window itself is see-through, with only a faint tint (Window tint slider, default 6%) and a thin glint around its edge. The title strip, the calendar and the tasks column each sit on their own frosted panel (Panel frost slider, default 42%), so they read as separate things on the desktop. Windows blurs a whole window or nothing, so each panel has a hidden backing window behind it carrying the acrylic blur; the backings follow the window as it moves, resizes, hides and shows. Popovers (event card, quick switcher, tasks overlay, hints) sit over the calendar itself, where blur can't reach, so they are near-solid. Turning Clear window off returns to one acrylic sheet with the transparency slider.
 
 ### Title strip
 

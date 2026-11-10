@@ -39,13 +39,16 @@ public class LookSettings
     public int GlassTransparency { get; set; } = -1; // 0..100, -1 = default
     public int GlassTintHue { get; set; } = 0; // 0 = neutral
     public bool GlassWhenInactive { get; set; } = true;
+    public bool ClearGlass { get; set; } = true; // the window clear with frosted panels (glass skins only)
+    public int WindowTint { get; set; } = 6; // clear glass: 0..100 tint of the see-through window
+    public int PanelTint { get; set; } = 42; // clear glass: 0..100 tint of the frosted panels
     public bool ShowTitleBar { get; set; } // frameless by default
     [JsonIgnore] public bool Frameless { get => !ShowTitleBar; set => ShowTitleBar = !value; }
 }
 
 public class WindowSettings
 {
-    public bool Pinned { get; set; } = true;
+    public bool Pinned { get; set; } // unpinned on first install; pin it once it is where you want it
     public Dictionary<string, SetupPlacement> Setups { get; set; } = new(); // by monitor setup key
 }
 
