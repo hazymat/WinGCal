@@ -46,9 +46,12 @@ public sealed class CalendarStore
     public bool IsShown(string key) => !settings().Sync.HiddenCalendars.Contains(key);
     public string ColourOf(CalendarInfo calendar) => settings().Sync.ColourOverrides.TryGetValue(calendar.Key, out var colour) ? colour : calendar.Colour;
 
-    public async Task SyncAsync()
+    UiEvent? SafeUiEvent(CalendarInfo calendar, JsonElement item) { try { return ToUiEvent(calendar, item); } catch (Exception eventError) { CrashReporter.Write("Event in " + calendar.Name, eventError, false); return null; } }
+
+    // wait: a new account's first sync queues behind one already running instead of being skipped
+    public async Task SyncAsync(bool wait = false)
     {
-        if (!await syncLock.WaitAsync(0)) return;
+        if (wait) await syncLock.WaitAsync(); else if (!await syncLock.WaitAsync(0)) return;
         Syncing = true; Changed?.Invoke();
         try
         {
@@ -61,14 +64,17 @@ public sealed class CalendarStore
                 try
                 {
                     var accountCalendars = (await Api.CalendarListAsync(email, CancellationToken.None)).Select(entry => ToCalendar(email, entry)).ToList();
+                    var calendarErrors = new List<string>();
                     foreach (var calendar in accountCalendars)
                     {
                         // New calendars start shown or hidden as they are in Google Calendar
                         if (!appSettings.Sync.KnownCalendars.Contains(calendar.Key)) { appSettings.Sync.KnownCalendars.Add(calendar.Key); if (!calendar.SelectedInGoogle && !appSettings.Sync.HiddenCalendars.Contains(calendar.Key)) appSettings.Sync.HiddenCalendars.Add(calendar.Key); }
-                        events[calendar.Key] = (await Api.EventsAsync(email, calendar.Id, from, to, CancellationToken.None)).Select(item => ToUiEvent(calendar, item)).Where(item => item != null).Select(item => item!).ToList();
+                        // One calendar or one odd event failing mustn't empty the whole account
+                        try { events[calendar.Key] = (await Api.EventsAsync(email, calendar.Id, from, to, CancellationToken.None)).Select(item => SafeUiEvent(calendar, item)).Where(item => item != null).Select(item => item!).ToList(); }
+                        catch (Exception calendarError) when (calendarError is not SignInNeededException && !(calendarError is HttpRequestException { StatusCode: null })) { calendarErrors.Add($"{calendar.Name}: {calendarError.Message}"); if (EventsByCalendar.TryGetValue(calendar.Key, out var cached)) events[calendar.Key] = cached; CrashReporter.Write("Sync " + calendar.Name, calendarError, false); }
                     }
                     calendars.AddRange(accountCalendars);
-                    AccountStates[email] = new AccountState(email, DateTime.Now, ""); anyReached = true;
+                    AccountStates[email] = new AccountState(email, DateTime.Now, string.Join(" ", calendarErrors)); anyReached = true;
                 }
                 catch (SignInNeededException) { KeepCached(email, calendars, events); AccountStates[email] = new AccountState(email, AccountStates.TryGetValue(email, out var before) ? before.LastSync : DateTime.MinValue, "Sign in again"); }
                 catch (HttpRequestException requestError) when (requestError.StatusCode == null) { KeepCached(email, calendars, events); anyOffline = true; }
@@ -96,7 +102,7 @@ public sealed class CalendarStore
         var appSettings = settings();
         if (!appSettings.Sync.Accounts.Contains(email)) appSettings.Sync.Accounts.Add(email);
         appSettings.Save();
-        await SyncAsync();
+        await SyncAsync(true);
         return email;
     }
 

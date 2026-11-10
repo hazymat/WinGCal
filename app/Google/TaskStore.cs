@@ -114,7 +114,7 @@ public sealed class TaskStore(GoogleAuth auth, Func<AppSettings> settings)
         {
             request.Headers.Authorization = new("Bearer", await auth.AccessTokenAsync(email));
             var response = await http.SendAsync(request);
-            if (!response.IsSuccessStatusCode) { var status = response.StatusCode; response.Dispose(); throw new HttpRequestException($"Google Tasks said {(int)status}", null, status); }
+            if (!response.IsSuccessStatusCode) { var status = response.StatusCode; var body = await response.Content.ReadAsStringAsync(); response.Dispose(); throw new HttpRequestException(body.Contains("accessNotConfigured") || body.Contains("SERVICE_DISABLED") ? "The Google Tasks API isn't turned on for WinGCal's Google Cloud project (APIs & Services > Library > Google Tasks API > Enable)." : $"Google Tasks said {(int)status}", null, status); }
             return response;
         }
     }
