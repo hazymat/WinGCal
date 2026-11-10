@@ -56,13 +56,13 @@
   function onKey(keyEvent: KeyboardEvent) {
     if ((keyEvent.key === 's' && keyEvent.ctrlKey) || (keyEvent.key === 'Enter' && (keyEvent.ctrlKey || !(keyEvent.target as HTMLElement).matches('textarea')))) { keyEvent.preventDefault(); save() }
   }
-  let titleInput: HTMLInputElement | undefined = $state()
+  let titleInput: HTMLTextAreaElement | undefined = $state()
   $effect(() => { if (!event) titleInput?.focus() })
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="form" onkeydown={onKey} style="--colour: {event?.colour || calendar?.colour || '#4f8ef7'}">
-  <div class="title-row"><span class="swatch"></span><input class="title" bind:this={titleInput} bind:value={draft.title} placeholder={event ? 'Title' : 'Add a title'} disabled={readOnly} /></div>
+  <div class="title-row"><span class="swatch"></span><textarea class="title" rows="1" bind:this={titleInput} bind:value={draft.title} placeholder={event ? 'Title' : 'Add a title'} disabled={readOnly} onkeydown={(keyEvent) => { if (keyEvent.key === 'Enter') keyEvent.preventDefault() }}></textarea></div>
   <div class="row quiet"><Icon name="calendar" size={15} />
     {#if event}<span>{calendar?.name}{calendar ? ' · ' + calendar.account : ''}{readOnly ? ' (read only)' : ''}</span>
     {:else}<select bind:value={draft.calendarKey}>{#each writable as option}<option value={option.key}>{option.name} · {option.account}</option>{/each}</select>{/if}
@@ -95,12 +95,12 @@
 
 <style>
   .form { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 16px 14px; }
-  .title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-  .swatch { width: 14px; height: 14px; border-radius: 4px; background: var(--colour); flex: none; }
+  .title-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; background: var(--colour); flex: none; margin-top: 9px; }
   input:not([type="checkbox"]):not([type="radio"]), textarea, select { min-width: 0; background: color-mix(in srgb, var(--fg) 6%, transparent); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font: inherit; font-size: 13px; outline: none; color-scheme: light dark; }
   input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   input:disabled, textarea:disabled { opacity: 0.75; }
-  .title { flex: 1; font-size: 17px !important; font-weight: 650; padding: 7px 10px !important; }
+  .title { flex: 1; font-size: 14px !important; font-weight: 650; line-height: 1.3; padding: 6px 10px !important; resize: none; field-sizing: content; min-height: 0; max-height: 5.4em; overflow-y: auto; } /* wraps rather than cutting long titles off */
   .row { display: flex; align-items: center; gap: 10px; min-height: 30px; font-size: 13px; }
   .row :global(svg) { color: var(--fg-quiet); flex: none; }
   .row input:not([type="checkbox"]), .row select { flex: 1; }
