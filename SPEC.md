@@ -21,7 +21,7 @@ Same family as WinSqueeze and WinTapeRecorder: C# .NET 8 WPF shell hosting WebVi
 
 A pin button near the top right of the title strip (the WinSqueeze pin glyph; upright and lit in the accent when on).
 
-| | Pinned (default) | Unpinned |
+| | Pinned | Unpinned (first install) |
 |---|---|---|
 | Move and resize | Locked | Drag the title strip, resize from the edges |
 | Win+D (Show desktop) | Stays showing, with the desktop icons | Minimises with everything else |

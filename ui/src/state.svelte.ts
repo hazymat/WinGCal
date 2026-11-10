@@ -13,7 +13,7 @@ export function readSetting(name: string, fallback: string) { try { return local
 export function writeSetting(name: string, value: string) { try { localStorage.setItem('wingcal.' + name, value) } catch { } }
 
 export const app = $state({
-  window: { glass: false, frameless: true, maximised: false, pinned: true },
+  window: { glass: false, frameless: true, maximised: false, pinned: false },
   accounts: [] as { email: string; lastSync: string; error?: string }[],
   calendars: [] as Calendar[],
   events: [] as CalendarEvent[],

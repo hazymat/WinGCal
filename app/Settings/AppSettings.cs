@@ -45,7 +45,7 @@ public class LookSettings
 
 public class WindowSettings
 {
-    public bool Pinned { get; set; } = true;
+    public bool Pinned { get; set; } // unpinned on first install; pin it once it is where you want it
     public Dictionary<string, SetupPlacement> Setups { get; set; } = new(); // by monitor setup key
 }
 
