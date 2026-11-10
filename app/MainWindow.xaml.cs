@@ -173,7 +173,7 @@ public partial class MainWindow : Window
     {
         var pinned = App.Settings.Window.Pinned;
         if (pinned && WindowState != WindowState.Normal) { placing = true; WindowState = WindowState.Normal; placing = false; }
-        pin?.Apply(pinned);
+        pin?.Apply(pinned); frost?.Sync(); // the owner change reorders windows: put the frost back behind
         ApplyWindowStyle(); // no resize border while pinned
         PushWindowState();
     }

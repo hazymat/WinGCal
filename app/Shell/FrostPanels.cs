@@ -34,13 +34,15 @@ public sealed class FrostPanels : IDisposable
         var showing = enabled && owner.IsVisible && owner.WindowState != WindowState.Minimized && ownerHandle != IntPtr.Zero;
         var origin = showing && owner.Content is FrameworkElement content && PresentationSource.FromVisual(content) != null ? content.PointToScreen(new Point(0, 0)) : new Point();
         var wanted = showing ? panels : new List<Panel>();
+        // Pinned, the widget sits at the bottom of the desktop: "just below the widget" can't go lower than the bottom, so the frost goes to the very bottom instead (still behind the widget)
+        var insertAfter = GetWindow(ownerHandle, OwnerRelation) != IntPtr.Zero ? BottomWindow : ownerHandle;
         while (backings.Count < wanted.Count) backings.Add(CreateBacking());
         for (var index = 0; index < backings.Count; index++)
         {
             var handle = new WindowInteropHelper(backings[index]).Handle;
             if (index >= wanted.Count) { ShowWindow(handle, HideWindow); continue; }
             var panel = wanted[index];
-            SetWindowPos(handle, ownerHandle, (int)origin.X + panel.X, (int)origin.Y + panel.Y, panel.Width, panel.Height, NoActivate | ShowWindowFlag | NoOwnerZOrder);
+            SetWindowPos(handle, insertAfter, (int)origin.X + panel.X, (int)origin.Y + panel.Y, panel.Width, panel.Height, NoActivate | ShowWindowFlag | NoOwnerZOrder);
         }
     }
 
@@ -96,6 +98,8 @@ public sealed class FrostPanels : IDisposable
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr handle, int attribute, ref int value, int size);
     [DllImport("dwmapi.dll")] static extern int DwmExtendFrameIntoClientArea(IntPtr handle, ref FrameMargins margins);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr handle, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
+    [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr handle, uint relation);
+    const uint OwnerRelation = 4; static readonly IntPtr BottomWindow = new(1);
     [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr handle, int command);
     [DllImport("user32.dll")] static extern IntPtr DefWindowProc(IntPtr handle, int message, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern IntPtr FindWindow(string? className, string? windowName);
