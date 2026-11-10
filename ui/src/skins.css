@@ -4,28 +4,63 @@
 @import '@fontsource-variable/jetbrains-mono/index.css';
 @import '@fontsource-variable/fraunces/index.css';
 @import '@fontsource-variable/newsreader/index.css';
+@import '@fontsource/caveat/500.css';
+@import '@fontsource/caveat/600.css';
+@import '@fontsource/caveat/700.css';
 
-/* ---- Paper: a clean sheet, black ink, one red pen ---- */
+/* ---- Paper: a lined writing pad. Very faint blue rules that the events sit on, a red margin line, headings and day numbers in handwriting ---- */
 :root[data-skin="paper"] {
-  --bg: #f7f5f0; --bg-gradient: none; --panel: rgba(30, 25, 15, 0.045); --panel-strong: rgba(30, 25, 15, 0.08); --panel-solid: #fbfaf6;
-  --line: rgba(30, 25, 15, 0.1); --hover: rgba(30, 25, 15, 0.05); --track: rgba(30, 25, 15, 0.16); --shadow: rgba(40, 30, 10, 0.16); --shadow-soft: rgba(40, 30, 10, 0.08);
-  --fg: #1c1b19; --fg-quiet: #8b867c; --accent: #d4483b; --accent-soft: rgba(212, 72, 59, 0.1); --on-accent: #ffffff; --warn: #c27c0e; --danger: #c43a2c;
-  --cell: transparent; --cell-weekend: rgba(30, 25, 15, 0.025); --cell-other: transparent; --today-column: rgba(212, 72, 59, 0.05); --event-base: #fbfaf6; --now: #d4483b; --popover: rgba(251, 250, 246, 0.97);
-  --font-ui: "Inter Variable", "Segoe UI Variable Text", sans-serif; color-scheme: light;
+  --bg: #fbfaf4; --bg-gradient: none; --panel: rgba(30, 25, 15, 0.04); --panel-strong: rgba(30, 25, 15, 0.08); --panel-solid: #fcfbf6;
+  --line: rgba(30, 25, 15, 0.09); --hover: rgba(60, 90, 160, 0.06); --track: rgba(30, 25, 15, 0.16); --shadow: rgba(40, 30, 10, 0.16); --shadow-soft: rgba(40, 30, 10, 0.08);
+  --fg: #1f2230; --fg-quiet: #8a8a92; --accent: #c8432f; --accent-soft: rgba(200, 67, 47, 0.1); --on-accent: #ffffff; --warn: #c27c0e; --danger: #c43a2c;
+  --cell: transparent; --cell-weekend: transparent; --cell-other: transparent; --today-column: rgba(200, 67, 47, 0.04); --event-base: #fcfbf6; --now: #c8432f; --popover: rgba(252, 251, 246, 0.98);
+  --rule: 22px; --rule-colour: rgba(70, 110, 190, 0.13); --margin-colour: rgba(205, 70, 60, 0.28);
+  --font-ui: "Inter Variable", "Segoe UI Variable Text", sans-serif; --font-hand: "Caveat", "Segoe Print", cursive; color-scheme: light;
 }
-:root[data-skin="paper"] body { font-feature-settings: "cv11", "ss03"; letter-spacing: -0.005em; }
-:root[data-skin="paper"] .strip .today { font-weight: 600; letter-spacing: -0.02em; }
+/* Rules drawn at the foot of every --rule row; "local" lets them scroll with the content */
+:root[data-skin="paper"] .split .days, :root[data-skin="paper"] .agenda .list { background-image: repeating-linear-gradient(transparent 0 calc(var(--rule) - 1px), var(--rule-colour) calc(var(--rule) - 1px) var(--rule)); background-attachment: local; }
+:root[data-skin="paper"] .strip { box-shadow: inset 0 -1px 0 var(--margin-colour); }
+:root[data-skin="paper"] .strip .today { font-family: var(--font-hand); font-size: clamp(22px, 4.2vw, 30px); font-weight: 700; line-height: 1; padding-top: 0; letter-spacing: 0; }
+:root[data-skin="paper"] .weekdays div, :root[data-skin="paper"] .split .weekday, :root[data-skin="paper"] .week .weekday { font-family: var(--font-hand); font-size: 17px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--fg-quiet); }
+/* Month: each day is a strip of the pad, its number written at the top and its events on the rules below */
 :root[data-skin="paper"] .grid { border-radius: 0; background: none; gap: 0; }
-:root[data-skin="paper"] .grid .day { border-top: 1px solid var(--line); }
-:root[data-skin="paper"] .grid .number { font-weight: 500; }
-:root[data-skin="paper"] .grid .today { box-shadow: none; }
-:root[data-skin="paper"] .pill { background: color-mix(in srgb, var(--colour) 16%, transparent); color: var(--fg); text-shadow: none; font-weight: 550; box-shadow: inset 2px 0 0 var(--colour); }
-:root[data-skin="paper"] .weekdays div, :root[data-skin="paper"] .weekday { letter-spacing: 0.04em; font-weight: 500; }
-:root[data-skin="paper"] .split .cell { background: none; }
-:root[data-skin="paper"] .split .cell.today { background: var(--accent); }
-:root[data-skin="paper"] .split .cell.today .number { color: var(--on-accent); }
-:root[data-skin="paper"] .split h3 { font-weight: 600; letter-spacing: 0.04em; font-size: 12.5px; color: var(--fg-quiet); }
+:root[data-skin="paper"] .grid .day { box-shadow: inset -1px 0 0 var(--line); padding-top: 2px; background-image: repeating-linear-gradient(transparent 0 17px, var(--rule-colour) 17px 18px); background-position: 0 9px; border-top: 1px solid var(--margin-colour); }
+:root[data-skin="paper"] .grid .day.other { opacity: 0.55; }
+:root[data-skin="paper"] .grid .number { font-family: var(--font-hand); font-size: 21px; font-weight: 600; line-height: 22px; height: 24px; padding: 0 4px; background: none; }
+:root[data-skin="paper"] .grid .today { box-shadow: inset -1px 0 0 var(--line); }
+:root[data-skin="paper"] .grid .today .number { color: var(--accent); background: none; border-radius: 50% 45% 55% 48%; box-shadow: 0 0 0 1.5px var(--accent); transform: rotate(-4deg); }
+:root[data-skin="paper"] .pill { background: color-mix(in srgb, var(--colour) 14%, transparent); color: var(--fg); text-shadow: none; font-weight: 550; box-shadow: inset 2px 0 0 var(--colour); }
+:root[data-skin="paper"] .line, :root[data-skin="paper"] .pill, :root[data-skin="paper"] .more { border-radius: 0; }
+/* Split: handwritten day headings, one rule each; events take two rules (time, then title) */
+:root[data-skin="paper"] .split .cell { background: none; border-radius: 50%; }
+:root[data-skin="paper"] .split .cell .number { font-family: var(--font-hand); font-size: clamp(16px, 3.4vh, 22px); font-weight: 600; }
+:root[data-skin="paper"] .split .cell.selected { box-shadow: inset 0 0 0 1.5px var(--fg); }
+:root[data-skin="paper"] .split .cell.today .number { color: var(--accent); font-weight: 700; }
+:root[data-skin="paper"] .split .cell.today.selected { background: none; box-shadow: inset 0 0 0 1.5px var(--accent); }
+:root[data-skin="paper"] .split section { padding: 0; }
+:root[data-skin="paper"] .split h3 { font-family: var(--font-hand); text-transform: none; letter-spacing: 0; font-size: 24px; font-weight: 700; line-height: var(--rule); height: calc(var(--rule) * 2); padding: 0 2px; display: flex; align-items: flex-end; color: var(--fg); }
 :root[data-skin="paper"] .split .today h3 { color: var(--accent); }
+:root[data-skin="paper"] .split .item { padding: 0 4px; border-radius: 0; line-height: var(--rule); }
+:root[data-skin="paper"] .split .time { height: var(--rule); line-height: var(--rule); }
+:root[data-skin="paper"] .split .title { line-height: var(--rule); }
+:root[data-skin="paper"] .split .empty { line-height: var(--rule); padding: 0 0 0 22px; }
+/* Agenda: the date in the margin in handwriting, events written on the rules */
+:root[data-skin="paper"] .agenda .list { padding-top: 0; }
+:root[data-skin="paper"] .agenda .day { padding: 0 4px; gap: 10px; border-radius: 0; background: none; box-shadow: inset 52px 0 0 -51px var(--margin-colour); }
+:root[data-skin="paper"] .agenda .when { padding-top: 0; line-height: var(--rule); }
+:root[data-skin="paper"] .agenda .when .weekday { font-family: var(--font-hand); font-size: 16px; text-transform: none; letter-spacing: 0; line-height: var(--rule); }
+:root[data-skin="paper"] .agenda .when .date { font-family: var(--font-hand); font-size: 28px; font-weight: 700; line-height: calc(var(--rule) * 1); }
+:root[data-skin="paper"] .agenda .day.today .date, :root[data-skin="paper"] .agenda .day.today .weekday { color: var(--accent); }
+:root[data-skin="paper"] .agenda .items { gap: 0; }
+:root[data-skin="paper"] .agenda .item { padding: 0 6px; border-radius: 0; background: none; row-gap: 0; line-height: var(--rule); }
+:root[data-skin="paper"] .agenda .item:hover { background: var(--hover); }
+:root[data-skin="paper"] .agenda .bar { width: 3px; margin: 5px 0; }
+:root[data-skin="paper"] .agenda .empty { padding: 0 4px; line-height: var(--rule); }
+:root[data-skin="paper"] .agenda .month-break { margin: 0; padding: 0 6px; height: calc(var(--rule) * 2); display: flex; align-items: flex-end; line-height: var(--rule); font-family: var(--font-hand); font-size: 24px; font-weight: 700; text-transform: none; letter-spacing: 0; color: var(--fg); }
+:root[data-skin="paper"] .agenda .mini .number, :root[data-skin="paper"] .mini-head span { font-family: var(--font-hand); font-size: 19px; }
+/* Tasks: list names in handwriting */
+:root[data-skin="paper"] .tasks h4 { font-family: var(--font-hand); font-size: 21px; text-transform: none; letter-spacing: 0; font-weight: 700; }
+:root[data-skin="paper"] .tasks header span { font-family: var(--font-hand); font-size: 22px; }
 
 /* ---- Technical: graphite, a fine blueprint grid, monospace and an amber readout ---- */
 :root[data-skin="technical"] {

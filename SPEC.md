@@ -110,7 +110,7 @@ Same layout as WinSqueeze (left sidebar of pages grouped under small headings, w
 ## Skins
 
 - **Glass** (Auto, Dark, Light): frosted, the same tokens as WinSqueeze. The only skins the Glass setting applies to.
-- **Paper:** an off-white sheet, black ink, red for today, hairline grid, Inter.
+- **Paper:** a lined writing pad: very faint blue rules that events sit on, a faint red line under the title strip and each week, headings, weekday names and day numbers handwritten (Caveat), today circled in red pen; event text in Inter.
 - **Technical:** graphite with a faint blueprint grid, JetBrains Mono, amber highlight, square corners and dots.
 - **Wall calendar:** textured parchment with a spiral binding along the top, Fraunces for headings and day numbers, Newsreader for text, Sundays in red, today circled.
 
