@@ -46,7 +46,7 @@
     app.accounts = sampleAccounts; app.calendars = sampleCalendars; app.events = sampleEvents(); app.sampleData = true
     app.window.glass = params.has('glass'); app.window.clear = params.has('clear'); app.window.pinned = params.get('pinned') !== '0'
     if (params.get('panelTint')) ui.panelTint = Number(params.get('panelTint')); if (params.get('windowTint')) ui.windowTint = Number(params.get('windowTint')); if (params.get('panelGrain')) ui.panelGrain = Number(params.get('panelGrain'))
-    if (params.get('skin')) ui.skin = params.get('skin')!
+    if (params.get('skin')) ui.skin = params.get('skin')!; if (params.get('tintHue')) ui.glassTintHue = Number(params.get('tintHue'))
     if (params.get('view')) ui.view = params.get('view') as ViewMode
     if (params.get('picked')) ui.picked = params.get('picked')!.split(',')
     if (params.has('tasks')) app.tasks = sampleTasks()
@@ -75,6 +75,14 @@
     // A nudge then the real value next frame forces a fresh paint of the glass
     rootStyle.setProperty('--glass-tint', `${colour} / ${(opacity + 0.004).toFixed(3)})`)
     requestAnimationFrame(() => { if (defaultTint) { rootStyle.removeProperty('--glass-tint'); return } rootStyle.setProperty('--glass-tint', `${colour} / ${opacity.toFixed(2)})`) })
+  })
+  // Clear glass: Tint colour colours the window and panel tint too (their amounts are Window tint and Panel tint)
+  $effect(() => {
+    const rootStyle = document.documentElement.style, light = ui.skin === 'light' || (ui.skin === 'auto' && !systemDark)
+    if (!ui.glassTintHue) { rootStyle.removeProperty('--clear-rgb'); return }
+    const swatch = document.createElement('i'); swatch.style.color = light ? `hsl(${ui.glassTintHue} 60% 88%)` : `hsl(${ui.glassTintHue} 55% 20%)`; document.body.append(swatch)
+    const channels = getComputedStyle(swatch).color.match(/\d+/g)!.slice(0, 3).join(' '); swatch.remove()
+    rootStyle.setProperty('--clear-rgb', channels)
   })
   $effect(() => { ui.skin; ui.glassTransparency; ui.glassTintHue; ui.lookVersion; systemDark; app.window.glass; app.window.frameless; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })
   $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass && glassSkin); document.documentElement.classList.toggle('clear', app.window.glass && app.window.clear && glassSkin); document.documentElement.classList.toggle('frameless', app.window.frameless); document.documentElement.classList.toggle('maximised', app.window.maximised) })
