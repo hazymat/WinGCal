@@ -43,7 +43,9 @@ public partial class SettingsWindow : Window
         accountsList.ItemsSource = Settings.Sync.Accounts.Select(email =>
         {
             var state = store.AccountStates.GetValueOrDefault(email);
-            var status = state == null ? "Not synced yet" : state.Error != "" ? state.Error : state.LastSync == DateTime.MinValue ? "Not synced yet" : $"Synced {state.LastSync:HH:mm}, {store.Calendars.Count(calendar => calendar.Account == email)} calendars";
+            var synced = state == null || state.LastSync == DateTime.MinValue ? "Not synced yet" : $"Synced {state.LastSync:HH:mm}, {store.Calendars.Count(calendar => calendar.Account == email)} calendars";
+            // Partial failure names the calendar ("Couldn't read Family: …"); a whole-account failure says the account couldn't sync
+            var status = state is not { Error.Length: > 0 } ? synced : store.Calendars.Any(calendar => calendar.Account == email) && state.LastSync != DateTime.MinValue ? $"{synced}. Couldn't read {state.Error}" : $"Couldn't sync: {state.Error}";
             return new AccountRow(email, status, state?.Error is { Length: > 0 } ? Brushes.Firebrick : Brushes.Gray);
         }).ToList();
         noAccountsText.Visibility = Settings.Sync.Accounts.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
