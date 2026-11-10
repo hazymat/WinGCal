@@ -1,5 +1,6 @@
 <script lang="ts">
   import { sendToShell, onShellMessage } from './bridge'
+  import { watchFrostPanels } from './lib/frost'
   import { app, ui, writeSetting, placedEvents, hint, type Placed, type ViewMode } from './state.svelte'
   import { addDays, addMonths, monthName, startOfDay, startOfWeek, prefs, shortDate } from './lib/dates'
   import { sampleAccounts, sampleCalendars, sampleEvents, sampleTasks } from './lib/sample'
@@ -14,9 +15,10 @@
   import TasksPanel from './parts/TasksPanel.svelte'
 
   // ---- From the shell ----
-  onShellMessage('window', message => app.window = { glass: !!message.glass, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
+  onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
   onShellMessage('skin', message => {
-    ui.skin = message.skin || 'auto'; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.lookVersion++
+    ui.skin = message.skin || 'auto'; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.windowTint = message.windowTint ?? ui.windowTint; ui.panelTint = message.panelTint ?? ui.panelTint; ui.lookVersion++
+    writeSetting('windowTint', String(ui.windowTint)); writeSetting('panelTint', String(ui.panelTint))
     writeSetting('skin', ui.skin); writeSetting('accent', ui.accent); writeSetting('glassTransparency', String(ui.glassTransparency)); writeSetting('glassTintHue', String(ui.glassTintHue))
   })
   onShellMessage('calendars', message => { app.accounts = message.accounts; app.calendars = message.calendars; app.sampleData = !!message.sample })
@@ -29,12 +31,16 @@
   let whatsNew = $state<null | { toVersion: string; url: string }>(null)
   onShellMessage('whatsNew', message => whatsNew = { toVersion: message.toVersion, url: message.releases?.[0]?.url ?? '' })
   sendToShell({ type: 'ready' })
+  watchFrostPanels()
+  // Clear glass: how much tint the window and the panels get (0-100), from Settings › Appearance
+  $effect(() => { const rootStyle = document.documentElement.style; rootStyle.setProperty('--clear-window-tint', String(ui.windowTint / 100)); rootStyle.setProperty('--clear-panel-tint', String(ui.panelTint / 100)) })
 
   // Outside WebView2 (vite dev, mockups): invented calendars
   const params = new URLSearchParams(location.search)
   if (!(window as any).chrome?.webview || params.has('sample')) {
     app.accounts = sampleAccounts; app.calendars = sampleCalendars; app.events = sampleEvents(); app.sampleData = true
-    app.window.glass = params.has('glass'); app.window.pinned = params.get('pinned') !== '0'
+    app.window.glass = params.has('glass'); app.window.clear = params.has('clear'); app.window.pinned = params.get('pinned') !== '0'
+    if (params.get('panelTint')) ui.panelTint = Number(params.get('panelTint')); if (params.get('windowTint')) ui.windowTint = Number(params.get('windowTint'))
     if (params.get('skin')) ui.skin = params.get('skin')!
     if (params.get('view')) ui.view = params.get('view') as ViewMode
     if (params.has('tasks')) app.tasks = sampleTasks()
@@ -65,7 +71,7 @@
     requestAnimationFrame(() => { if (defaultTint) { rootStyle.removeProperty('--glass-tint'); return } rootStyle.setProperty('--glass-tint', `${colour} / ${opacity.toFixed(2)})`) })
   })
   $effect(() => { ui.skin; ui.glassTransparency; ui.glassTintHue; ui.lookVersion; systemDark; app.window.glass; app.window.frameless; requestAnimationFrame(() => sendToShell({ type: 'edgeColour', colour: getComputedStyle(document.body).backgroundColor })) })
-  $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass && glassSkin); document.documentElement.classList.toggle('frameless', app.window.frameless); document.documentElement.classList.toggle('maximised', app.window.maximised) })
+  $effect(() => { document.documentElement.classList.toggle('glass', app.window.glass && glassSkin); document.documentElement.classList.toggle('clear', app.window.glass && app.window.clear && glassSkin); document.documentElement.classList.toggle('frameless', app.window.frameless); document.documentElement.classList.toggle('maximised', app.window.maximised) })
 
   // Frameless: drag from empty parts of the title strip (unpinned only); double-click maximises
   function dragWindow(event: MouseEvent) {
@@ -117,7 +123,7 @@
 
 <div class="shell" class:pinned={app.window.pinned}>
   {#if app.window.frameless && !app.window.pinned && !app.window.maximised}<ResizeEdges />{/if}
-  <header class="strip" role="presentation" onmousedown={dragWindow}>
+  <header class="strip" role="presentation" onmousedown={dragWindow} data-frost>
     <div class="heading">
       <button class="today" class:on={isToday} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
       {#if width >= 320}
@@ -145,11 +151,11 @@
       {/if}
     </div>
   </header>
-  {#if ui.tip}<div class="notice"><span><b>{ui.tip.title}</b> {ui.tip.text}</span><button class="ghost" onclick={() => ui.tip = null}>OK</button></div>{/if}
-  {#if whatsNew}<div class="notice"><span>Updated to WinGCal {whatsNew.toVersion}.</span>{#if whatsNew.url}<a class="ghost" href={whatsNew.url} target="_blank" rel="noreferrer">What's new</a>{/if}<button class="ghost" onclick={() => whatsNew = null}>OK</button></div>{/if}
-  {#if app.updateReady}<div class="notice"><span>WinGCal {app.updateReady} is ready.</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Restart to update</button></div>{/if}
+  {#if ui.tip}<div class="notice" data-frost><span><b>{ui.tip.title}</b> {ui.tip.text}</span><button class="ghost" onclick={() => ui.tip = null}>OK</button></div>{/if}
+  {#if whatsNew}<div class="notice" data-frost><span>Updated to WinGCal {whatsNew.toVersion}.</span>{#if whatsNew.url}<a class="ghost" href={whatsNew.url} target="_blank" rel="noreferrer">What's new</a>{/if}<button class="ghost" onclick={() => whatsNew = null}>OK</button></div>{/if}
+  {#if app.updateReady}<div class="notice" data-frost><span>WinGCal {app.updateReady} is ready.</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Restart to update</button></div>{/if}
   <div class="body">
-  <main class="view">
+  <main class="view" data-frost>
     {#if app.accounts.length === 0}
       <div class="welcome">
         <Icon name="calendar" size={40} />
@@ -162,7 +168,7 @@
     {:else if shownView === 'split'}<SplitView {events} onpick={pick} />
     {:else}<AgendaView {events} onpick={pick} />{/if}
   </main>
-  {#if tasksColumn}<div class="tasks-column"><TasksPanel onclose={toggleTasks} /></div>{/if}
+  {#if tasksColumn}<div class="tasks-column" data-frost><TasksPanel onclose={toggleTasks} /></div>{/if}
   </div>
   {#if tasksOverlay && !tasksColumn && app.tasks.enabled}<TasksPanel overlay onclose={() => tasksOverlay = false} />{/if}
   {#if ui.hint}<div class="hint" role="status">{#if app.window.pinned}<Icon name="lock" size={14} />{/if}{ui.hint}</div>{/if}

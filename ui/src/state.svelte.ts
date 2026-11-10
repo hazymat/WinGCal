@@ -13,7 +13,7 @@ export function readSetting(name: string, fallback: string) { try { return local
 export function writeSetting(name: string, value: string) { try { localStorage.setItem('wingcal.' + name, value) } catch { } }
 
 export const app = $state({
-  window: { glass: false, frameless: true, maximised: false, pinned: false },
+  window: { glass: false, clear: false, frameless: true, maximised: false, pinned: false },
   accounts: [] as { email: string; lastSync: string; error?: string }[],
   calendars: [] as Calendar[],
   events: [] as CalendarEvent[],
@@ -23,6 +23,7 @@ export const app = $state({
 })
 export const ui = $state({
   skin: readSetting('skin', 'auto'), accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0,
+  windowTint: Number(readSetting('windowTint', '6')), panelTint: Number(readSetting('panelTint', '42')), // clear glass: tint of the see-through window and of the frosted panels
   view: readSetting('view', 'auto') as ViewMode,
   focus: startOfDay(new Date()), // the day the view is built around
   selectedEvent: null as null | { event: Placed; left: number; top: number },

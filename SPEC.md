@@ -58,6 +58,10 @@ Per setup WinGCal remembers: which monitor the widget is on (by that monitor's i
 
 As WinSqueeze: frameless by default (drag from the title strip, resize from the edges when unpinned), Windows 11 acrylic glass behind a tinted page, transparency and tint sliders, glass kept when another app is in front.
 
+### Clear glass
+
+On by default for the glass skins (Settings › Appearance › Glass › Clear window). The window itself is see-through, with only a faint tint (Window tint slider, default 6%) and a thin glint around its edge. The title strip, the calendar and the tasks column each sit on their own frosted panel (Panel frost slider, default 42%), so they read as separate things on the desktop. Windows blurs a whole window or nothing, so each panel has a hidden backing window behind it carrying the acrylic blur; the backings follow the window as it moves, resizes, hides and shows. Popovers (event card, quick switcher, tasks overlay, hints) sit over the calendar itself, where blur can't reach, so they are near-solid. Turning Clear window off returns to one acrylic sheet with the transparency slider.
+
 ### Title strip
 
 Left: month and year of what's shown (click: back to today), previous and next arrows. Right: view switcher (Auto, Month, Week, Agenda; Auto picks by size), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
