@@ -90,7 +90,7 @@ Week starts on the Windows setting (Monday in the UK). Times follow Windows' 12/
 
 A button in the title strip showing coloured dots for the calendars on view. It opens a glass popover: calendars grouped by account, a tick and colour dot each, click to show or hide. Changes apply immediately and are the same choice as Settings › Calendars.
 
-Settings › Calendars lists every calendar with two ticks: Show (the same choice as the switcher) and In switcher. The switcher lists only the calendars ticked In switcher (all of them by default), so rarely changed calendars stay out of it; a calendar left out keeps whatever Show it has.
+Settings › Calendars lists every calendar with two ticks: Show (the same choice as the switcher) and In switcher. The switcher lists only the calendars ticked In switcher (all of them by default), so rarely changed calendars stay out of it; a calendar left out keeps whatever Show it has. Up and down arrows on each row set the calendars' order within their account: the order of the switcher and the dots at the top, and which events come first on a day (all-day events, and events starting at the same time).
 
 ## Google accounts and sync
 

@@ -36,12 +36,13 @@ export const ui = $state({
 
 export const calendarByKey = (key: string) => app.calendars.find(calendar => calendar.key === key)
 
-// Events of shown calendars as dates, in start order (all-day first on a day)
+// Events of shown calendars as dates, in start order (all-day first on a day). Calendar order (Settings › Calendars) decides among all-day events and events starting together
 export function placedEvents(): Placed[] {
   const shown = new Map(app.calendars.filter(calendar => calendar.shown).map(calendar => [calendar.key, calendar]))
+  const rank = new Map(app.calendars.map((calendar, index) => [calendar.key, index]))
   return app.events.filter(event => shown.has(event.calendarKey) && !event.declined)
     .map(event => Object.assign({}, event, { startAt: parseWhen(event.start), endAt: parseWhen(event.end), colourShown: event.colour || shown.get(event.calendarKey)!.colour }))
-    .sort((first, second) => first.startAt.getTime() - second.startAt.getTime() || Number(second.allDay) - Number(first.allDay) || (second.endAt.getTime() - second.startAt.getTime()) - (first.endAt.getTime() - first.startAt.getTime()))
+    .sort((first, second) => (first.allDay && second.allDay ? rank.get(first.calendarKey)! - rank.get(second.calendarKey)! : 0) || first.startAt.getTime() - second.startAt.getTime() || Number(second.allDay) - Number(first.allDay) || rank.get(first.calendarKey)! - rank.get(second.calendarKey)! || (second.endAt.getTime() - second.startAt.getTime()) - (first.endAt.getTime() - first.startAt.getTime()))
 }
 
 // Events touching one day (all-day ends are exclusive)

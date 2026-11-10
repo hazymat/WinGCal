@@ -17,7 +17,23 @@ public sealed class CalendarStore
     public GoogleAuth Auth { get; } = new();
     public GoogleCalendar Api { get; }
     public TaskStore Tasks { get; }
-    public List<CalendarInfo> Calendars { get; private set; } = new();
+    // In the order chosen in Settings › Calendars (within each account; accounts stay in sign-in order)
+    List<CalendarInfo> calendarsAsSynced = new();
+    public List<CalendarInfo> Calendars
+    {
+        get { var order = settings().Sync.CalendarOrder; var accounts = calendarsAsSynced.Select(calendar => calendar.Account).Distinct().ToList(); return calendarsAsSynced.Select((calendar, index) => (calendar, index)).OrderBy(pair => accounts.IndexOf(pair.calendar.Account)).ThenBy(pair => order.IndexOf(pair.calendar.Key) is var position and >= 0 ? position : int.MaxValue).ThenBy(pair => pair.index).Select(pair => pair.calendar).ToList(); }
+        private set => calendarsAsSynced = value;
+    }
+    // Moves a calendar up (-1) or down (+1) among its account's calendars
+    public void MoveCalendar(string key, int direction)
+    {
+        var ordered = Calendars; var moving = ordered.FirstOrDefault(calendar => calendar.Key == key); if (moving == null) return;
+        var siblings = ordered.Where(calendar => calendar.Account == moving.Account).ToList(); var index = siblings.IndexOf(moving); var target = index + direction;
+        if (target < 0 || target >= siblings.Count) return;
+        (siblings[index], siblings[target]) = (siblings[target], siblings[index]);
+        var keys = ordered.Where(calendar => calendar.Account != moving.Account).Select(calendar => calendar.Key).Concat(siblings.Select(calendar => calendar.Key)).ToList();
+        settings().Sync.CalendarOrder = keys; settings().Save(); Changed?.Invoke();
+    }
     public Dictionary<string, List<UiEvent>> EventsByCalendar { get; private set; } = new();
     public Dictionary<string, AccountState> AccountStates { get; } = new();
     public bool Syncing { get; private set; }
