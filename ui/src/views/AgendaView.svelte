@@ -8,17 +8,28 @@
 
   let height = $state(600)
   const today = startOfDay(new Date())
-  // Eight weeks from the focus day; empty days are skipped, except the focus day itself
-  const days = $derived(Array.from({ length: 56 }, (unused, index) => addDays(ui.focus, index)).map(day => ({ day, list: eventsOn(events, day) })).filter((entry, index) => index === 0 || entry.list.length > 0))
+  // From the focus day onwards, eight weeks at a time: scrolling near the end adds more, without end. Empty days are skipped, except the focus day itself
+  let span = $state(56), list: HTMLDivElement | undefined = $state(), topDay = $state(ui.focus)
+  $effect(() => { topDay = ui.focus; span = 56; if (list) list.scrollTop = 0 })
+  // The month above follows the day at the top of the list
+  function onListScroll() {
+    if (!list) return
+    if (list.scrollTop + list.clientHeight > list.scrollHeight - 600) span += 56
+    const top = list.scrollTop + 6, section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > top)
+    if (section) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
+  }
+  // Keep adding while the list doesn't yet reach past the bottom (quiet stretches), up to ten years
+  $effect(() => { days.length; requestAnimationFrame(() => { if (list && span < 3650 && list.scrollHeight < list.clientHeight + 600) span += 56 }) })
+  const days = $derived(Array.from({ length: span }, (unused, index) => addDays(ui.focus, index)).map(day => ({ day, list: eventsOn(events, day) })).filter((entry, index) => index === 0 || entry.list.length > 0))
   const allDayLabel = (event: Placed, day: Date) => { const total = Math.round((event.endAt.getTime() - event.startAt.getTime()) / 86_400_000); if (total <= 1) return 'All day'; const dayNumber = Math.round((startOfDay(day).getTime() - event.startAt.getTime()) / 86_400_000) + 1; return `Day ${dayNumber} of ${total}` }
 </script>
 
 <div class="agenda" bind:clientHeight={height}>
-  {#if height > 520}<div class="mini"><MiniMonth {events} /></div>{/if}
-  <div class="list">
+  {#if height > 520}<div class="mini"><MiniMonth {events} follow={topDay} /></div>{/if}
+  <div class="list" bind:this={list} onscroll={onListScroll}>
     {#each days as { day, list }, index (day.getTime())}
       {#if index === 0 || day.getDate() === 1 || days[index - 1].day.getMonth() !== day.getMonth()}{#if index > 0}<div class="month-break">{monthName(day)}</div>{/if}{/if}
-      <section class="day" class:today={sameDay(day, today)}>
+      <section class="day" class:today={sameDay(day, today)} data-day={dayKey(day)}>
         <div class="when"><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</span></div>
         <div class="items">
           {#if list.length === 0}<div class="empty">{sameDay(day, today) ? 'Nothing on today' : 'Nothing on ' + shortDate(day)}</div>{/if}

@@ -97,6 +97,8 @@
   const events = $derived(placedEvents())
   const shortMonth = (date: Date) => date.toLocaleDateString(undefined, { month: 'short' })
   // Shorter as the window narrows: "November 2026", "Nov 2026", "Nov"
+  // The month name is left out rather than cut to a stub ("N…") when the strip is too crowded for it
+  let headingRoom = $state(0), headingNatural = $state(0)
   const heading = $derived(width < 300 ? shortMonth(ui.focus) : width < 460 ? `${shortMonth(ui.focus)} ${ui.focus.getFullYear()}` : shownView === 'week' && width >= 560 ? weekHeading(startOfWeek(ui.focus, prefs.weekStart)) : `${monthName(ui.focus)} ${ui.focus.getFullYear()}`)
   function weekHeading(weekStart: Date) { const weekEnd = addDays(weekStart, 6); return weekStart.getMonth() === weekEnd.getMonth() ? `${monthName(weekStart)} ${weekStart.getFullYear()}` : `${shortDate(weekStart)} – ${shortDate(weekEnd)}` }
   function step(direction: number) {
@@ -135,11 +137,13 @@
 <div class="shell" class:pinned={app.window.pinned}>
   {#if app.window.frameless && !app.window.pinned && !app.window.maximised}<ResizeEdges />{/if}
   <header class="strip" role="presentation" onmousedown={dragWindow} data-frost>
-    <div class="heading">
-      <button class="today" class:on={isToday} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
+    <div class="heading" bind:clientWidth={headingRoom}>
+      <span class="today measure" aria-hidden="true" bind:clientWidth={headingNatural}>{heading}</span>
+      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 320 ? 64 : 0) - (isToday ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
       {#if width >= 320}
         <button class="step" onclick={() => step(-1)} aria-label="Previous"><Icon name="previous" size={16} /></button>
         <button class="step" onclick={() => step(1)} aria-label="Next"><Icon name="next" size={16} /></button>
+        {#if !isToday}<button class="back-today" onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">Today</button>{/if}
       {/if}
     </div>
     <div class="tools">
@@ -194,9 +198,14 @@
 <style>
   .shell { position: relative; display: flex; flex-direction: column; height: 100vh; }
   .strip { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; min-height: 36px; -webkit-user-select: none; user-select: none; }
-  .heading { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; }
+  .heading { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; gap: 2px; }
   .today { min-width: 0; padding: 2px 8px; margin-right: 4px; border: 0; border-radius: 8px; background: none; color: var(--fg); font: inherit; font-size: 18px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; letter-spacing: -0.01em; }
   .today:hover { background: var(--hover); }
+  .today.measure { position: absolute; visibility: hidden; pointer-events: none; }
+  .today.cut { display: none; }
+  /* Back to today: only while away from it, quiet until hovered */
+  .back-today { flex: none; height: 22px; padding: 0 9px; margin-left: 4px; border: 0; border-radius: 11px; background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--fg-quiet); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+  .back-today:hover { background: var(--hover); color: var(--fg); }
   .step, .tool, .window-controls button { display: grid; place-items: center; width: 32px; height: 30px; flex: none; border: 0; border-radius: 7px; background: none; color: var(--fg-quiet); cursor: pointer; }
   .step:hover, .tool:hover, .window-controls button:hover { background: var(--hover); color: var(--fg); }
   .tools { display: flex; align-items: center; gap: 2px; flex: none; }

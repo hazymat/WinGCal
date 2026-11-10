@@ -66,7 +66,7 @@ Clear glass sliders: **Window tint** (the see-through window), **Panel tint** (h
 
 ### Title strip
 
-Left: month and year of what's shown (click: back to today), previous and next arrows. Right: view switcher (Auto, Month, Week, Agenda; Auto picks by size), skin picker (a dropdown of the skins, each name shown in its own skin's colours and lettering), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
+Left: month and year of what's shown (click: back to today; left out rather than cut to a stub when the strip is too crowded), previous and next arrows, and a small quiet "Today" pill while you're away from today (the mini month has the same pill). Right: view switcher (Auto, Month, Week, Agenda; Auto picks by size), skin picker (a dropdown of the skins, each name shown in its own skin's colours and lettering), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
 
 Nothing in the window selects as text or can be dragged: a desktop widget must not change by an accidental drag. Data only changes through a second deliberate step (open the card, then edit).
 
@@ -74,7 +74,7 @@ Nothing in the window selects as text or can be dragged: a desktop widget must n
 
 The layout follows the window's size (CSS breakpoints in device-independent pixels, after Scale):
 
-- **Agenda** (narrow, under ~420 px wide): a list of days, today first, each event a row with its calendar's colour bar, time and title.
+- **Agenda** (narrow, under ~420 px wide): a list of days, today first, each event a row with its calendar's colour bar, time and title. It never runs out: scrolling near the end adds more weeks (as far as events are synced, Settings › Sync), and the mini month above turns its page to follow the day at the top of the list.
 - **Split** (short and wide, about 1.6 to 3.2 times as wide as tall, under ~560 px high): a month on the left with a coloured dot per calendar with something on each day, and a scrolling list of days on the right (Today, Tomorrow, then dates). Clicking a day scrolls the list to it; scrolling the list moves the selected day with it; the mouse wheel over the month turns its pages.
 - **Week** (medium, or very wide and short): seven day columns with all-day events on top and a time grid below, scrolled to the working day, a red now-line on today.
 - **Month** (large): a traditional six-week grid; each day shows as many events as fit, then "+3 more". Today has an accent ring. Weekends shaded slightly.
