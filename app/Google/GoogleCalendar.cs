@@ -62,7 +62,7 @@ public sealed class GoogleCalendar(GoogleAuth auth)
             using var response = await SendAsync(email, request, cancel);
             if (response.IsSuccessStatusCode) return JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancel));
             var retry = response.StatusCode is HttpStatusCode.TooManyRequests or HttpStatusCode.InternalServerError or HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout || (response.StatusCode == HttpStatusCode.Forbidden && (await response.Content.ReadAsStringAsync(cancel)).Contains("ateLimitExceeded"));
-            if (!retry || attempt >= 5) throw new HttpRequestException(await Describe(response), null, response.StatusCode);
+            if (!retry || attempt >= 5) throw new HttpRequestException(await Describe(response) + (response.StatusCode == HttpStatusCode.BadRequest ? $" ({url})" : ""), null, response.StatusCode); // the request (no token in it) shows in crash.log for a 400
             await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), cancel);
         }
     }
@@ -81,5 +81,5 @@ public sealed class GoogleCalendar(GoogleAuth auth)
         catch { return $"Google said {(int)response.StatusCode}"; }
     }
 
-    static string Rfc3339(DateTime time) => time.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    static string Rfc3339(DateTime time) => time.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture); // invariant: some regional formats change the time separator or calendar, and Google answers 400
 }

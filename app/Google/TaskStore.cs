@@ -35,7 +35,7 @@ public sealed class TaskStore(GoogleAuth auth, Func<AppSettings> settings)
                     var list = new TaskListInfo($"{email}|{Text(listElement, "id")}", email, Text(listElement, "id"), Text(listElement, "title"));
                     lists.Add(list);
                     // Completed tasks from the last 30 days only, so the list doesn't fill with history
-                    var completedMin = Uri.EscapeDataString(DateTime.UtcNow.AddDays(-30).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+                    var completedMin = Uri.EscapeDataString(DateTime.UtcNow.AddDays(-30).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture));
                     foreach (var task in await PagedAsync(email, $"{apiBase}/lists/{Uri.EscapeDataString(list.Id)}/tasks?maxResults=100&showCompleted=true&showHidden=true&completedMin={completedMin}"))
                         items.Add(ToItem(list, task));
                     foreach (var task in await PagedAsync(email, $"{apiBase}/lists/{Uri.EscapeDataString(list.Id)}/tasks?maxResults=100&showCompleted=false"))
