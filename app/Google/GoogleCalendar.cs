@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using WinGCal.Shell;
 namespace WinGCal.Google;
 
 // Google Calendar API v3 over plain HTTPS (no client library). Resources come back as Google's own JSON, untouched
@@ -62,7 +63,12 @@ public sealed class GoogleCalendar(GoogleAuth auth)
             using var response = await SendAsync(email, request, cancel);
             if (response.IsSuccessStatusCode) return JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancel));
             var retry = response.StatusCode is HttpStatusCode.TooManyRequests or HttpStatusCode.InternalServerError or HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout || (response.StatusCode == HttpStatusCode.Forbidden && (await response.Content.ReadAsStringAsync(cancel)).Contains("ateLimitExceeded"));
-            if (!retry || attempt >= 5) throw new HttpRequestException(await Describe(response) + (response.StatusCode == HttpStatusCode.BadRequest ? $" ({url})" : ""), null, response.StatusCode); // the request (no token in it) shows in crash.log for a 400
+            if (!retry || attempt >= 5)
+            {
+                var failure = new HttpRequestException(await Describe(response), null, response.StatusCode);
+                if (response.StatusCode == HttpStatusCode.BadRequest) CrashReporter.Write("Google 400 for " + url, failure, false); // the request (no token in it) goes to crash.log, not on screen
+                throw failure;
+            }
             await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), cancel);
         }
     }
@@ -77,6 +83,7 @@ public sealed class GoogleCalendar(GoogleAuth auth)
     {
         var body = await response.Content.ReadAsStringAsync();
         if (body.Contains("accessNotConfigured") || body.Contains("SERVICE_DISABLED")) return "The Google Calendar API isn't turned on for WinGCal's Google Cloud project (APIs & Services > Library > Google Calendar API > Enable).";
+        if (response.StatusCode == HttpStatusCode.BadRequest) return "Google didn't accept WinGCal's request for its events (error 400). Details are in the log.";
         try { using var document = JsonDocument.Parse(body); return $"Google said {(int)response.StatusCode}: {document.RootElement.GetProperty("error").GetProperty("message").GetString()}"; }
         catch { return $"Google said {(int)response.StatusCode}"; }
     }

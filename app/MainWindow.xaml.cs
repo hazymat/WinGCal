@@ -122,7 +122,7 @@ public partial class MainWindow : Window
     {
         if (!GoogleAuth.HasClient) { App.ShowTip("Google sign-in isn't set up yet", "This build doesn't have WinGCal's Google sign-in key yet. It comes with a later update."); return; }
         signInCancel?.Cancel(); signInCancel = new CancellationTokenSource();
-        try { var email = await App.Store.AddAccountAsync(signInCancel.Token); App.NotifySettingsChanged(); var syncError = App.Store.AccountStates.TryGetValue(email, out var state) ? state.Error : ""; if (syncError.Length == 0) App.ShowTip("Signed in", $"{email} is added. Pick which calendars show from the coloured dots."); }
+        try { var email = await App.Store.AddAccountAsync(signInCancel.Token); App.NotifySettingsChanged(); var syncError = App.Store.AccountStates.TryGetValue(email, out var state) ? state.Error : ""; if (syncError.Length == 0 && App.Store.Calendars.Any(calendar => calendar.Account == email)) App.ShowTip("Signed in", $"{email} is added. Choose which of its calendars show with the calendar button at the top."); }
         catch (OperationCanceledException) { }
         catch (Exception signInError) { App.ShowTip("Sign-in didn't work", signInError.Message); }
     }
@@ -173,7 +173,7 @@ public partial class MainWindow : Window
     {
         var pinned = App.Settings.Window.Pinned;
         if (pinned && WindowState != WindowState.Normal) { placing = true; WindowState = WindowState.Normal; placing = false; }
-        pin?.Apply(pinned);
+        pin?.Apply(pinned); frost?.Sync(); // the owner change reorders windows: put the frost back behind
         ApplyWindowStyle(); // no resize border while pinned
         PushWindowState();
     }
@@ -273,6 +273,10 @@ public partial class MainWindow : Window
     const int StyleIndex = -16, CaptionStyle = 0x00C00000, SystemMenuStyle = 0x00080000, CaptionColourAttribute = 35, CornerAttribute = 33, RoundCorners = 2;
     const int DarkModeAttribute = 20, BorderColourAttribute = 34, BackdropAttribute = 38, AcrylicBackdrop = 3, NoBackdrop = 1;
     struct FrameMargins { public int Left, Right, Top, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] struct BlurBehind { public int Flags; public bool Enable; public IntPtr Region; public bool TransitionOnMaximized; }
+    [DllImport("dwmapi.dll")] static extern int DwmEnableBlurBehindWindow(IntPtr windowHandle, ref BlurBehind blurBehind);
+    [DllImport("gdi32.dll")] static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
+    [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr gdiObject);
     bool glassActive, darkTheme = true;
 
     public void ApplyWindowStyle()
@@ -302,8 +306,13 @@ public partial class MainWindow : Window
         glassActive = wantGlass && DwmSetWindowAttribute(windowHandle, BackdropAttribute, ref backdrop, sizeof(int)) == 0;
         clearActive = glassActive && clear;
         frost?.SetEnabled(clearActive, darkTheme);
-        var margins = glassActive ? new FrameMargins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new FrameMargins();
+        // Clear: an extended frame with no backdrop is painted in the Windows accent colour, so instead the window keeps its alpha through blur-behind with an empty region (see-through, no blur, no accent)
+        var margins = glassActive && !clearActive ? new FrameMargins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new FrameMargins();
         DwmExtendFrameIntoClientArea(windowHandle, ref margins);
+        var emptyRegion = CreateRectRgn(0, 0, -1, -1);
+        var blurBehind = new BlurBehind { Flags = 0x1 | 0x2 /*ENABLE|BLURREGION*/, Enable = clearActive, Region = emptyRegion };
+        DwmEnableBlurBehindWindow(windowHandle, ref blurBehind);
+        DeleteObject(emptyRegion);
         var hwndSource = HwndSource.FromHwnd(windowHandle);
         if (hwndSource?.CompositionTarget != null) hwndSource.CompositionTarget.BackgroundColor = glassActive ? Colors.Transparent : Color.FromRgb(16, 17, 20);
         Background = look.Frameless && edgeColour != null ? new SolidColorBrush(edgeColour.Value) : glassActive ? Brushes.Transparent : new SolidColorBrush(Color.FromRgb(16, 17, 20));
