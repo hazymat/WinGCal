@@ -13,6 +13,7 @@
   import ResizeEdges from './parts/ResizeEdges.svelte'
   import Icon from './parts/Icon.svelte'
   import TasksPanel from './parts/TasksPanel.svelte'
+  import WhatsNew from './parts/WhatsNew.svelte'
 
   // ---- From the shell ----
   onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
@@ -28,8 +29,6 @@
   onShellMessage('update', message => app.updateReady = message.version ?? '')
   onShellMessage('tasks', message => app.tasks = { enabled: !!message.enabled, lists: message.lists ?? [], items: message.items ?? [] })
   onShellMessage('tip', message => ui.tip = { title: message.title ?? '', text: message.text ?? '' })
-  let whatsNew = $state<null | { toVersion: string; url: string }>(null)
-  onShellMessage('whatsNew', message => whatsNew = { toVersion: message.toVersion, url: message.releases?.[0]?.url ?? '' })
   sendToShell({ type: 'ready' })
   watchFrostPanels()
   // Clear glass: how much tint the window and the panels get (0-100), from Settings › Appearance
@@ -153,7 +152,6 @@
   </header>
   {#each app.accounts.filter(account => account.error) as account (account.email)}<div class="notice problem" data-frost><span><b>Couldn't read {account.email}.</b> {account.error}</span><button class="ghost" onclick={() => sendToShell({ type: 'refresh' })}>Try again</button></div>{/each}
   {#if ui.tip}<div class="notice" data-frost><span><b>{ui.tip.title}</b> {ui.tip.text}</span><button class="ghost" onclick={() => ui.tip = null}>OK</button></div>{/if}
-  {#if whatsNew}<div class="notice" data-frost><span>Updated to WinGCal {whatsNew.toVersion}.</span>{#if whatsNew.url}<a class="ghost" href={whatsNew.url} target="_blank" rel="noreferrer">What's new</a>{/if}<button class="ghost" onclick={() => whatsNew = null}>OK</button></div>{/if}
   {#if app.updateReady}<div class="notice" data-frost><span>WinGCal {app.updateReady} is ready.</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Restart to update</button></div>{/if}
   <div class="body">
   <main class="view" data-frost>
@@ -176,6 +174,8 @@
   {#if ui.switcherOpen}<CalendarSwitcher />{/if}
   {#if ui.selectedEvent}<EventCard />{/if}
 </div>
+
+<WhatsNew />
 
 <style>
   .shell { position: relative; display: flex; flex-direction: column; height: 100vh; }
