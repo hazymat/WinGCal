@@ -1,0 +1,184 @@
+using System.IO;
+using System.Net.Http;
+using System.Text.Json;
+using System.Windows.Threading;
+using WinGCal.Settings;
+using WinGCal.Shell;
+namespace WinGCal.Google;
+
+public record CalendarInfo(string Key, string Account, string Id, string Name, string Colour, bool Primary, bool ReadOnly, string TimeZone, bool SelectedInGoogle);
+// One event as the window draws it (SPEC.md › Calendar views); the full Google resource is only kept for export
+public record UiEvent(string Id, string EventId, string CalendarKey, string Title, string Start, string End, bool AllDay, string Location, string Description, string MeetUrl, bool Recurring, string Colour, bool Declined, string Link);
+public record AccountState(string Email, DateTime LastSync, string Error);
+
+// The accounts' calendars and events within the sync range, refreshed in the background and cached on disk so the widget opens instantly offline
+public sealed class CalendarStore
+{
+    public GoogleAuth Auth { get; } = new();
+    public GoogleCalendar Api { get; }
+    public TaskStore Tasks { get; }
+    public List<CalendarInfo> Calendars { get; private set; } = new();
+    public Dictionary<string, List<UiEvent>> EventsByCalendar { get; private set; } = new();
+    public Dictionary<string, AccountState> AccountStates { get; } = new();
+    public bool Syncing { get; private set; }
+    public bool Offline { get; private set; }
+    public event Action? Changed;
+    readonly DispatcherTimer refreshTimer = new();
+    readonly SemaphoreSlim syncLock = new(1, 1);
+    Func<AppSettings> settings;
+    static string CacheFile => Path.Combine(AppPaths.CacheFolder, "calendars.json");
+    static readonly JsonSerializerOptions cacheJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    // Google's fixed event colours (colorId 1-11)
+    static readonly string[] eventColours = { "", "#7986cb", "#33b679", "#8e24aa", "#e67c73", "#f6bf26", "#f4511e", "#039be5", "#616161", "#3f51b5", "#0b8043", "#d50000" };
+
+    public CalendarStore(Func<AppSettings> settingsSource)
+    {
+        settings = settingsSource;
+        Api = new GoogleCalendar(Auth);
+        Tasks = new TaskStore(Auth, settingsSource); Tasks.LoadCache();
+        LoadCache();
+        refreshTimer.Tick += async (sender, args) => await SyncAsync();
+        Microsoft.Win32.SystemEvents.PowerModeChanged += (sender, args) => { if (args.Mode == Microsoft.Win32.PowerModes.Resume) _ = Dispatcher.CurrentDispatcher.InvokeAsync(async () => { await Task.Delay(5000); await SyncAsync(); }); };
+        System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged += (sender, args) => { if (args.IsAvailable && Offline) _ = SyncAsync(); };
+    }
+
+    public void Start() { refreshTimer.Interval = TimeSpan.FromMinutes(Math.Clamp(settings().Sync.RefreshMinutes, 1, 120)); refreshTimer.Start(); _ = SyncAsync(); }
+    public bool IsShown(string key) => !settings().Sync.HiddenCalendars.Contains(key);
+    public string ColourOf(CalendarInfo calendar) => settings().Sync.ColourOverrides.TryGetValue(calendar.Key, out var colour) ? colour : calendar.Colour;
+
+    public async Task SyncAsync()
+    {
+        if (!await syncLock.WaitAsync(0)) return;
+        Syncing = true; Changed?.Invoke();
+        try
+        {
+            var appSettings = settings();
+            var (from, to) = appSettings.SyncRange();
+            var calendars = new List<CalendarInfo>(); var events = new Dictionary<string, List<UiEvent>>();
+            var anyReached = false; var anyOffline = false;
+            foreach (var email in appSettings.Sync.Accounts.ToList())
+            {
+                try
+                {
+                    var accountCalendars = (await Api.CalendarListAsync(email, CancellationToken.None)).Select(entry => ToCalendar(email, entry)).ToList();
+                    foreach (var calendar in accountCalendars)
+                    {
+                        // New calendars start shown or hidden as they are in Google Calendar
+                        if (!appSettings.Sync.KnownCalendars.Contains(calendar.Key)) { appSettings.Sync.KnownCalendars.Add(calendar.Key); if (!calendar.SelectedInGoogle && !appSettings.Sync.HiddenCalendars.Contains(calendar.Key)) appSettings.Sync.HiddenCalendars.Add(calendar.Key); }
+                        events[calendar.Key] = (await Api.EventsAsync(email, calendar.Id, from, to, CancellationToken.None)).Select(item => ToUiEvent(calendar, item)).Where(item => item != null).Select(item => item!).ToList();
+                    }
+                    calendars.AddRange(accountCalendars);
+                    AccountStates[email] = new AccountState(email, DateTime.Now, ""); anyReached = true;
+                }
+                catch (SignInNeededException) { KeepCached(email, calendars, events); AccountStates[email] = new AccountState(email, AccountStates.TryGetValue(email, out var before) ? before.LastSync : DateTime.MinValue, "Sign in again"); }
+                catch (HttpRequestException requestError) when (requestError.StatusCode == null) { KeepCached(email, calendars, events); anyOffline = true; }
+                catch (Exception syncError) { KeepCached(email, calendars, events); AccountStates[email] = new AccountState(email, AccountStates.TryGetValue(email, out var before) ? before.LastSync : DateTime.MinValue, syncError.Message); CrashReporter.Write("Sync " + email, syncError, false); }
+            }
+            Calendars = calendars; EventsByCalendar = events;
+            Offline = anyOffline && !anyReached;
+            appSettings.Save(); SaveCache();
+            Changed?.Invoke();
+            await Tasks.SyncAsync();
+        }
+        finally { Syncing = false; syncLock.Release(); Changed?.Invoke(); }
+    }
+
+    // An account that couldn't be reached keeps what was cached for it
+    void KeepCached(string email, List<CalendarInfo> calendars, Dictionary<string, List<UiEvent>> events)
+    {
+        foreach (var calendar in Calendars.Where(calendar => calendar.Account == email)) { calendars.Add(calendar); if (EventsByCalendar.TryGetValue(calendar.Key, out var cached)) events[calendar.Key] = cached; }
+    }
+
+    public async Task<string> AddAccountAsync(CancellationToken cancel)
+    {
+        var (email, scopes) = await Auth.SignInAsync(cancel, settings().Tasks.Enabled);
+        if (scopes.Contains(GoogleAuth.TasksScope) && !settings().Tasks.Accounts.Contains(email)) settings().Tasks.Accounts.Add(email);
+        var appSettings = settings();
+        if (!appSettings.Sync.Accounts.Contains(email)) appSettings.Sync.Accounts.Add(email);
+        appSettings.Save();
+        await SyncAsync();
+        return email;
+    }
+
+    public async Task RemoveAccountAsync(string email)
+    {
+        await Auth.SignOutAsync(email);
+        var appSettings = settings();
+        appSettings.Sync.Accounts.Remove(email); appSettings.Tasks.Accounts.Remove(email);
+        appSettings.Sync.HiddenCalendars.RemoveAll(key => key.StartsWith(email + "|")); appSettings.Sync.KnownCalendars.RemoveAll(key => key.StartsWith(email + "|"));
+        appSettings.Save();
+        Calendars = Calendars.Where(calendar => calendar.Account != email).ToList();
+        foreach (var key in EventsByCalendar.Keys.Where(key => key.StartsWith(email + "|")).ToList()) EventsByCalendar.Remove(key);
+        AccountStates.Remove(email); SaveCache(); Changed?.Invoke();
+    }
+
+    // Task access for an account already signed in: Google adds it to what the account has allowed
+    public async Task AllowTasksAsync(string email, CancellationToken cancel)
+    {
+        var (signedIn, scopes) = await Auth.SignInAsync(cancel, true, email);
+        if (!scopes.Contains(GoogleAuth.TasksScope)) throw new InvalidOperationException("Task access wasn't ticked on Google's page.");
+        if (!settings().Tasks.Accounts.Contains(signedIn)) settings().Tasks.Accounts.Add(signedIn);
+        if (!settings().Sync.Accounts.Contains(signedIn)) settings().Sync.Accounts.Add(signedIn);
+        settings().Save();
+        await Tasks.SyncAsync();
+    }
+
+    public void SetShown(string key, bool shown)
+    {
+        var hidden = settings().Sync.HiddenCalendars;
+        if (shown) hidden.Remove(key); else if (!hidden.Contains(key)) hidden.Add(key);
+        settings().Save(); Changed?.Invoke();
+    }
+
+    public async Task DeleteEventAsync(string uiEventId)
+    {
+        var found = EventsByCalendar.SelectMany(pair => pair.Value).FirstOrDefault(item => item.Id == uiEventId);
+        var calendar = found == null ? null : Calendars.FirstOrDefault(candidate => candidate.Key == found.CalendarKey);
+        if (found == null || calendar == null) return;
+        await Api.DeleteEventAsync(calendar.Account, calendar.Id, found.EventId, CancellationToken.None);
+        EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Where(item => item.Id != uiEventId).ToList();
+        SaveCache(); Changed?.Invoke();
+    }
+
+    public UiEvent? FindEvent(string uiEventId) => EventsByCalendar.SelectMany(pair => pair.Value).FirstOrDefault(item => item.Id == uiEventId);
+
+    static CalendarInfo ToCalendar(string email, JsonElement entry)
+    {
+        var id = Text(entry, "id");
+        var role = Text(entry, "accessRole");
+        var name = Text(entry, "summaryOverride") is { Length: > 0 } renamed ? renamed : Text(entry, "summary");
+        return new CalendarInfo($"{email}|{id}", email, id, name, Text(entry, "backgroundColor") is { Length: > 0 } colour ? colour : "#4f8ef7", entry.TryGetProperty("primary", out var primary) && primary.GetBoolean(), role is not ("owner" or "writer"), Text(entry, "timeZone"), entry.TryGetProperty("selected", out var selected) && selected.GetBoolean());
+    }
+
+    static UiEvent? ToUiEvent(CalendarInfo calendar, JsonElement item)
+    {
+        if (Text(item, "status") == "cancelled" || !item.TryGetProperty("start", out var start) || !item.TryGetProperty("end", out var end)) return null;
+        var allDay = start.TryGetProperty("date", out _);
+        var startText = allDay ? Text(start, "date") : Text(start, "dateTime");
+        var endText = allDay ? Text(end, "date") : Text(end, "dateTime");
+        var meetUrl = Text(item, "hangoutLink");
+        if (meetUrl == "" && item.TryGetProperty("conferenceData", out var conference) && conference.TryGetProperty("entryPoints", out var entryPoints))
+            meetUrl = entryPoints.EnumerateArray().Where(point => Text(point, "entryPointType") == "video").Select(point => Text(point, "uri")).FirstOrDefault() ?? "";
+        var declined = item.TryGetProperty("attendees", out var attendees) && attendees.EnumerateArray().Any(attendee => attendee.TryGetProperty("self", out var self) && self.GetBoolean() && Text(attendee, "responseStatus") == "declined");
+        var colourId = int.TryParse(Text(item, "colorId"), out var colourNumber) && colourNumber > 0 && colourNumber < eventColours.Length ? eventColours[colourNumber] : "";
+        var eventId = Text(item, "id");
+        return new UiEvent($"{calendar.Key}|{eventId}", eventId, calendar.Key, Text(item, "summary") is { Length: > 0 } title ? title : "(No title)", startText, endText, allDay, Text(item, "location"), Text(item, "description"), meetUrl, item.TryGetProperty("recurringEventId", out _), colourId, declined, Text(item, "htmlLink"));
+    }
+
+    static string Text(JsonElement element, string name) => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
+
+    record CacheFile_(List<CalendarInfo> Calendars, Dictionary<string, List<UiEvent>> Events, Dictionary<string, AccountState> Accounts);
+    void SaveCache() { try { var temp = CacheFile + ".tmp"; File.WriteAllText(temp, JsonSerializer.Serialize(new CacheFile_(Calendars, EventsByCalendar, AccountStates), cacheJson)); File.Move(temp, CacheFile, true); } catch { } }
+    void LoadCache()
+    {
+        try
+        {
+            if (!File.Exists(CacheFile)) return;
+            var cached = JsonSerializer.Deserialize<CacheFile_>(File.ReadAllText(CacheFile), cacheJson);
+            if (cached == null) return;
+            Calendars = cached.Calendars; EventsByCalendar = cached.Events;
+            foreach (var pair in cached.Accounts) AccountStates[pair.Key] = pair.Value;
+        }
+        catch { }
+    }
+}

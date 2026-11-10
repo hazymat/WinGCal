@@ -1,0 +1,92 @@
+/* Opaque skins (SPEC.md › Skins): Paper, Technical, Wall calendar. Each sets the tokens, then a few shape and type touches on the views.
+   Glass is for Auto, Dark and Light only, so none of these are see-through */
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource-variable/jetbrains-mono/index.css';
+@import '@fontsource-variable/fraunces/index.css';
+@import '@fontsource-variable/newsreader/index.css';
+
+/* ---- Paper: a clean sheet, black ink, one red pen ---- */
+:root[data-skin="paper"] {
+  --bg: #f7f5f0; --bg-gradient: none; --panel: rgba(30, 25, 15, 0.045); --panel-strong: rgba(30, 25, 15, 0.08); --panel-solid: #fbfaf6;
+  --line: rgba(30, 25, 15, 0.1); --hover: rgba(30, 25, 15, 0.05); --track: rgba(30, 25, 15, 0.16); --shadow: rgba(40, 30, 10, 0.16); --shadow-soft: rgba(40, 30, 10, 0.08);
+  --fg: #1c1b19; --fg-quiet: #8b867c; --accent: #d4483b; --accent-soft: rgba(212, 72, 59, 0.1); --on-accent: #ffffff; --warn: #c27c0e; --danger: #c43a2c;
+  --cell: transparent; --cell-weekend: rgba(30, 25, 15, 0.025); --cell-other: transparent; --today-column: rgba(212, 72, 59, 0.05); --event-base: #fbfaf6; --now: #d4483b; --popover: rgba(251, 250, 246, 0.97);
+  --font-ui: "Inter Variable", "Segoe UI Variable Text", sans-serif; color-scheme: light;
+}
+:root[data-skin="paper"] body { font-feature-settings: "cv11", "ss03"; letter-spacing: -0.005em; }
+:root[data-skin="paper"] .strip .today { font-weight: 600; letter-spacing: -0.02em; }
+:root[data-skin="paper"] .grid { border-radius: 0; background: none; gap: 0; }
+:root[data-skin="paper"] .grid .day { border-top: 1px solid var(--line); }
+:root[data-skin="paper"] .grid .number { font-weight: 500; }
+:root[data-skin="paper"] .grid .today { box-shadow: none; }
+:root[data-skin="paper"] .pill { background: color-mix(in srgb, var(--colour) 16%, transparent); color: var(--fg); text-shadow: none; font-weight: 550; box-shadow: inset 2px 0 0 var(--colour); }
+:root[data-skin="paper"] .weekdays div, :root[data-skin="paper"] .weekday { letter-spacing: 0.04em; font-weight: 500; }
+:root[data-skin="paper"] .split .cell { background: none; }
+:root[data-skin="paper"] .split .cell.today { background: var(--accent); }
+:root[data-skin="paper"] .split .cell.today .number { color: var(--on-accent); }
+:root[data-skin="paper"] .split h3 { font-weight: 600; letter-spacing: 0.04em; font-size: 12.5px; color: var(--fg-quiet); }
+:root[data-skin="paper"] .split .today h3 { color: var(--accent); }
+
+/* ---- Technical: graphite, a fine blueprint grid, monospace and an amber readout ---- */
+:root[data-skin="technical"] {
+  --bg: #0d0f11; --bg-gradient: linear-gradient(rgba(120, 170, 200, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(120, 170, 200, 0.045) 1px, transparent 1px);
+  --panel: rgba(160, 200, 220, 0.06); --panel-strong: rgba(160, 200, 220, 0.11); --panel-solid: #15181b;
+  --line: rgba(150, 190, 210, 0.16); --hover: rgba(255, 176, 32, 0.08); --track: rgba(150, 190, 210, 0.2); --shadow: rgba(0, 0, 0, 0.6); --shadow-soft: rgba(0, 0, 0, 0.35);
+  --fg: #d7dde2; --fg-quiet: #6f7c86; --accent: #ffb020; --accent-soft: rgba(255, 176, 32, 0.13); --on-accent: #1a1100; --warn: #ffb020; --danger: #ff5a4a;
+  --cell: transparent; --cell-weekend: rgba(150, 190, 210, 0.03); --cell-other: rgba(0, 0, 0, 0.25); --today-column: rgba(255, 176, 32, 0.06); --event-base: #121518; --now: #ff5a4a; --popover: rgba(18, 21, 24, 0.97);
+  --font-ui: "JetBrains Mono Variable", "Cascadia Mono", Consolas, monospace; color-scheme: dark;
+}
+:root[data-skin="technical"] body { background-size: 16px 16px; font-size: 13px; }
+:root[data-skin="technical"] .strip .today { font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: 15px; }
+:root[data-skin="technical"][data-skin="technical"] button, :root[data-skin="technical"][data-skin="technical"] .views, :root[data-skin="technical"][data-skin="technical"] .dots { border-radius: 2px; }
+:root[data-skin="technical"][data-skin="technical"] .dots i, :root[data-skin="technical"][data-skin="technical"] .dot { border-radius: 0; }
+:root[data-skin="technical"] .grid { border-radius: 0; background: none; gap: 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+:root[data-skin="technical"] .grid .day { box-shadow: inset -1px -1px 0 var(--line); }
+:root[data-skin="technical"] .grid .number { font-weight: 500; font-size: 11.5px; }
+:root[data-skin="technical"] .grid .today .number { background: none; color: var(--accent); }
+:root[data-skin="technical"] .grid .day.today { box-shadow: inset 0 0 0 1px var(--accent); }
+:root[data-skin="technical"] .line, :root[data-skin="technical"] .pill { font-size: 11px; }
+:root[data-skin="technical"] .pill { background: none; color: var(--fg); text-shadow: none; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--colour) 70%, transparent); font-weight: 500; }
+:root[data-skin="technical"] .split .cell { border-radius: 0; background: none; box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-skin="technical"] .split .cell.selected { box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+:root[data-skin="technical"] .split .cell.today .number { color: var(--accent); }
+:root[data-skin="technical"] .split .dots i { width: 5px; height: 2px; border-radius: 0; }
+:root[data-skin="technical"] .split h3 { font-size: 12px; letter-spacing: 0.12em; color: var(--fg-quiet); border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
+:root[data-skin="technical"] .split .today h3 { color: var(--accent); }
+:root[data-skin="technical"] .split .dot { border-radius: 0; width: 8px; height: 8px; }
+:root[data-skin="technical"] .split .title { font-weight: 500; font-size: 13px; }
+
+/* ---- Wall calendar: textured paper on the wall, a modern serif, Sundays in red ---- */
+:root[data-skin="wall"] {
+  --bg: #efe6d2;
+  --bg-gradient: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.27 0 0 0 0 0.15 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.33 0 0 0 0 0.16 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"), radial-gradient(ellipse at 50% 40%, #f4ecdb 0%, #e8dcc1 100%);
+  --panel: rgba(80, 55, 20, 0.06); --panel-strong: rgba(80, 55, 20, 0.11); --panel-solid: #f5eedd;
+  --line: rgba(90, 62, 25, 0.22); --hover: rgba(90, 62, 25, 0.07); --track: rgba(90, 62, 25, 0.25); --shadow: rgba(60, 40, 10, 0.25); --shadow-soft: rgba(60, 40, 10, 0.12);
+  --fg: #2e2418; --fg-quiet: #85725a; --accent: #a8322a; --accent-soft: rgba(168, 50, 42, 0.1); --on-accent: #fbf4e6; --warn: #a86a12; --danger: #a8322a;
+  --cell: transparent; --cell-weekend: transparent; --cell-other: rgba(90, 62, 25, 0.04); --today-column: rgba(168, 50, 42, 0.05); --event-base: #f5eedd; --now: #a8322a; --popover: rgba(245, 238, 221, 0.98);
+  --font-ui: "Newsreader Variable", Georgia, serif; --font-display: "Fraunces Variable", Georgia, serif; color-scheme: light;
+}
+:root[data-skin="wall"] body { font-size: 15px; background-size: 220px 220px, 600px 600px, cover; }
+/* Spiral binding along the top edge */
+:root[data-skin="wall"] .shell::before { content: ""; position: absolute; top: 3px; left: 24px; right: 24px; height: 9px; background: radial-gradient(circle at 50% 50%, #3b2f22 0 2.6px, rgba(59, 47, 34, 0.25) 3.4px, transparent 4px) center 0 / 22px 9px repeat-x; pointer-events: none; opacity: 0.7; }
+:root[data-skin="wall"] .strip { padding-top: 14px; }
+:root[data-skin="wall"] .strip .today { font-family: var(--font-display); font-weight: 600; font-size: clamp(18px, 3.2vw, 24px); letter-spacing: -0.01em; font-variation-settings: "SOFT" 50, "WONK" 0; }
+:root[data-skin="wall"] .weekdays div, :root[data-skin="wall"] .split .weekday { font-family: var(--font-display); text-transform: none; letter-spacing: 0.02em; font-size: 13px; font-weight: 500; color: var(--fg); }
+:root[data-skin="wall"] .grid { border-radius: 0; background: none; gap: 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); margin: 0 10px 10px; }
+:root[data-skin="wall"] .grid .day { background: transparent; box-shadow: inset -1px -1px 0 var(--line); }
+:root[data-skin="wall"] .grid .day.other { background: var(--cell-other); }
+:root[data-skin="wall"] .grid .number { font-family: var(--font-display); font-size: 19px; font-weight: 500; height: 26px; padding: 0 4px; border-radius: 0; }
+:root[data-skin="wall"] .grid .sunday .number, :root[data-skin="wall"] .split .cell.sunday .number { color: var(--accent); }
+:root[data-skin="wall"] .grid .today { box-shadow: inset -1px -1px 0 var(--line); }
+:root[data-skin="wall"] .grid .today .number { background: none; color: var(--accent); border-radius: 50%; box-shadow: 0 0 0 1.5px var(--accent); min-width: 28px; height: 28px; }
+:root[data-skin="wall"] .line { font-size: 13.5px; }
+:root[data-skin="wall"][data-skin="wall"] .dot { width: 3px; height: 12px; border-radius: 1px; }
+:root[data-skin="wall"] .pill { background: color-mix(in srgb, var(--colour) 22%, transparent); color: var(--fg); text-shadow: none; font-weight: 600; font-style: italic; }
+:root[data-skin="wall"] .split .cell { background: none; border-radius: 0; box-shadow: inset 0 -1px 0 var(--line); }
+:root[data-skin="wall"] .split .cell .number { font-family: var(--font-display); font-size: clamp(13px, 2.8vh, 18px); }
+:root[data-skin="wall"] .split .cell.selected { box-shadow: inset 0 0 0 1.5px var(--fg); border-radius: 50%; }
+:root[data-skin="wall"] .split .cell.today .number { color: var(--accent); font-weight: 700; }
+:root[data-skin="wall"] .split .cell.today.selected { background: none; box-shadow: inset 0 0 0 1.5px var(--accent); }
+:root[data-skin="wall"] .split h3 { font-family: var(--font-display); text-transform: none; font-size: 19px; font-weight: 600; letter-spacing: 0; }
+:root[data-skin="wall"] .split .title { font-size: 15.5px; font-weight: 500; }
+:root[data-skin="wall"] .split .time { font-style: italic; font-size: 13px; }
