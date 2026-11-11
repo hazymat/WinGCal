@@ -54,7 +54,7 @@ export function sampleEvents(): CalendarEvent[] {
   allDay(family, 'Half term', 14, 5)
   allDay(personal, 'Lisbon trip', 19, 4, { location: 'Lisbon' })
   allDay('home@example.com|birthdays', 'Mum’s birthday', 2)
-  allDay('home@example.com|birthdays', 'Alex’s birthday', 13)
+  allDay('home@example.com|birthdays', 'Ingrid Gustafsson’s birthday', 13)
   allDay('home@example.com|holidays', 'St Andrew’s Day', 20)
   allDay(work, 'Annual leave', -6, 2)
   allDay('work@example.com|rota', 'On call', 0, 7)

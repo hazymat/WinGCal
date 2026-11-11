@@ -32,6 +32,7 @@
 :root[data-skin="paper"] .grid .today .number { color: var(--accent); background: none; }
 /* Pen marks (parts/HandCircle, parts/HandArrow): only Paper shows them */
 :root[data-skin="paper"] .hand-circle, :root[data-skin="paper"] .hand-arrow { display: block; }
+:root[data-skin="paper"] .hand-star { display: inline-block; }
 :root[data-skin="paper"] .hand-circle { color: var(--accent); }
 /* All-day events: the name written in the calendar's colour, a pen arrow under it running to the last day */
 :root[data-skin="paper"] .pill { position: relative; background: none; box-shadow: none; text-shadow: none; font-family: var(--font-hand); font-size: 16px; font-weight: 700; line-height: 13px; padding-bottom: 4px; color: color-mix(in srgb, var(--colour) 72%, #1f2230); }

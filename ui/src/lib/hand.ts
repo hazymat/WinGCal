@@ -41,3 +41,10 @@ export function handHead(seedText: string) {
   const tipY = 6 + (random() - 0.5) * 1.5
   return `M${point([2 + random() * 2, 1 + random() * 2])} Q${point([7, tipY - 2.5 + random()])} ${point([11, tipY])} M${point([11, tipY])} Q${point([7, tipY + 2.5 - random()])} ${point([2.5 + random() * 2, 10 + random() * 1.5])}`
 }
+// A five-pointed star drawn in one stroke, never quite closing (viewBox 0 0 12 12)
+export function handStar(seedText: string) {
+  const random = seededRandom(seedText + 'star')
+  const turn = -Math.PI / 2 + (random() - 0.5) * 0.4, points: [number, number][] = []
+  for (let step = 0; step <= 5; step++) { const angle = turn + step * Math.PI * 4 / 5 + (step === 5 ? 0.12 + random() * 0.15 : 0), reach = 5 + (random() - 0.5) * 1.2; points.push([6 + Math.cos(angle) * reach + (random() - 0.5) * 0.6, 6.4 + Math.sin(angle) * reach + (random() - 0.5) * 0.6]) }
+  return 'M' + points.map(point).join(' L')
+}
