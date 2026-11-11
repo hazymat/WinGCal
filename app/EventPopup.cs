@@ -72,6 +72,10 @@ public sealed class EventPopup : Window
 
     void Push(string json) { if (ready) Dispatcher.BeginInvoke(() => webView.CoreWebView2?.PostWebMessageAsJson(json)); }
     public void PushSkin() { ApplyGlass(); Push(App.MainShell.SkinMessage()); Push(JsonSerializer.Serialize(new { type = "window", glass = glassOn, clear = false, frameless = true, maximised = false, pinned = false })); }
+    // Windows sometimes drops the backdrop set before the window first shows (as with the calendar window), so it's set again once the page is up and on first activation
+    async Task ReapplyGlassSoonAsync() { await Task.Delay(1200); PushSkin(); }
+    bool activatedOnce;
+    protected override void OnActivated(EventArgs args) { base.OnActivated(args); if (activatedOnce) return; activatedOnce = true; PushSkin(); }
     void OnStoreChanged() => Dispatcher.BeginInvoke(PushContent);
 
     static object UiEventJson(UiEvent item) => new { id = item.Id, calendarKey = item.CalendarKey, title = item.Title, start = item.Start, end = item.End, allDay = item.AllDay, location = item.Location, description = item.Description, meetUrl = item.MeetUrl, recurring = item.Recurring, colour = item.Colour, link = item.Link };
@@ -92,7 +96,7 @@ public sealed class EventPopup : Window
         {
             switch (Text(message, "type"))
             {
-                case "ready": ready = true; PushSkin(); Push(App.MainShell.PrefsMessage()); PushContent(); break;
+                case "ready": ready = true; PushSkin(); _ = ReapplyGlassSoonAsync(); Push(App.MainShell.PrefsMessage()); PushContent(); break;
                 case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1, (IntPtr)2, IntPtr.Zero); break;
                 case "windowControl": if (Text(message, "action") == "minimise") WindowState = WindowState.Minimized; else Close(); break;
                 case "growWindow":

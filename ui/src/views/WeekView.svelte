@@ -35,6 +35,18 @@
   }
   const allDayOn = (day: Date) => eventsOn(events, day).filter(event => event.allDay)
 
+  // Sideways wheel (tilt wheel or Shift+wheel) moves a whole page of days, sliding in from the side it came from; up and down anywhere scrolls the hours
+  let sideways = 0, lastPage = 0, page: HTMLDivElement | undefined = $state()
+  function onWheel(wheelEvent: WheelEvent) {
+    if (Math.abs(wheelEvent.deltaX) <= Math.abs(wheelEvent.deltaY)) { if (scroller && !scroller.contains(wheelEvent.target as Node)) scroller.scrollTop += wheelEvent.deltaY; return }
+    wheelEvent.preventDefault()
+    if (performance.now() - lastPage < 380) { sideways = 0; return } // one page per flick
+    sideways += wheelEvent.deltaX
+    if (Math.abs(sideways) < 40) return
+    const direction = Math.sign(sideways); sideways = 0; lastPage = performance.now()
+    ui.focus = addDays(ui.focus, direction * dayCount)
+    page?.querySelectorAll<HTMLElement>('.head, .allday, .body, .lists').forEach(part => part.animate([{ transform: `translateX(${direction * 70}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }))
+  }
   // Opens at the working day (an hour before the earliest event, 07:00 at the latest)
   let scroller: HTMLDivElement | undefined = $state()
   $effect(() => {
@@ -44,7 +56,7 @@
   })
 </script>
 
-<div class="week" bind:clientWidth={width} bind:clientHeight={height}>
+<div class="week" bind:this={page} bind:clientWidth={width} bind:clientHeight={height} onwheel={onWheel}>
   <div class="head" style="--days: {dayCount}">
     <div class="gutter"></div>
     {#each days as day}
@@ -88,7 +100,7 @@
 </div>
 
 <style>
-  .week { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0 6px 6px; }
+  .week { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0 6px 6px; overflow: hidden; }
   .lists { flex: 1; min-height: 0; display: grid; grid-template-columns: 52px repeat(var(--days), minmax(0, 1fr)); }
   .day-list { display: flex; flex-direction: column; gap: 2px; padding: 2px 3px; border-left: 1px solid var(--line); overflow-y: auto; min-width: 0; }
   .day-list.today { background: var(--today-column); border-radius: 8px; animation: today-pulse 3s ease-in-out infinite; }
