@@ -39,6 +39,8 @@ public sealed class EventPopup : Window
         Loaded += async (sender, args) => { PlaceNearPointer(); await StartAsync(); };
         App.Store.Changed += OnStoreChanged;
         Closed += (sender, args) => App.Store.Changed -= OnStoreChanged;
+        LocationChanged += (sender, args) => { if (clearOn) PushWallpaper(); };
+        SizeChanged += (sender, args) => { if (clearOn) PushWallpaper(); };
     }
     static int openCount;
     // Opens near the pointer on the pointer's own monitor, nudged so a new one doesn't sit exactly on the last. Done in screen pixels with that monitor's scale: WPF's Left/Top use the main screen's scale, which lands on the wrong monitor when monitors differ
@@ -71,7 +73,10 @@ public sealed class EventPopup : Window
     }
 
     void Push(string json) { if (ready) Dispatcher.BeginInvoke(() => webView.CoreWebView2?.PostWebMessageAsJson(json)); }
-    public void PushSkin() { ApplyGlass(); Push(App.MainShell.SkinMessage()); Push(JsonSerializer.Serialize(new { type = "window", glass = glassOn, clear = false, frameless = true, maximised = false, pinned = false })); }
+    public void PushSkin() { ApplyGlass(); Push(App.MainShell.SkinMessage()); Push(JsonSerializer.Serialize(new { type = "window", glass = glassOn, clear = clearOn, frameless = true, maximised = false, pinned = false })); if (clearOn) PushWallpaper(true); }
+    // Clear glass, as the calendar window: see-through, with each panel frosted from the wallpaper behind it (Shell/WallpaperFrost.cs)
+    readonly WallpaperFeed wallpaperFeed = new();
+    void PushWallpaper(bool recheck = false) { if (ready && wallpaperFeed.Message(webView, ActualWidth, ActualHeight, true, recheck) is { } message) Push(message); }
     // Windows sometimes drops the backdrop set before the window first shows (as with the calendar window), so it's set again once the page is up and on first activation
     async Task ReapplyGlassSoonAsync() { await Task.Delay(1200); PushSkin(); }
     bool activatedOnce;
@@ -96,7 +101,7 @@ public sealed class EventPopup : Window
         {
             switch (Text(message, "type"))
             {
-                case "ready": ready = true; PushSkin(); _ = ReapplyGlassSoonAsync(); Push(App.MainShell.PrefsMessage()); PushContent(); break;
+                case "ready": ready = true; wallpaperFeed.Forget(); PushSkin(); _ = ReapplyGlassSoonAsync(); Push(App.MainShell.PrefsMessage()); PushContent(); break;
                 case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1, (IntPtr)2, IntPtr.Zero); break;
                 case "windowControl": if (Text(message, "action") == "minimise") WindowState = WindowState.Minimized; else Close(); break;
                 case "growWindow":
@@ -128,7 +133,7 @@ public sealed class EventPopup : Window
     }
 
     // Glass skins: an acrylic window the page tints; Paper, Technical and Wall calendar: the page is solid
-    bool glassOn;
+    bool glassOn, clearOn;
     void ApplyGlass()
     {
         var handle = new WindowInteropHelper(this).Handle; if (handle == IntPtr.Zero) return;
@@ -139,15 +144,24 @@ public sealed class EventPopup : Window
         var style = GetWindowLong(handle, -16); var wantedStyle = style & ~(0x00C00000 | 0x00080000);
         if (wantedStyle != style) { SetWindowLong(handle, -16, wantedStyle); SetWindowPos(handle, IntPtr.Zero, 0, 0, 0, 0, 0x0027 /*NOMOVE|NOSIZE|NOZORDER|FRAMECHANGED*/); }
         var captionColour = unchecked((int)0xFFFFFFFE); DwmSetWindowAttribute(handle, 35, ref captionColour, sizeof(int));
-        var backdrop = look.IsGlassSkin ? 3 : 1;
+        // Clear glass needs the wallpaper to frost from; without it (or with Panel frost at none) the window keeps Windows' acrylic
+        var clear = look.IsGlassSkin && look.Glass && look.ClearGlass && look.PanelFrost > 0 && wallpaperFeed.Message(webView, ActualWidth, ActualHeight, false, true) != null;
+        var backdrop = look.IsGlassSkin && !clear ? 3 : 1;
         glassOn = look.IsGlassSkin && DwmSetWindowAttribute(handle, 38, ref backdrop, sizeof(int)) == 0;
-        var margins = glassOn ? new Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new Margins(); DwmExtendFrameIntoClientArea(handle, ref margins);
+        clearOn = glassOn && clear;
+        var margins = glassOn && !clearOn ? new Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new Margins(); DwmExtendFrameIntoClientArea(handle, ref margins);
+        // Clear: keeps its alpha through blur-behind with an empty region (see-through, no blur, no accent colour)
+        var emptyRegion = CreateRectRgn(0, 0, -1, -1); var blurBehind = new BlurBehind { Flags = 0x1 | 0x2, Enable = clearOn, Region = emptyRegion }; DwmEnableBlurBehindWindow(handle, ref blurBehind); DeleteObject(emptyRegion);
         // Glass stays when another window is in front (as the calendar, Settings › Appearance › Glass when inactive). Our hook goes in front of WindowChrome's
         if (HwndSource.FromHwnd(handle) is { } hwndSource) { hwndSource.RemoveHook(KeepGlassHook); hwndSource.AddHook(KeepGlassHook); }
         if (glassOn && !IsActive) DefWindowProc(handle, 0x0086, look.GlassWhenInactive ? (IntPtr)1 : IntPtr.Zero, (IntPtr)(-1));
         if (HwndSource.FromHwnd(handle)?.CompositionTarget is { } target) target.BackgroundColor = glassOn ? Colors.Transparent : Color.FromRgb(16, 17, 20);
     }
     [StructLayout(LayoutKind.Sequential)] struct Margins { public int Left, Right, Top, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] struct BlurBehind { public int Flags; public bool Enable; public IntPtr Region; public bool TransitionOnMaximized; }
+    [DllImport("dwmapi.dll")] static extern int DwmEnableBlurBehindWindow(IntPtr windowHandle, ref BlurBehind blurBehind);
+    [DllImport("gdi32.dll")] static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
+    [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr gdiObject);
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr windowHandle, int attribute, ref int value, int size);
     [DllImport("dwmapi.dll")] static extern int DwmExtendFrameIntoClientArea(IntPtr windowHandle, ref Margins margins);
     [DllImport("user32.dll")] static extern bool ReleaseCapture();

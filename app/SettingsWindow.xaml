@@ -245,6 +245,11 @@
                   <Slider x:Name="panelGrainSlider" Minimum="0" Maximum="100" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
                   <TextBlock x:Name="panelGrainText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
                 </WrapPanel>
+                <WrapPanel Margin="0,0,0,8">
+                  <TextBlock Text="Glass thickness" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
+                  <Slider x:Name="glassThicknessSlider" Minimum="0" Maximum="100" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+                  <TextBlock x:Name="glassThicknessText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </WrapPanel>
               </StackPanel>
               <WrapPanel Margin="0,0,0,4" x:Name="transparencyRow">
                 <TextBlock Text="Transparency" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />

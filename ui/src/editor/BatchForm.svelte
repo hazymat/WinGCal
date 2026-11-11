@@ -38,7 +38,7 @@
   {#if events.some(event => event.recurring)}<p class="hint">Repeating events change only these occurrences, and can't move to another calendar.</p>{/if}
   {#if problem}<p class="problem">{problem}</p>{/if}
   {#if askingSave}<SaveChanges saveLabel={`Change ${events.length} events`} onsave={apply} ondiscard={closeWindow} />
-  {:else}<div class="buttons"><button class="ghost" onclick={closeWindow}>Cancel</button><button class="primary" disabled={!anything || saving} onclick={apply}>{saving ? 'Changing…' : `Change ${events.length} events`}</button></div>{/if}
+  {:else}<div class="buttons"><button class="ghost" onclick={closeWindow}>Cancel<kbd>Esc</kbd></button><button class="primary" disabled={!anything || saving} onclick={apply}>{saving ? 'Changing…' : `Change ${events.length} events`}</button></div>{/if}
 </div>
 
 <style>
@@ -55,6 +55,7 @@
   .problem { color: var(--danger, #e5534b); font-size: 12px; }
   .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
   .ghost { background: var(--hover); color: var(--fg); }
+  kbd { margin-left: 7px; font: inherit; font-size: 10.5px; font-weight: 600; opacity: 0.6; }
   button { height: 32px; padding: 0 16px; border: 0; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: var(--accent); color: white; }
   button:disabled { opacity: 0.45; cursor: default; }
 </style>

@@ -88,3 +88,26 @@ public static class WallpaperFrost
         WallpaperPosition GetPosition();
     }
 }
+
+// Keeps one window's page supplied with the wallpaper behind it: the picture once (again only when it changes), then where the window sits
+public sealed class WallpaperFeed
+{
+    WallpaperFrost.Picture? picture;
+    string sentImage = "";
+    public void Forget() => sentImage = ""; // the page reloaded
+    public void Off() { picture = null; sentImage = ""; }
+    // The "wallpaper" message for this window, or null when its wallpaper can't be read
+    public string? Message(System.Windows.FrameworkElement content, double width, double height, bool canSendImage, bool recheck = false)
+    {
+        if (System.Windows.PresentationSource.FromVisual(content) == null) return null;
+        var origin = content.PointToScreen(new System.Windows.Point(0, 0));
+        var centre = new System.Drawing.Point((int)origin.X + (int)(width / 2), (int)origin.Y + (int)(height / 2));
+        // Moving within the same monitor only shifts the picture; another monitor, or a settings change (new wallpaper), reads it again
+        if (recheck || picture == null || !picture.Monitor.Contains(centre)) picture = WallpaperFrost.For(centre);
+        if (picture == null) return null;
+        var sendImage = canSendImage && sentImage != picture.DataUrl;
+        if (sendImage) sentImage = picture.DataUrl;
+        var monitor = picture.Monitor;
+        return System.Text.Json.JsonSerializer.Serialize(new { type = "wallpaper", image = sendImage ? picture.DataUrl : null, monitor = new { x = monitor.X, y = monitor.Y, width = monitor.Width, height = monitor.Height }, origin = new { x = (int)origin.X, y = (int)origin.Y }, frost = WinGCal.App.Instance.Settings.Look.PanelFrost });
+    }
+}

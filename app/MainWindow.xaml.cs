@@ -88,7 +88,7 @@ public partial class MainWindow : Window
     public const string UiHost = uiHost;
     public bool DarkTheme => darkTheme;
     public string PrefsMessage() { var culture = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat;         var view = App.Settings.View; return JsonSerializer.Serialize(new { type = "prefs", weekStart = view.WeekStart >= 0 ? view.WeekStart : (int)culture.FirstDayOfWeek, hour12 = view.Clock == "auto" ? culture.ShortTimePattern.Contains('h') : view.Clock == "12", holdMs = view.HoldMs, smoothWheel = view.SmoothWheel }); }
-    public string SkinMessage() => JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint, panelGrain = App.Settings.Look.PanelGrain, eventTint = App.Settings.Look.EventTint });
+    public string SkinMessage() => JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint, panelGrain = App.Settings.Look.PanelGrain, eventTint = App.Settings.Look.EventTint, glassThickness = App.Settings.Look.GlassThickness });
     public static void OpenLink(string url) => OpenUrl(url);
     static void OpenUrl(string url) { if (url.StartsWith("https://") || url.StartsWith("http://") || url.StartsWith("mailto:")) Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
 
@@ -100,7 +100,7 @@ public partial class MainWindow : Window
             var message = document.RootElement;
             switch (Text(message, "type"))
             {
-                case "ready": webViewReady = true; pageWallpaper = ""; _ = ReapplyLookSoonAsync(); PushSkin(); PushWindowState(); PushPrefs(); PushCalendars(); PushTasks(); _ = App.ShowWhatsNewAsync(); break;
+                case "ready": webViewReady = true; wallpaperFeed.Forget(); _ = ReapplyLookSoonAsync(); PushSkin(); PushWindowState(); PushPrefs(); PushCalendars(); PushTasks(); _ = App.ShowWhatsNewAsync(); break;
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "setSkin": App.SetSkin(Text(message, "skin")); break;
                 case "refresh": await App.Store.SyncAsync(); break;
@@ -184,23 +184,13 @@ public partial class MainWindow : Window
     public void PushWhatsNew(string fromVersion, string toVersion, List<ReleaseEntry> releases) => Push(JsonSerializer.Serialize(new { type = "whatsNew", fromVersion, toVersion, releases = releases.Select(release => new { version = release.Version, date = release.Published.ToString("d MMM"), notes = release.Notes, url = release.Url }) }));
     // ---- Clear glass frost drawn from the wallpaper (Shell/WallpaperFrost.cs) ----
     bool wallpaperFrost;
-    WallpaperFrost.Picture? wallpaperPicture;
-    string pageWallpaper = ""; // the picture the page holds, so it is sent only when it changes
+    readonly WallpaperFeed wallpaperFeed = new();
     bool PushWallpaper(bool recheck = false)
     {
-        if (!(Content is FrameworkElement content && PresentationSource.FromVisual(content) != null)) return false;
-        var origin = content.PointToScreen(new Point(0, 0));
-        var centre = new System.Drawing.Point((int)origin.X + (int)(ActualWidth / 2), (int)origin.Y + (int)(ActualHeight / 2));
-        // Moving within the same monitor only shifts the picture; another monitor, or a settings change (new wallpaper), reads it again
-        if (recheck || wallpaperPicture == null || !wallpaperPicture.Monitor.Contains(centre)) wallpaperPicture = WallpaperFrost.For(centre);
-        if (wallpaperPicture == null) return false;
-        var sendImage = webViewReady && pageWallpaper != wallpaperPicture.DataUrl;
-        if (sendImage) pageWallpaper = wallpaperPicture.DataUrl;
-        var monitor = wallpaperPicture.Monitor;
-        Push(JsonSerializer.Serialize(new { type = "wallpaper", image = sendImage ? wallpaperPicture.DataUrl : null, monitor = new { x = monitor.X, y = monitor.Y, width = monitor.Width, height = monitor.Height }, origin = new { x = (int)origin.X, y = (int)origin.Y }, frost = App.Settings.Look.PanelFrost }));
-        return true;
+        if (Content is not FrameworkElement content || wallpaperFeed.Message(content, ActualWidth, ActualHeight, webViewReady, recheck) is not { } message) return false;
+        Push(message); return true;
     }
-    void PushWallpaperOff() { wallpaperPicture = null; pageWallpaper = ""; Push(JsonSerializer.Serialize(new { type = "wallpaper", off = true })); }
+    void PushWallpaperOff() { wallpaperFeed.Off(); Push(JsonSerializer.Serialize(new { type = "wallpaper", off = true })); }
 
     public void PushSkin() { Push(SkinMessage()); App.PushSkinToPopups(); }
     bool clearActive;

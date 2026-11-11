@@ -7,7 +7,7 @@
 
 <div class="ask">
   <b>Save your changes?</b>
-  <div class="buttons"><button class="ghost" bind:this={discardButton} onclick={ondiscard}>Don't save</button><button class="primary" bind:this={saveButton} disabled={!canSave} onclick={onsave}>{saveLabel}</button></div>
+  <div class="buttons"><button class="ghost" bind:this={discardButton} onclick={ondiscard}>Don't save</button><button class="primary" bind:this={saveButton} disabled={!canSave} onclick={onsave}>{saveLabel}<kbd>Enter</kbd></button></div>
 </div>
 
 <style>
@@ -18,4 +18,5 @@
   .primary { background: var(--accent); color: white; }
   .primary:disabled { opacity: 0.45; cursor: default; }
   .ghost { background: var(--hover); color: var(--fg); }
+  kbd { margin-left: 7px; font: inherit; font-size: 10.5px; font-weight: 600; opacity: 0.6; }
 </style>
