@@ -286,6 +286,11 @@
           <StackPanel>
             <TextBlock Text="Events" Style="{StaticResource CardTitle}" />
             <CheckBox x:Name="declinedBox" Content="Show events I've declined" Margin="0,4,0,0" />
+            <WrapPanel Margin="0,10,0,0">
+              <TextBlock Text="Hold to pick up" Margin="0,0,8,0" MinWidth="120" VerticalAlignment="Center" />
+              <Slider x:Name="holdSlider" Minimum="150" Maximum="1000" Width="200" IsSnapToTickEnabled="True" TickFrequency="50" VerticalAlignment="Center" />
+              <TextBlock x:Name="holdText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
+            </WrapPanel>
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Callout}" Margin="0"><DockPanel><TextBlock Style="{StaticResource CalloutIcon}" /><TextBlock Style="{StaticResource CalloutText}" Text="Month, week or agenda: the buttons in the window's top strip. Auto picks by the window's size." /></DockPanel></Border>
