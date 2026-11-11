@@ -55,7 +55,10 @@
   const readingLine = () => (list?.clientHeight ?? 0) * 0.25
   function scrollToDay(day: Date, smooth: boolean) { userScrolling = false; const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (!section || !list) return; if (smooth) warpScroll(list, section.offsetTop - readingLine()); else list.scrollTop = section.offsetTop - readingLine() }
   // The day on the reading line becomes the selected day
+  // Today out of sight: a Today pill floats over the top of the list, pointing the way (as in Agenda)
+  let todayInView = $state(true)
   function onScroll() {
+    if (list) { const todaySection = list.querySelector<HTMLElement>('section.today'); todayInView = !!todaySection && todaySection.offsetTop + todaySection.offsetHeight > list.scrollTop + 20 && todaySection.offsetTop < list.scrollTop + list.clientHeight - 20 }
     if (!userScrolling || !list) return
     const top = list.scrollTop + readingLine() + 6
     const section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > top)
@@ -83,6 +86,8 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="handle" onpointerdown={dragHandle} ondblclick={resetHandle} title="Drag to resize; double-click for automatic"><i></i></div>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div class="days-wrap">
+  {#if !todayInView}<button class="jump-today" onclick={() => pickDay(today)} title="Back to today (T)"><Icon name={ui.focus > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="days" bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={(wheelEvent) => { userScrolling = true; if (list) glideWheel(list, wheelEvent) }} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
     {#each listDays.filter(entry => entry.list.length > 0 || sameDay(entry.day, today) || sameDay(entry.day, ui.focus)) as { day, list: dayEvents } (day.getTime())}
       <section data-day={dayKey(day)} data-newday={dayKey(day)} class:today={sameDay(day, today)} class:today-chase={sameDay(day, today)} use:chaseOnView={sameDay(day, today)} class:gone={day < today}>
@@ -99,6 +104,7 @@
         </div>
       </section>
     {/each}
+  </div>
   </div>
 </div>
 
@@ -126,6 +132,10 @@
   .handle { flex: none; width: 14px; display: grid; place-items: center; cursor: col-resize; touch-action: none; }
   .handle i { width: 3px; height: 36px; border-radius: 2px; background: var(--line); transition: background 0.15s, height 0.15s; }
   .handle:hover i, .handle:active i { background: var(--accent); height: 56px; }
+  .days-wrap { flex: 1; min-width: 0; position: relative; display: flex; }
+  .jump-today { position: absolute; z-index: 2; top: 8px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 12px 0 9px; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 13px; background: color-mix(in srgb, var(--panel-solid) 55%, transparent); backdrop-filter: blur(14px) saturate(1.5); color: var(--accent); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08); animation: jump-in 0.2s ease-out; }
+  .jump-today:hover { background: color-mix(in srgb, var(--accent) 22%, color-mix(in srgb, var(--panel-solid) 55%, transparent)); }
+  @keyframes jump-in { from { opacity: 0; transform: translate(-50%, -6px); } }
   .days { flex: 1; min-width: 0; overflow-y: auto; position: relative; scrollbar-width: thin; mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }
   /* As Agenda: days drift in from below and fade as they pass the top */
   section { animation: agenda-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
