@@ -1,4 +1,6 @@
 <script lang="ts">
+  import HandStar from '../parts/HandStar.svelte'
+  import { shortTitle, isBirthday } from '../lib/titles'
   import { untrack } from 'svelte'
   import HandCircle from '../parts/HandCircle.svelte'
   import HandArrow from '../parts/HandArrow.svelte'
@@ -78,9 +80,9 @@
         <button class="number" onclick={() => { ui.focus = day; ui.view = 'week' }} title="Open this week">{day.getDate() === 1 ? day.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</button>
         {#each list.shown as event (event.id)}
           {#if event.allDay}
-            <button class="pill" class:picked={ui.picked.includes(event.id)} data-event={event.id} class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : event.title}<HandArrow {event} {day} /></button>
+            <button class="pill" class:picked={ui.picked.includes(event.id)} data-event={event.id} class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{#if !isBirthday(event) && !(continuesBefore(event, day) && day.getDay() !== prefs.weekStart)}<HandStar seed={event.id} />{/if}{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : shortTitle(event)}<HandArrow {event} {day} /></button>
           {:else}
-            <button class="line" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{event.title}</span></button>
+            <button class="line" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{shortTitle(event)}</span></button>
           {/if}
         {/each}
         {#if list.more > 0}<button class="more" onclick={() => { ui.focus = day; ui.view = 'agenda' }}>+{list.more} more</button>{/if}
@@ -113,6 +115,8 @@
   .title { overflow: hidden; text-overflow: ellipsis; }
   .pill { background: color-mix(in srgb, var(--colour) 78%, transparent); color: #fff; font-weight: 600; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25); overflow: hidden; text-overflow: ellipsis; display: block; line-height: 17px; }
   .pill:hover { filter: brightness(1.1); }
+  :global(:root[data-skin="paper"]) .line, :global(:root[data-skin="paper"]) .more { font-size: 10px; }
+  :global(:root[data-skin="paper"]) .line .time { font-size: 9.5px; } /* typed text stays small beside the handwriting */
   .pill.joined-left { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -4px; }
   .pill.joined-right { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -5px; }
   .more { color: var(--fg-quiet); font-size: 11.5px; font-weight: 600; }
