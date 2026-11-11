@@ -1,6 +1,6 @@
 <script lang="ts">
   import HandCircle from '../parts/HandCircle.svelte'
-  import { ui, eventsOn, type Placed } from '../state.svelte'
+  import { ui, eventsOn, readSetting, writeSetting, type Placed } from '../state.svelte'
   import { addDays, addMonths, sameDay, startOfDay, startOfWeek, prefs, formatTime, dayKey, weekdayShort, shortDate } from '../lib/dates'
   import Icon from '../parts/Icon.svelte'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
@@ -11,7 +11,17 @@
   const monthStart = $derived(new Date(ui.focus.getFullYear(), ui.focus.getMonth(), 1))
   const gridDays = $derived(Array.from({ length: 42 }, (unused, index) => addDays(startOfWeek(monthStart, prefs.weekStart), index)))
   // Cells stay roughly square: the month takes what the height allows, never more than half the width
-  const monthWidth = $derived(Math.min(paneWidth * 0.5, (paneHeight - 8) / 7 * 7 * 1.45))
+  // The handle between the halves sets the month's share of the width (remembered; double-click returns to automatic)
+  let monthShare = $state(Number(readSetting('splitMonthShare', '0')))
+  const monthWidth = $derived(monthShare > 0 ? Math.max(180, paneWidth * monthShare) : Math.min(paneWidth * 0.5, (paneHeight - 8) / 7 * 7 * 1.45))
+  function dragHandle(pointerEvent: PointerEvent) {
+    const handle = pointerEvent.currentTarget as HTMLElement, startX = pointerEvent.clientX, startWidth = monthWidth
+    handle.setPointerCapture(pointerEvent.pointerId)
+    const move = (moveEvent: PointerEvent) => { monthShare = Math.min(0.75, Math.max(0.2, (startWidth + moveEvent.clientX - startX) / paneWidth)) }
+    const stop = () => { handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', stop); writeSetting('splitMonthShare', String(monthShare.toFixed(3))) }
+    handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', stop)
+  }
+  function resetHandle() { monthShare = 0; writeSetting('splitMonthShare', '0') }
   const dots = (day: Date) => Array.from(new Set(eventsOn(events, day).map(event => event.colourShown))).slice(0, 3)
   const isWeekend = (day: Date) => day.getDay() === 0 || day.getDay() === 6
 
@@ -58,6 +68,8 @@
       </button>
     {/each}
   </div>
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="handle" onpointerdown={dragHandle} ondblclick={resetHandle} title="Drag to resize; double-click for automatic"><i></i></div>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="days" bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={() => userScrolling = true} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
     {#each listDays.filter(entry => entry.list.length > 0 || sameDay(entry.day, today) || sameDay(entry.day, ui.focus)) as { day, list: dayEvents } (day.getTime())}
@@ -79,7 +91,7 @@
 </div>
 
 <style>
-  .split { display: flex; gap: 14px; height: 100%; min-height: 0; padding: 0 10px 16px 12px; box-sizing: border-box; }
+  .split { display: flex; gap: 0; height: 100%; min-height: 0; padding: 0 10px 16px 12px; box-sizing: border-box; }
   .month { flex: none; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); gap: 3px; align-content: stretch; }
   .weekday { text-align: center; font-size: 11px; font-weight: 600; color: var(--fg-quiet); padding: 2px 0 4px; border-bottom: 1px solid var(--line); }
   .weekday.weekend { color: var(--fg-quiet); opacity: 0.75; }
@@ -94,6 +106,9 @@
   .cell.today.selected { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
   .dots { position: absolute; left: 0; right: 0; bottom: 12%; display: flex; justify-content: center; gap: 2px; }
   .dots i { width: 4px; height: 4px; border-radius: 50%; }
+  .handle { flex: none; width: 14px; display: grid; place-items: center; cursor: col-resize; touch-action: none; }
+  .handle i { width: 3px; height: 36px; border-radius: 2px; background: var(--line); transition: background 0.15s, height 0.15s; }
+  .handle:hover i, .handle:active i { background: var(--accent); height: 56px; }
   .days { flex: 1; min-width: 0; overflow-y: auto; position: relative; scrollbar-width: thin; mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 14px), transparent); }
   section { padding-bottom: 8px; }
   h3 { margin: 0; padding: 2px 4px 3px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-quiet); }
