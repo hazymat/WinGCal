@@ -239,8 +239,9 @@
   .today.measure { position: absolute; visibility: hidden; pointer-events: none; }
   .today.cut { display: none; }
   /* Back to today: only while away from it, quiet until hovered */
-  .back-today { flex: none; height: 22px; padding: 0 9px; margin-left: 4px; border: 0; border-radius: 11px; background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--fg-quiet); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; }
-  .back-today:hover { background: var(--hover); color: var(--fg); }
+  /* Back to today: shown only while away from it, in the accent so it's hard to miss */
+  .back-today { flex: none; height: 22px; padding: 0 10px; margin-left: 6px; border: 0; border-radius: 11px; background: var(--accent-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+  .back-today:hover { background: var(--accent); color: var(--on-accent); }
   .step, .tool, .window-controls button { display: grid; place-items: center; width: 32px; height: 30px; flex: none; border: 0; border-radius: 7px; background: none; color: var(--fg-quiet); cursor: pointer; }
   .step:hover, .tool:hover, .window-controls button:hover { background: var(--hover); color: var(--fg); }
   .tools { display: flex; align-items: center; gap: 2px; flex: none; }

@@ -3,6 +3,7 @@
   import { ui, eventsOn, readSetting, writeSetting, type Placed } from '../state.svelte'
   import { addDays, addMonths, sameDay, startOfDay, startOfWeek, prefs, formatTime, dayKey, weekdayShort, shortDate } from '../lib/dates'
   import Icon from '../parts/Icon.svelte'
+  import { warpScroll } from '../lib/warp'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   // Short, wide windows (SPEC.md › Calendar views › Split): a browsable month on the left, a scrolling day list on the right that follows the selected day
@@ -50,7 +51,7 @@
   $effect(() => { document.fonts?.ready.then(() => { if (!userScrolling) scrollToDay(ui.focus, false) }) })
   // The selected day sits a quarter of the way down, with a glimpse of the days before it above
   const readingLine = () => (list?.clientHeight ?? 0) * 0.25
-  function scrollToDay(day: Date, smooth: boolean) { userScrolling = false; const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (section && list) list.scrollTo({ top: section.offsetTop - readingLine(), behavior: smooth ? 'smooth' : 'instant' }) }
+  function scrollToDay(day: Date, smooth: boolean) { userScrolling = false; const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (!section || !list) return; if (smooth) warpScroll(list, section.offsetTop - readingLine()); else list.scrollTop = section.offsetTop - readingLine() }
   // The day on the reading line becomes the selected day
   function onScroll() {
     if (!userScrolling || !list) return

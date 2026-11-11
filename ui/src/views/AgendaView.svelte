@@ -4,6 +4,7 @@
   import { addDays, sameDay, startOfDay, formatTime, weekdayShort, shortDate, monthName, dayKey } from '../lib/dates'
   import MiniMonth from '../parts/MiniMonth.svelte'
   import Icon from '../parts/Icon.svelte'
+  import { warpScroll, isWarping } from '../lib/warp'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   let height = $state(600)
@@ -12,14 +13,14 @@
   let lookBack = $state(30), span = $state(56), list: HTMLDivElement | undefined = $state(), topDay = $state(ui.focus)
   const readingLine = () => (list?.clientHeight ?? 0) * 0.25
   $effect(() => { const focus = ui.focus; topDay = focus; span = 56; lookBack = 30; requestAnimationFrame(() => scrollToDay(focus, false)) })
-  function scrollToDay(day: Date, smooth: boolean) { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (list && section) list.scrollTo({ top: section.offsetTop - readingLine(), behavior: smooth ? 'smooth' : 'instant' }) }
+  function scrollToDay(day: Date, smooth: boolean) { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (!list) return; if (!section) { ui.focus = day; return } if (smooth) warpScroll(list, section.offsetTop - readingLine()); else list.scrollTop = section.offsetTop - readingLine() }
   let growingBack = false
   // The month above follows the day on the reading line
   function onListScroll() {
     if (!list) return
     if (list.scrollTop + list.clientHeight > list.scrollHeight - 600) span += 56
     // Scrolling up reaches further back, eight weeks at a time, without the list jumping
-    if (list.scrollTop < 300 && lookBack < 3650 && !growingBack) { growingBack = true; const before = list.scrollHeight; lookBack += 56; requestAnimationFrame(() => { if (list) list.scrollTop += list.scrollHeight - before; growingBack = false }) }
+    if (list.scrollTop < 300 && lookBack < 3650 && !growingBack && !isWarping(list)) { growingBack = true; const before = list.scrollHeight; lookBack += 56; requestAnimationFrame(() => { if (list) list.scrollTop += list.scrollHeight - before; growingBack = false }) }
     const line = list.scrollTop + readingLine(), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > line)
     if (section) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
   }
@@ -30,7 +31,9 @@
 </script>
 
 <div class="agenda" bind:clientHeight={height}>
-  {#if height > 520}<div class="mini"><MiniMonth {events} follow={topDay} ontoday={() => requestAnimationFrame(() => scrollToDay(today, true))} /></div>{/if}
+  {#if height > 520}<div class="mini"><MiniMonth {events} follow={topDay} /></div>{/if}
+  <div class="list-wrap">
+  {#if !sameDay(topDay, today)}<button class="jump-today" onclick={() => scrollToDay(today, true)} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="list" bind:this={list} onscroll={onListScroll}>
     {#each days as { day, list }, index (day.getTime())}
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
@@ -51,11 +54,17 @@
       </section>
     {/each}
   </div>
+  </div>
 </div>
 
 <style>
   .agenda { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .mini { padding: 0 14px 8px; border-bottom: 1px solid var(--line); }
+  .list-wrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  /* Back to today: floats at the top of the list whenever it has scrolled away from today, pointing the way */
+  .jump-today { position: absolute; z-index: 2; top: 8px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 12px 0 9px; border: 0; border-radius: 13px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); animation: jump-in 0.2s ease-out; }
+  .jump-today:hover { filter: brightness(1.1); }
+  @keyframes jump-in { from { opacity: 0; transform: translate(-50%, -6px); } }
   .list { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 12px; mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }
   /* Days drift in from below and fade as they pass the top, so today reads as the middle of a moving strip (Chromium scroll-driven animation; without it the list is plain) */
   .day, .month-break { animation: agenda-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
