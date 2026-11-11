@@ -1,12 +1,16 @@
 <script lang="ts">
   import { sendToShell } from '../bridge'
   import { dayKey } from '../lib/dates'
+  import SaveChanges from './SaveChanges.svelte'
   import type { EditorEvent, EditorCalendar } from './types'
   // Several picked events at once: tick what to change; everything else stays as it is
   let { events, calendars, problem = $bindable() }: { events: EditorEvent[]; calendars: EditorCalendar[]; problem: string } = $props()
   let change = $state({ date: false, start: false, end: false, place: false, calendar: false })
   let values = $state({ date: dayKey(new Date()), start: '09:00', end: '10:00', place: '', calendar: '' })
-  let saving = $state(false)
+  let saving = $state(false), askingSave = $state(false)
+  const closeWindow = () => sendToShell({ type: 'windowControl', action: 'close' })
+  // Esc closes when nothing is ticked, otherwise asks first (Change is the default); Esc again goes back
+  function onEscape(keyEvent: KeyboardEvent) { if (keyEvent.key !== 'Escape') return; keyEvent.preventDefault(); if (askingSave) askingSave = false; else if (anything && !saving) askingSave = true; else closeWindow() }
   $effect(() => { if (problem) saving = false })
   // Google moves events only between calendars of one account
   const accounts = $derived(Array.from(new Set(events.map(event => calendars.find(calendar => calendar.key === event.calendarKey)?.account))))
@@ -20,6 +24,7 @@
   }
 </script>
 
+<svelte:window onkeydown={onEscape} />
 <div class="form">
   <ul>{#each events.slice(0, 8) as event}<li style="--colour: {event.colour || calendars.find(calendar => calendar.key === event.calendarKey)?.colour}"><i></i>{event.title}</li>{/each}{#if events.length > 8}<li class="quiet">and {events.length - 8} more</li>{/if}</ul>
   <p class="quiet">Tick what to change. Everything else stays as it is.</p>
@@ -32,7 +37,8 @@
   {#if targets.length > 1}<label class="row"><input type="checkbox" bind:checked={change.calendar} /><span class="label">Calendar</span><select bind:value={values.calendar} onchange={() => change.calendar = true}>{#each targets as target}<option value={target.key}>{target.name}</option>{/each}</select></label>{/if}
   {#if events.some(event => event.recurring)}<p class="hint">Repeating events change only these occurrences, and can't move to another calendar.</p>{/if}
   {#if problem}<p class="problem">{problem}</p>{/if}
-  <div class="buttons"><button class="ghost" onclick={() => sendToShell({ type: 'windowControl', action: 'close' })}>Cancel</button><button class="primary" disabled={!anything || saving} onclick={apply}>{saving ? 'Changing…' : `Change ${events.length} events`}</button></div>
+  {#if askingSave}<SaveChanges saveLabel={`Change ${events.length} events`} onsave={apply} ondiscard={closeWindow} />
+  {:else}<div class="buttons"><button class="ghost" onclick={closeWindow}>Cancel</button><button class="primary" disabled={!anything || saving} onclick={apply}>{saving ? 'Changing…' : `Change ${events.length} events`}</button></div>{/if}
 </div>
 
 <style>

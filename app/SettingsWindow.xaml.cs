@@ -30,6 +30,8 @@ public partial class SettingsWindow : Window
         InitializeComponent(); settingsTabs.SelectedItem = App.Settings.Sync.Accounts.Count == 0 ? accountsTab : appearanceTab;
         WireAccountsTab(); WireSyncTab(); WireTasksTab(); WireExportTab(); WireAppearanceTab(); WireViewTab(); WireWindowTab(); WireAboutTab();
         FillLists();
+        // Esc closes (settings save as they change); an open drop-down takes the Esc first and marks it handled
+        KeyDown += (sender, keyArgs) => { if (keyArgs.Key == System.Windows.Input.Key.Escape && !keyArgs.Handled) { keyArgs.Handled = true; Close(); } };
         App.Store.Changed += OnStoreChanged; App.Store.Tasks.Changed += OnStoreChanged; App.SettingsChanged += OnStoreChanged;
         Closed += (sender, args) => { App.Store.Changed -= OnStoreChanged; App.Store.Tasks.Changed -= OnStoreChanged; App.SettingsChanged -= OnStoreChanged; };
     }

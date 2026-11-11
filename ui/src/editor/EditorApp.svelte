@@ -27,9 +27,11 @@
   })
   sendToShell({ type: 'ready' })
   const heading = $derived(mode === 'new' ? 'New event' : mode === 'batch' ? `Change ${payload?.events.length ?? ''} events` : 'Event')
+  // The forms handle Esc themselves (close, or ask first when something changed)
+  const formShown = $derived(!!payload && (mode !== 'event' || payload.events.length > 0))
   function drag(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, input, select, textarea, a')) sendToShell({ type: 'dragWindow' }) }
 </script>
-<svelte:window onkeydown={(event) => { if (event.key === 'Escape') sendToShell({ type: 'windowControl', action: 'close' }) }} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} />
+<svelte:window onkeydown={(event) => { if (event.key === 'Escape' && !formShown) sendToShell({ type: 'windowControl', action: 'close' }) }} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} />
 
 <div class="frame">
   <header role="presentation" onmousedown={drag}>
