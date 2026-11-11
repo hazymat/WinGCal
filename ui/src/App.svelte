@@ -38,6 +38,8 @@
   onShellMessage('tip', message => ui.tip = { title: message.title ?? '', text: message.text ?? '' })
   sendToShell({ type: 'ready' })
   watchFrostPanels()
+  // Ctrl+wheel scales the whole window (Settings › Appearance › Scale), one 5% step per notch; nothing scrolls meanwhile
+  addEventListener('wheel', (wheelEvent) => { if (!wheelEvent.ctrlKey) return; wheelEvent.preventDefault(); wheelEvent.stopImmediatePropagation(); if (wheelEvent.deltaY) sendToShell({ type: 'scaleStep', steps: wheelEvent.deltaY < 0 ? 1 : -1 }) }, { capture: true, passive: false })
   // Clear glass: how much tint the window and the panels get (0-100), from Settings › Appearance
   $effect(() => { const rootStyle = document.documentElement.style; rootStyle.setProperty('--clear-window-tint', String(ui.windowTint / 100)); rootStyle.setProperty('--clear-panel-tint', String(ui.panelTint / 100)); rootStyle.setProperty('--clear-grain', String(ui.panelGrain / 100 * 0.6)); rootStyle.setProperty('--event-tint', `${ui.eventTint}%`) })
 

@@ -105,6 +105,8 @@ public partial class MainWindow : Window
                 case "openSettings": App.OpenSettings(Text(message, "tab")); break;
                 case "setSkin": App.SetSkin(Text(message, "skin")); break;
                 case "refresh": await App.Store.SyncAsync(); break;
+                // Ctrl+wheel: Scale (Settings › Appearance) in 5% steps, saved for this monitor setup like the slider
+                case "scaleStep": if (message.TryGetProperty("steps", out var scaleSteps) && scaleSteps.TryGetInt32(out var stepCount)) { UiScale = Math.Clamp(Math.Round(UiScale * 20 + stepCount) / 20, 0.75, 1.5); App.PushSkinToPopups(); App.NotifySettingsChanged(); } break;
                 case "addAccount": await AddAccountAsync(); break;
                 case "showCalendar": App.Store.SetShown(Text(message, "key"), message.GetProperty("shown").GetBoolean()); App.NotifySettingsChanged(); break;
                 case "setPinned": App.Settings.Window.Pinned = message.GetProperty("on").GetBoolean(); App.Settings.Save(); ApplyPinned(); App.NotifySettingsChanged(); break;
