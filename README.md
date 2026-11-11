@@ -1,5 +1,7 @@
 # WinGCal
 
+**WinGCal is a free, open-source Windows app.** Read more about it, and download it, on its website: [hazymat.github.io/WinGCal](https://hazymat.github.io/WinGCal/) ([privacy policy](https://hazymat.github.io/WinGCal/privacy.html), [terms of use](https://hazymat.github.io/WinGCal/terms.html))
+
 Google Calendar on your Windows desktop: a glass calendar widget that stays on the desktop, and remembers where it goes on each monitor setup.
 
 - Month, week and agenda layouts that follow the window's size
