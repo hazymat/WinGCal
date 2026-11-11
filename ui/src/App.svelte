@@ -183,7 +183,8 @@
       {#if app.offline}<span class="offline" title="Can't reach Google: showing what was saved last time"><Icon name="offline" size={15} />{narrow ? '' : 'Offline'}</span>{/if}
       {#if !narrow}
         <div class="views" role="group" aria-label="View">
-          {#each views as [view, label]}<button class:on={ui.view === view} onclick={() => ui.view = view} title={label} aria-pressed={ui.view === view}><Icon name={view} size={16} /></button>{/each}
+          <!-- No Auto button: the view the window picks shows lit with a small dot; clicking a view keeps it, clicking the kept view again goes back to following the window -->
+          {#each views.slice(1) as [view, label]}<button class:on={shownView === view} class:auto={ui.view === 'auto' && shownView === view} onclick={() => ui.view = ui.view === view ? 'auto' : view} title={ui.view === 'auto' && shownView === view ? `${label} (picked for this window size). Click to keep it` : ui.view === view ? `${label}. Click again to follow the window size` : label} aria-pressed={shownView === view}><Icon name={view} size={16} /></button>{/each}
         </div>
         <SkinPicker />
       {/if}
@@ -249,6 +250,8 @@
   .views button { display: grid; place-items: center; width: 30px; height: 26px; border: 0; border-radius: 7px; background: none; color: var(--fg-quiet); cursor: pointer; }
   .views button:hover { color: var(--fg); }
   .views button.on { background: var(--panel-strong); color: var(--fg); box-shadow: 0 1px 2px var(--shadow-soft); }
+  .views button { position: relative; }
+  .views button.auto::after { content: ""; position: absolute; bottom: 2px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); } /* picked by the window size */
   .dots { display: flex; align-items: center; gap: 3px; height: 30px; padding: 0 9px; margin-right: 2px; border: 0; border-radius: 15px; background: var(--panel); color: var(--fg-quiet); cursor: pointer; }
   .dots:hover, .dots.on { background: var(--panel-strong); }
   .dots i { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12); }
