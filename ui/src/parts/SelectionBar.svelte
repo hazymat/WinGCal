@@ -3,7 +3,7 @@
   import { ui, placedEvents } from '../state.svelte'
   import { formatTime, weekdayShort, shortDate, dayKey, sameDay } from '../lib/dates'
   import Icon from './Icon.svelte'
-  // Press and hold (or Ctrl/Shift-click) picks several events; days clicked or dragged across in Agenda's month pick days. Their actions float in a rounded bar near the bottom, each with its key, and Cancel (Esc) is always there
+  // Press and hold (or Ctrl/Shift-click) picks several events; days held or dragged across in any view (hours in Week) pick days. Their actions float in a rounded bar near the bottom, each with its key, and Cancel (Esc) is always there
   const count = $derived(ui.picked.length)
   let copied = $state(false)
   function copy() {
@@ -14,7 +14,8 @@
   const edit = () => sendToShell({ type: 'batchEdit', ids: ui.picked.slice() })
   const remove = () => ui.confirmDelete = ui.picked.slice()
   const days = $derived(ui.pickedDays), dayLabel = (day: Date) => `${weekdayShort(day)} ${shortDate(day)}`
-  function newEvent() { if (!days) return; sendToShell({ type: 'newEvent', day: dayKey(days.from), time: '', endDay: dayKey(days.to) }); ui.pickedDays = null }
+  const clock = (time: Date) => `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`
+  function newEvent() { if (!days) return; sendToShell({ type: 'newEvent', day: dayKey(days.from), time: days.timed ? clock(days.from) : '', endDay: dayKey(days.to), endTime: days.timed ? clock(days.to) : '' }); ui.pickedDays = null }
   // The keys the bar shows (Esc is the app's: it clears either)
   function onKey(event: KeyboardEvent) {
     if ((event.target as HTMLElement).closest('input, textarea') || ui.confirmDelete || event.altKey) return
@@ -38,7 +39,7 @@
   </div>
 {:else if days}
   <div class="selection-bar" role="toolbar" aria-label="Picked days">
-    <span class="count">{sameDay(days.from, days.to) ? dayLabel(days.from) : days.from.getMonth() === days.to.getMonth() ? `${weekdayShort(days.from)} ${days.from.getDate()} – ${dayLabel(days.to)}` : `${dayLabel(days.from)} – ${dayLabel(days.to)}`}</span>
+    <span class="count">{days.timed ? `${dayLabel(days.from)} ${formatTime(days.from)} – ${sameDay(days.from, days.to) ? '' : dayLabel(days.to) + ' '}${formatTime(days.to)}` : sameDay(days.from, days.to) ? dayLabel(days.from) : days.from.getMonth() === days.to.getMonth() ? `${weekdayShort(days.from)} ${days.from.getDate()} – ${dayLabel(days.to)}` : `${dayLabel(days.from)} – ${dayLabel(days.to)}`}</span>
     <button class="go" onclick={newEvent}><Icon name="plus" size={15} />New event<kbd>Enter</kbd></button>
     <button class="cancel" onclick={() => ui.pickedDays = null}>Cancel<kbd>Esc</kbd></button>
   </div>

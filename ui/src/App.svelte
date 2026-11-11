@@ -147,8 +147,8 @@
   // Press and hold an event (Settings › View › Hold to pick up): it's picked (SPEC.md › Multi-select) and lifts, with every other picked event, to be dragged to another day (SPEC.md › Moving events). Moving the pointer first (scrolling) cancels it
   let holdTimer = 0, heldId = '', holdStart = { x: 0, y: 0 }, holdPointer = 0
   function startHold(pointer: PointerEvent) {
-    // Days picked in Agenda's month: a press anywhere outside them (and outside the bar) lets them go, like Esc or Cancel, and does nothing else
-    if (ui.pickedDays) { const target = pointer.target as HTMLElement, key = target.closest?.<HTMLElement>('.cell[data-key]')?.dataset.key; if (!target.closest?.('.selection-bar, .undo-bar') && !(key && key >= dayKey(ui.pickedDays.from) && key <= dayKey(ui.pickedDays.to))) { ui.pickedDays = null; pointer.stopPropagation(); pointer.preventDefault(); addEventListener('click', (click) => { click.stopPropagation(); click.preventDefault() }, { capture: true, once: true }); return } } // that press only clears: nothing under it is clicked or picked
+    // Picked days (any view): a press anywhere outside them (and outside the bar) lets them go, like Esc or Cancel, and does nothing else
+    if (ui.pickedDays) { const target = pointer.target as HTMLElement, key = target.closest?.<HTMLElement>('[data-key]')?.dataset.key; if (!target.closest?.('.selection-bar, .undo-bar') && !(key && key >= dayKey(ui.pickedDays.from) && key <= dayKey(ui.pickedDays.to))) { ui.pickedDays = null; pointer.stopPropagation(); pointer.preventDefault(); addEventListener('click', (click) => { click.stopPropagation(); click.preventDefault() }, { capture: true, once: true }); return } } // that press only clears: nothing under it is clicked or picked
     pickModifier = pointer.ctrlKey || pointer.shiftKey || pointer.metaKey
     clearTimeout(holdTimer); heldId = ''
     const element = (pointer.target as HTMLElement).closest?.<HTMLElement>('[data-event]')

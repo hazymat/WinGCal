@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dayPicker, inPicked } from '../lib/pickDays'
   import { shortTitle } from '../lib/titles'
   import HandCircle from '../parts/HandCircle.svelte'
   import { ui, eventsOn, readSetting, writeSetting, type Placed } from '../state.svelte'
@@ -72,16 +73,17 @@
   }
   // A resize reflows the list: that isn't the person scrolling, so stay on the selected day
   $effect(() => { if (!list) return; const observer = new ResizeObserver(() => { userScrolling = false; scrollToDay(ui.focus, false) }); observer.observe(list); return () => observer.disconnect() })
+  const picker = dayPicker() // drag across days, or hold one, for the New event bar (a click just goes to the day)
   function pickDay(day: Date) { focusFromScroll = 0; ui.focus = day }
   // The wheel over the month turns its pages
   function onMonthWheel(event: WheelEvent) { event.preventDefault(); if (Math.abs(event.deltaY) < 4) return; const target = addMonths(monthStart, event.deltaY > 0 ? 1 : -1); pickDay(target.getMonth() === today.getMonth() && target.getFullYear() === today.getFullYear() ? today : target) }
 </script>
 
 <div class="split" bind:clientHeight={paneHeight} bind:clientWidth={paneWidth}>
-  <div class="month" style="width: {monthWidth}px" onwheel={onMonthWheel}>
+  <div class="month" style="width: {monthWidth}px" onwheel={onMonthWheel} onpointerdown={picker.down} onpointermove={picker.move} onpointerup={picker.up} onpointercancel={picker.up} oncontextmenu={picker.menu} role="grid" tabindex="-1">
     {#each gridDays.slice(0, 7) as day}<span class="weekday" class:weekend={isWeekend(day)}>{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
     {#each gridDays as day (day.getTime())}
-      <button class="cell" data-newday={dayKey(day)} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:other={day.getMonth() !== monthStart.getMonth()} class:today={sameDay(day, today)} class:selected={sameDay(day, ui.focus)} onclick={() => pickDay(day)}>
+      <button class="cell" data-newday={dayKey(day)} data-key={dayKey(day)} class:picked-day={(ui.pickedDays, inPicked(day))} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:other={day.getMonth() !== monthStart.getMonth()} class:today={sameDay(day, today)} class:selected={sameDay(day, ui.focus)} onclick={() => pickDay(day)}>
         <span class="number">{day.getDate()}</span>{#if sameDay(day, today) || sameDay(day, ui.focus)}<HandCircle seed={dayKey(day)} />{/if}<span class="hours">{#each dayShape(day).timed as mark}<i style="left: {mark.left}%; width: {mark.width}%; background: {mark.colour}"></i>{/each}</span><span class="ribbons">{#each dayShape(day).ribbons as ribbon}<i class:first={ribbon.first} class:last={ribbon.last} style="background: {ribbon.colour}"></i>{/each}</span>
       </button>
     {/each}
@@ -121,6 +123,7 @@
   .cell.weekend { background: var(--cell-weekend); }
   .cell.other { background: none; color: var(--fg-quiet); opacity: 0.55; }
   .cell:hover { background: var(--hover); }
+  .cell.picked-day { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent); } /* days picked for a new event */
   .cell.today { animation: today-pulse 3s ease-in-out infinite; }
   section.today { animation: agenda-drift linear both, today-pulse 3s ease-in-out infinite; animation-timeline: view(), auto; animation-range: cover 0% cover 100%, normal; }
   section.today { border-radius: 6px; padding: 1px 2px 3px; }
@@ -130,7 +133,7 @@
   .hours { position: absolute; left: 14%; right: 14%; bottom: 26%; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--fg) 8%, transparent); }
   .hours i { position: absolute; top: 0; bottom: 0; border-radius: 2px; min-width: 3px; }
   .ribbons { position: absolute; left: -1.5px; right: -1.5px; bottom: 5px; display: flex; flex-direction: column-reverse; gap: 2px; } /* the longest-running stays on the bottom lane so a trip lines up across days */
-  .ribbons i { height: 3px; opacity: 0.85; }
+  .ribbons i { height: 2px; opacity: 0.6; } /* light: a multi-day event reads as a thread through its days, its ends marked by the gaps */
   .ribbons i.first { margin-left: 8px; border-top-left-radius: 2px; border-bottom-left-radius: 2px; }
   .ribbons i.last { margin-right: 8px; border-top-right-radius: 2px; border-bottom-right-radius: 2px; }
   .handle { flex: none; width: 14px; display: grid; place-items: center; cursor: col-resize; touch-action: none; }

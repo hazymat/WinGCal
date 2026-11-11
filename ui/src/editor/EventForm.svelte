@@ -6,7 +6,7 @@
   import SaveChanges from './SaveChanges.svelte'
   import type { EditorEvent, EditorCalendar } from './types'
   // One event, shown ready to edit (or a new one): Save sends only what changed; the window stays open until closed
-  let { event, calendars, day, time, endDay = '', savedAt, problem = $bindable() }: { event: EditorEvent | null; calendars: EditorCalendar[]; day: string; time: string; endDay?: string; savedAt: number; problem: string } = $props()
+  let { event, calendars, day, time, endDay = '', endTime = '', savedAt, problem = $bindable() }: { event: EditorEvent | null; calendars: EditorCalendar[]; day: string; time: string; endDay?: string; endTime?: string; savedAt: number; problem: string } = $props()
   const clock = (date: Date) => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
   const notesOf = (html: string) => html ? new DOMParser().parseFromString(html.replace(/<(br|\/p|\/li|\/div)\s*\/?>/gi, '\n$&'), 'text/html').body.textContent?.trim() ?? '' : ''
   // New events go only in calendars picked in Settings › Calendars (all writable ones if none are picked)
@@ -16,8 +16,8 @@
   type Draft = { title: string; allDay: boolean; startDate: string; startTime: string; endDate: string; endTime: string; location: string; description: string; calendarKey: string }
   function fromEvent(): Draft {
     if (!event) {
-      // A double-clicked day is an all-day event; a double-clicked hour (Week) starts then, for an hour
-      const startHour = time || '09:00', endAt = new Date(new Date(`${day || dayKey(new Date())}T${startHour}`).getTime() + 3_600_000)
+      // A double-clicked day is an all-day event; a double-clicked hour (Week) starts then, for an hour; hours dragged in Week run from and to where they were dragged
+      const startHour = time || '09:00', endAt = time && endTime ? new Date(`${endDay || day}T${endTime}`) : new Date(new Date(`${day || dayKey(new Date())}T${startHour}`).getTime() + 3_600_000)
       return { title: '', allDay: !time, startDate: day || dayKey(new Date()), startTime: startHour, endDate: time ? dayKey(endAt) : endDay || day || dayKey(new Date()), endTime: clock(endAt), location: '', description: '', calendarKey: (writable.find(candidate => candidate.isDefault) ?? writable.find(candidate => candidate.shown) ?? writable[0])?.key ?? '' /* the default from Settings › Calendars first */ }
     }
     const startAt = parseWhen(event.start), endAt = parseWhen(event.end), lastDay = event.allDay ? addDays(endAt, -1) : endAt
