@@ -126,3 +126,17 @@ a, img, svg { -webkit-user-drag: none; }
 .today-chase.chasing::before { animation: today-glint 3.2s ease-out both; }
 /* Agenda and Split: days drift in from below and fade as they pass the top */
 @keyframes agenda-drift { 0% { opacity: 0.2; transform: translateY(14px) scale(0.96); } 24% { opacity: 1; transform: none; } 68% { opacity: 1; transform: none; } 100% { opacity: 0.25; transform: scale(0.98); } }
+
+/* ---- Day lists' lighting (Agenda and Month and days; SPEC.md › Strip light; lib/lamp.svelte.ts) ---- */
+/* Tungsten: past days (.gone) warm back up, their .warm parts flickering on like a filament catching: a flicker, a dip, then a slow warm yellow glow, nearly full brightness */
+.warmed .gone .warm { animation: tungsten 1.6s ease-in both; }
+@keyframes tungsten { 0% { opacity: 0.55; filter: none; } 8% { opacity: 0.8; filter: sepia(0.6) saturate(1.6) brightness(1.3); } 14% { opacity: 0.5; filter: none; } 22% { opacity: 0.75; filter: sepia(0.5) saturate(1.4) brightness(1.2); } 28% { opacity: 0.6; filter: sepia(0.25); } 100% { opacity: 0.96; filter: sepia(0.55) saturate(1.7) brightness(1.18) hue-rotate(-6deg); } }
+/* ...and the bulb's light falls across the past days: a warm pool, brightest just above the middle, flickering on with them */
+.lamp { position: absolute; top: 0; left: 0; right: 0; z-index: 1; mask-image: linear-gradient(#000 calc(100% - 40px), transparent); pointer-events: none; opacity: 0; border-radius: 10px; mix-blend-mode: screen; background: radial-gradient(ellipse 85% 65% at 50% 38%, rgba(255, 196, 92, 0.3), rgba(255, 160, 60, 0.12) 50%, rgba(255, 140, 40, 0.03) 75%, transparent 90%); transition: opacity 0.6s ease-out; }
+.lamp.on { opacity: 1; animation: lamp-on 1.6s ease-in both; }
+@keyframes lamp-on { 0% { opacity: 0; } 8% { opacity: 0.55; } 14% { opacity: 0.08; } 22% { opacity: 0.45; } 28% { opacity: 0.2; } 100% { opacity: 1; } }
+/* Strip light (Settings › Appearance, amount = --strip, 1 at the default 50%): a soft daylight glow fixed in space, so each of today's and upcoming events catches it as it scrolls past (Chromium scroll-driven animation). A broad feathered glow on screen blend reads as light, not brushed metal */
+.lit [data-day]:not(.gone) .item { position: relative; overflow: clip; } /* clip, not hidden: hidden makes the item its own scroller, and the light would then ride along with it */
+.lit [data-day]:not(.gone) .item::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; mix-blend-mode: screen; opacity: min(calc(var(--strip, 1) * 0.5 * var(--pane-gain, 1)), 1); background: linear-gradient(calc(100deg + var(--pane-angle, 0deg)), transparent 36%, rgba(255, 246, 228, 0.07) 42%, rgba(255, 248, 236, 0.2) 48%, rgba(255, 250, 242, 0.26) 50%, rgba(255, 248, 236, 0.2) 52%, rgba(255, 246, 228, 0.07) 58%, transparent 64%) no-repeat; background-size: var(--pane-size, 300%) 100%; animation: strip-light linear both; animation-timeline: view(); animation-range: cover 20% cover 80%; } /* tied to scroll position, crossing each event within the middle of the view so it moves briskly with the wheel */
+.lit [data-day].today .item::after { opacity: min(calc(var(--strip, 1) * 0.8 * var(--pane-gain, 1)), 1); } /* today catches it brighter */
+@keyframes strip-light { from { background-position: calc(85% + var(--pane-phase, 0%)) 0; } to { background-position: calc(15% + var(--pane-phase, 0%)) 0; } } /* each pane's own phase, angle and travel (paneTilt) */
