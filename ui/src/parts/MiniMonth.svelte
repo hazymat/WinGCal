@@ -8,10 +8,10 @@
   let rangeStart: Date | null = null, rangeDragged = false, rangeHold = 0
   const dayUnder = (pointer: PointerEvent) => { const key = (document.elementFromPoint(pointer.clientX, pointer.clientY) as HTMLElement | null)?.closest<HTMLElement>('.cell')?.dataset.key; return key ? days.find(day => dayKey(day) === key) ?? null : null }
   const ordered = (first: Date, second: Date) => first <= second ? [first, second] as const : [second, first] as const
-  function rangeDown(pointer: PointerEvent) { if (!onrange || pointer.button !== 0) return; rangeStart = dayUnder(pointer); rangeDragged = false; clearTimeout(rangeHold); if (!rangeStart) return; (pointer.currentTarget as HTMLElement).setPointerCapture(pointer.pointerId); const held = rangeStart; rangeHold = setTimeout(() => { if (rangeStart && sameDay(rangeStart, held)) { rangeDragged = true; onrange?.(held, held) } }, prefs.holdMs) }
-  function rangeMove(pointer: PointerEvent) { if (!rangeStart || !onrange) return; const over = dayUnder(pointer); if (!over || (!rangeDragged && sameDay(over, rangeStart))) return; clearTimeout(rangeHold); rangeDragged = true; const [from, to] = ordered(rangeStart, over); onrange(from, to) }
+  function rangeDown(pointer: PointerEvent) { if (!onrange || pointer.button !== 0) return; rangeStart = dayUnder(pointer); rangeDragged = false; clearTimeout(rangeHold); if (!rangeStart) return; const held = rangeStart; rangeHold = setTimeout(() => { if (rangeStart && sameDay(rangeStart, held)) { rangeDragged = true; onrange?.(held, held) } }, prefs.holdMs) }
+  function rangeMove(pointer: PointerEvent) { if (!rangeStart || !onrange) return; const over = dayUnder(pointer); if (!over || (!rangeDragged && sameDay(over, rangeStart))) return; clearTimeout(rangeHold); if (!rangeDragged) (pointer.currentTarget as HTMLElement).setPointerCapture(pointer.pointerId) /* only once dragging: capturing on press would steal the plain click from the day */; rangeDragged = true; const [from, to] = ordered(rangeStart, over); onrange(from, to) }
   function rangeUp() { rangeStart = null; clearTimeout(rangeHold) }
-  function pickDay(day: Date) { if (rangeDragged) { rangeDragged = false; return } if (onday) onday(day); else ui.focus = day; if (onrange) ui.pickedDays = null }
+  function pickDay(day: Date) { if (rangeDragged) { rangeDragged = false; return } if (onday) onday(day); else ui.focus = day }
   let segments = $state<{ left: number; top: number; width: number; height: number }[]>([])
   $effect(() => {
     const picked = range; shownMonth; days; cellsWidth
