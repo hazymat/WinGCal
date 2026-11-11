@@ -48,7 +48,7 @@ export function sampleEvents(): CalendarEvent[] {
   timed(work, 'Interview: frontend', 10, 14, 0, 60)
   timed(personal, 'Book club', 11, 19, 0, 90)
   timed(work, 'Retro', 11, 16, 0, 60)
-  timed(family, 'Birthday party (Ella)', 12, 15, 0, 180)
+  timed(family, 'Ella’s birthday meal', 12, 15, 0, 180)
   timed(personal, 'Run club', 16, 7, 0, 60)
   timed(work, 'Board pack due', 17, 17, 0, 30)
   allDay(family, 'Half term', 14, 5)

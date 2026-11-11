@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { shortTitle } from '../lib/titles'
   import HandCircle from '../parts/HandCircle.svelte'
   import { ui, eventsOn, type Placed } from '../state.svelte'
   import { prefs, addDays, sameDay, startOfDay, formatTime, weekdayShort, shortDate, monthName, dayKey } from '../lib/dates'
@@ -104,7 +105,7 @@
             <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}; {paneTilt(event.id + dayKey(day))}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
               <span class="bar"></span>
               <span class="time">{event.allDay ? allDayLabel(event, day) : formatTime(event.startAt) + ' – ' + formatTime(event.endAt)}</span>
-              <span class="title">{event.title}</span>
+              <span class="title">{shortTitle(event)}</span>
               {#if event.location}<span class="where"><Icon name="location" size={12} />{event.location}</span>{/if}
               {#if event.meetUrl}<span class="where"><Icon name="video" size={12} />Video call</span>{/if}
             </button>
