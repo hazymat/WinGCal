@@ -41,11 +41,13 @@
     requestAnimationFrame(() => scrollToDay(focus, true))
   })
   $effect(() => { document.fonts?.ready.then(() => { if (!userScrolling) scrollToDay(ui.focus, false) }) })
-  function scrollToDay(day: Date, smooth: boolean) { userScrolling = false; const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (section && list) list.scrollTo({ top: section.offsetTop, behavior: smooth ? 'smooth' : 'instant' }) }
-  // The top day in the list becomes the selected day
+  // The selected day sits a quarter of the way down, with a glimpse of the days before it above
+  const readingLine = () => (list?.clientHeight ?? 0) * 0.25
+  function scrollToDay(day: Date, smooth: boolean) { userScrolling = false; const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (section && list) list.scrollTo({ top: section.offsetTop - readingLine(), behavior: smooth ? 'smooth' : 'instant' }) }
+  // The day on the reading line becomes the selected day
   function onScroll() {
     if (!userScrolling || !list) return
-    const top = list.scrollTop + 6
+    const top = list.scrollTop + readingLine() + 6
     const section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > top)
     if (!section) return
     const [year, month, date] = section.dataset.day!.split('-').map(Number), day = new Date(year, month - 1, date)
@@ -73,7 +75,7 @@
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="days" bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={() => userScrolling = true} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
     {#each listDays.filter(entry => entry.list.length > 0 || sameDay(entry.day, today) || sameDay(entry.day, ui.focus)) as { day, list: dayEvents } (day.getTime())}
-      <section data-day={dayKey(day)} data-newday={dayKey(day)} class:today={sameDay(day, today)}>
+      <section data-day={dayKey(day)} data-newday={dayKey(day)} class:today={sameDay(day, today)} class:gone={day < today}>
         <h3>{dayLabel(day)}</h3>
         <div class="day-items" class:two={listWidth >= 480 && dayEvents.length > 1}>
         {#if dayEvents.length === 0}<div class="empty">Nothing on</div>{/if}
@@ -99,17 +101,21 @@
   .cell.weekend { background: var(--cell-weekend); }
   .cell.other { background: none; color: var(--fg-quiet); opacity: 0.55; }
   .cell:hover { background: var(--hover); }
-  .cell.today, section.today { animation: today-pulse 3s ease-in-out infinite; }
+  .cell.today { animation: today-pulse 3s ease-in-out infinite; }
+  section.today { animation: agenda-drift linear both, today-pulse 3s ease-in-out infinite; animation-timeline: view(), auto; animation-range: cover 0% cover 100%, normal; }
   section.today { border-radius: 8px; padding: 2px 4px 6px; }
   .cell.today .number { color: var(--accent); font-weight: 750; }
   .cell.selected { box-shadow: inset 0 0 0 1.5px var(--fg); }
-  .cell.today.selected { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
+  .cell.today.selected { box-shadow: none; }
   .dots { position: absolute; left: 0; right: 0; bottom: 12%; display: flex; justify-content: center; gap: 2px; }
   .dots i { width: 4px; height: 4px; border-radius: 50%; }
   .handle { flex: none; width: 14px; display: grid; place-items: center; cursor: col-resize; touch-action: none; }
   .handle i { width: 3px; height: 36px; border-radius: 2px; background: var(--line); transition: background 0.15s, height 0.15s; }
   .handle:hover i, .handle:active i { background: var(--accent); height: 56px; }
-  .days { flex: 1; min-width: 0; overflow-y: auto; position: relative; scrollbar-width: thin; mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 14px), transparent); }
+  .days { flex: 1; min-width: 0; overflow-y: auto; position: relative; scrollbar-width: thin; mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }
+  /* As Agenda: days drift in from below and fade as they pass the top */
+  section { animation: agenda-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+  section.gone .day-items, section.gone h3 { opacity: 0.55; }
   section { padding-bottom: 8px; }
   h3 { margin: 0; padding: 2px 4px 3px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-quiet); }
   .today h3 { color: var(--accent); }

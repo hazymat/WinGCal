@@ -105,5 +105,7 @@ a, img, svg { -webkit-user-drag: none; }
 /* Events picked for the selection bar */
 .picked { box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 1px var(--accent); background: var(--accent-soft); }
 
-/* Today breathes gently in every view so it stands out from the selection */
-@keyframes today-pulse { 0%, 100% { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 35%, transparent); background-color: color-mix(in srgb, var(--accent) 5%, transparent); } 50% { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 22px color-mix(in srgb, var(--accent) 35%, transparent); background-color: color-mix(in srgb, var(--accent) 18%, transparent); } }
+/* Today breathes gently in every view: a soft accent wash, no outline */
+@keyframes today-pulse { 0%, 100% { background-color: color-mix(in srgb, var(--accent) 3%, transparent); } 50% { background-color: color-mix(in srgb, var(--accent) 11%, transparent); } }
+/* Agenda and Split: days drift in from below and fade as they pass the top */
+@keyframes agenda-drift { 0% { opacity: 0.2; transform: translateY(14px) scale(0.96); } 24% { opacity: 1; transform: none; } 68% { opacity: 1; transform: none; } 100% { opacity: 0.25; transform: scale(0.98); } }
