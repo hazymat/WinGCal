@@ -91,7 +91,7 @@
   .week { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0 6px 6px; }
   .lists { flex: 1; min-height: 0; display: grid; grid-template-columns: 52px repeat(var(--days), minmax(0, 1fr)); }
   .day-list { display: flex; flex-direction: column; gap: 2px; padding: 2px 3px; border-left: 1px solid var(--line); overflow-y: auto; min-width: 0; }
-  .day-list.today { background: var(--today-column); border-radius: 8px; }
+  .day-list.today { background: var(--today-column); border-radius: 8px; animation: today-pulse 3s ease-in-out infinite; }
   .line { display: flex; align-items: center; gap: 5px; height: 19px; flex: none; padding: 0 4px; border: 0; border-radius: 4px; background: none; color: var(--fg); font: inherit; font-size: 12px; text-align: left; cursor: pointer; white-space: nowrap; min-width: 0; }
   .line:hover { background: var(--hover); }
   .line.past { color: var(--fg-quiet); }
@@ -112,7 +112,7 @@
   .hours { position: relative; }
   .hour { position: absolute; right: 8px; transform: translateY(-50%); font-size: 10.5px; color: var(--fg-quiet); font-variant-numeric: tabular-nums; }
   .column { position: relative; border-left: 1px solid var(--line); background: repeating-linear-gradient(to bottom, transparent 0, transparent 43px, var(--line) 43px, var(--line) 44px); }
-  .column.today { background-color: var(--today-column); }
+  .column.today { background-color: var(--today-column); animation: today-pulse 3s ease-in-out infinite; }
   .event { position: absolute; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 3px 6px; border: 0; border-left: 3px solid var(--colour); border-radius: 5px; background: color-mix(in srgb, var(--colour) 30%, var(--event-base)); color: var(--fg); font: inherit; font-size: 12px; text-align: left; overflow: hidden; cursor: pointer; box-shadow: 0 1px 3px var(--shadow-soft); }
   .event:hover { background: color-mix(in srgb, var(--colour) 42%, var(--event-base)); z-index: 2; }
   .event.past { opacity: 0.62; }

@@ -27,6 +27,7 @@ export const ui = $state({
  frostRects: [] as { left: number; top: number; width: number; height: number }[], wallpaper: null as null | { image: string; monitor: { x: number; y: number; width: number; height: number }; origin: { x: number; y: number }; frost: number }, // clear glass: tint of the see-through window and of the frosted panels
   view: readSetting('view', 'auto') as ViewMode,
   focus: startOfDay(new Date()), // the day the view is built around
+  today: startOfDay(new Date()), // moves on at midnight
   selectedEvent: null as null | { event: Placed; left: number; top: number },
   picked: [] as string[], // events Ctrl- or Shift-clicked, for the selection bar
   switcherOpen: false,
@@ -59,3 +60,6 @@ export function toggleCalendar(key: string) {
 }
 
 export function hint(text: string) { ui.hint = text; const shownText = text; setTimeout(() => { if (ui.hint === shownText) ui.hint = '' }, 2600) }
+
+// Today moves on at midnight without a restart
+setInterval(() => { const now = startOfDay(new Date()); if (now.getTime() !== ui.today.getTime()) ui.today = now }, 30_000)

@@ -6,7 +6,7 @@
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   // Short, wide windows (SPEC.md › Calendar views › Split): a browsable month on the left, a scrolling day list on the right that follows the selected day
-  const today = startOfDay(new Date())
+  const today = $derived(ui.today)
   let paneHeight = $state(300), paneWidth = $state(700), listWidth = $state(400)
   const monthStart = $derived(new Date(ui.focus.getFullYear(), ui.focus.getMonth(), 1))
   const gridDays = $derived(Array.from({ length: 42 }, (unused, index) => addDays(startOfWeek(monthStart, prefs.weekStart), index)))
@@ -87,6 +87,8 @@
   .cell.weekend { background: var(--cell-weekend); }
   .cell.other { background: none; color: var(--fg-quiet); opacity: 0.55; }
   .cell:hover { background: var(--hover); }
+  .cell.today, section.today { animation: today-pulse 3s ease-in-out infinite; }
+  section.today { border-radius: 8px; }
   .cell.today .number { color: var(--accent); font-weight: 750; }
   .cell.selected { box-shadow: inset 0 0 0 1.5px var(--fg); }
   .cell.today.selected { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
