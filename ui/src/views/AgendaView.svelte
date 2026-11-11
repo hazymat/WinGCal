@@ -21,6 +21,8 @@
   $effect(() => { const focus = ui.focus; topDay = focus; wheelDay = null; span = 56; lookBack = 30; settling = true; requestAnimationFrame(() => { scrollToDay(focus, false); requestAnimationFrame(() => { settling = false; onListScroll() }) }) })
   function scrollToDay(day: Date, smooth: boolean) { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (!list) return; if (!section) { ui.focus = day; return } if (smooth) warpScroll(list, section.offsetTop - readingLine()); else list.scrollTop = section.offsetTop - readingLine() }
   let growingBack = false, todayInView = $state(true)
+  // Reading past days: after a moment they warm back up, like a tungsten bulb coming on (until today or later is back on the reading line)
+  let warmed = $state(false), warmTimer = 0, lampHeight = $state(9999) // the lamp lights only the past: it stops where today begins
   // The month above follows the day on the reading line
   function onListScroll() {
     if (!list) return
@@ -28,9 +30,13 @@
     // Scrolling up reaches further back, eight weeks at a time, without the list jumping
     if (list.scrollTop < 300 && lookBack < 3650 && !growingBack && !isWarping(list)) { growingBack = true; const before = list.scrollHeight; lookBack += 56; requestAnimationFrame(() => { if (list) list.scrollTop += list.scrollHeight - before; growingBack = false }) }
     const todaySection = list.querySelector<HTMLElement>('.day.today')
+    lampHeight = todaySection ? Math.max(0, todaySection.offsetTop - list.scrollTop) : 9999
     todayInView = !!todaySection && todaySection.offsetTop + todaySection.offsetHeight > list.scrollTop + 20 && todaySection.offsetTop < list.scrollTop + list.clientHeight - 20
     const line = list.scrollTop + readingLine() + 6, section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > line)
     // The bulb comes on once a past day is on the reading line (today may still be lower down), after a short pause
+    // The bulb comes on once the past fills most of the view: a past day on the reading line and today pushed down into the bottom quarter (or off it)
+    const pastFills = !!section?.classList.contains('gone') && (!todaySection || todaySection.offsetTop - list.scrollTop > list.clientHeight * 0.75)
+    if (!pastFills) { clearTimeout(warmTimer); warmTimer = 0; warmed = false } else if (!warmed && !warmTimer) warmTimer = setTimeout(() => { warmed = true; warmTimer = 0 }, 700)
     if (section && !settling) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
   }
   // The wheel over the month steps a day at a time, empty days included; the list glides to that day, or the next one with something on
@@ -73,7 +79,8 @@
   {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={wheelDay ?? topDay} onday={glideToDay} /></div>{/if}
   <div class="list-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
-  <div class="list" class:lit={(ui.lookVersion, prefs.fluorescent)} bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
+  <div class="lamp" class:on={warmed} style="height: min(100%, {lampHeight}px)" aria-hidden="true"></div>
+  <div class="list" class:warmed class:lit={(ui.lookVersion, prefs.fluorescent)} bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
     {#each days as { day, list }, index (day.getTime())}
       <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
@@ -112,6 +119,13 @@
   /* Days drift in from below and fade as they pass the top, so today reads as the middle of a moving strip (Chromium scroll-driven animation; without it the list is plain) */
   .day, .month-break { animation: agenda-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
   .day.gone .items, .day.gone .when { opacity: 0.55; }
+  .warmed .day.gone .items, .warmed .day.gone .when { animation: tungsten 1.6s ease-in both; }
+  /* A filament catching: a flicker, a dip, then a slow warm yellow glow, nearly full brightness */
+  @keyframes tungsten { 0% { opacity: 0.55; filter: none; } 8% { opacity: 0.8; filter: sepia(0.6) saturate(1.6) brightness(1.3); } 14% { opacity: 0.5; filter: none; } 22% { opacity: 0.75; filter: sepia(0.5) saturate(1.4) brightness(1.2); } 28% { opacity: 0.6; filter: sepia(0.25); } 100% { opacity: 0.96; filter: sepia(0.55) saturate(1.7) brightness(1.18) hue-rotate(-6deg); } }
+  /* ...and the bulb's light falls across the whole list: a warm pool, brightest just above the middle, flickering on with the days */
+  .lamp { position: absolute; top: 0; left: 0; right: 0; z-index: 1; mask-image: linear-gradient(#000 calc(100% - 40px), transparent); pointer-events: none; opacity: 0; border-radius: 10px; mix-blend-mode: screen; background: radial-gradient(ellipse 85% 65% at 50% 38%, rgba(255, 196, 92, 0.3), rgba(255, 160, 60, 0.12) 50%, rgba(255, 140, 40, 0.03) 75%, transparent 90%); transition: opacity 0.6s ease-out; }
+  .lamp.on { opacity: 1; animation: lamp-on 1.6s ease-in both; }
+  @keyframes lamp-on { 0% { opacity: 0; } 8% { opacity: 0.55; } 14% { opacity: 0.08; } 22% { opacity: 0.45; } 28% { opacity: 0.2; } 100% { opacity: 1; } }
   .month-break { margin: 14px 6px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-quiet); }
   .day { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 6px 4px; border-radius: 10px; }
   .day.today { background: var(--today-column); border-radius: 8px; animation: agenda-drift linear both, today-pulse-bright 3s ease-in-out infinite; animation-timeline: view(), auto; animation-range: cover 0% cover 100%, normal; }

@@ -90,7 +90,7 @@ Press and hold an event (or Ctrl+click or Shift+click) to start picking several;
 
 **Today** holds a steady accent wash (no pulse); in Agenda and Split, every 7 s a line chases round today's border, glints as it closes, then fades.
 
-**Strip light** (Settings › Appearance › Colour, on by default): in Agenda a cool fluorescent band, fixed in space, sweeps across each of today's and upcoming events as it scrolls past; today's events catch a brighter, glossier reflection.
+**Strip light** (Settings › Appearance › Colour, on by default): in Agenda a cool fluorescent band, fixed in space, sweeps across each of today's and upcoming events as it scrolls past; today's events catch a brighter, glossier reflection. Past days get a tungsten warm-up instead: once the past fills most of the view (a past day on the reading line and today in the bottom quarter or below), they flicker and glow warm after 0.7 s, with a warm pool of light over the past days only.
 
 **Moving events (drag and drop).** Press and hold an event (Settings › View › Hold to pick up, 350 ms by default) and it lifts with a little wiggle, together with any other picked events, as a stack that follows the pointer. The day under the pointer is outlined; in Week's hours a dashed box shows the new time (quarter hours). In Agenda every empty day opens up as a dashed box to drop into (sliding the others aside) and the day under the pointer gets a "Move here" slot; holding near the top or bottom scrolls. Dropping moves each carried event by the same days (and minutes in Week), keeping its length; dropping where it started leaves them picked. Esc cancels.
 
