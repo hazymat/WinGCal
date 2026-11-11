@@ -23,8 +23,8 @@
   // ---- From the shell ----
   onShellMessage('window', message => app.window = { glass: !!message.glass, clear: !!message.clear, frameless: !!message.frameless, maximised: !!message.maximised, pinned: !!message.pinned })
   onShellMessage('skin', message => {
-    ui.skin = message.skin || 'auto'; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.windowTint = message.windowTint ?? ui.windowTint; ui.panelGrain = message.panelGrain ?? ui.panelGrain; ui.panelTint = message.panelTint ?? ui.panelTint; ui.eventTint = message.eventTint ?? ui.eventTint; ui.glassThickness = message.glassThickness ?? ui.glassThickness; ui.lookVersion++
-    writeSetting('windowTint', String(ui.windowTint)); writeSetting('panelTint', String(ui.panelTint)); writeSetting('panelGrain', String(ui.panelGrain)); writeSetting('eventTint', String(ui.eventTint)); writeSetting('glassThickness', String(ui.glassThickness))
+    ui.skin = message.skin || 'auto'; ui.accent = message.accent ?? ''; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.windowTint = message.windowTint ?? ui.windowTint; ui.panelGrain = message.panelGrain ?? ui.panelGrain; ui.panelTint = message.panelTint ?? ui.panelTint; ui.eventTint = message.eventTint ?? ui.eventTint; ui.glassThickness = message.glassThickness ?? ui.glassThickness; ui.frostColour = message.frostColour ?? ui.frostColour; ui.lookVersion++
+    writeSetting('windowTint', String(ui.windowTint)); writeSetting('panelTint', String(ui.panelTint)); writeSetting('panelGrain', String(ui.panelGrain)); writeSetting('eventTint', String(ui.eventTint)); writeSetting('glassThickness', String(ui.glassThickness)); writeSetting('frostColour', String(ui.frostColour))
     writeSetting('skin', ui.skin); writeSetting('accent', ui.accent); writeSetting('glassTransparency', String(ui.glassTransparency)); writeSetting('glassTintHue', String(ui.glassTintHue))
   })
   // Clear glass frost drawn from the wallpaper: the picture comes once, then only where the window sits on its monitor
@@ -46,7 +46,7 @@
   if (!(window as any).chrome?.webview || params.has('sample')) {
     app.accounts = sampleAccounts; app.calendars = sampleCalendars; app.events = sampleEvents(); app.sampleData = true
     app.window.glass = params.has('glass'); app.window.clear = params.has('clear'); app.window.pinned = params.get('pinned') !== '0'
-    if (params.get('panelTint')) ui.panelTint = Number(params.get('panelTint')); if (params.get('windowTint')) ui.windowTint = Number(params.get('windowTint')); if (params.get('panelGrain')) ui.panelGrain = Number(params.get('panelGrain')); if (params.get('eventTint')) ui.eventTint = Number(params.get('eventTint')); if (params.get('thickness')) ui.glassThickness = Number(params.get('thickness'))
+    if (params.get('panelTint')) ui.panelTint = Number(params.get('panelTint')); if (params.get('windowTint')) ui.windowTint = Number(params.get('windowTint')); if (params.get('panelGrain')) ui.panelGrain = Number(params.get('panelGrain')); if (params.get('eventTint')) ui.eventTint = Number(params.get('eventTint')); if (params.get('thickness')) ui.glassThickness = Number(params.get('thickness')); if (params.get('frostColour')) ui.frostColour = Number(params.get('frostColour'))
     if (params.get('skin')) ui.skin = params.get('skin')!; if (params.get('tintHue')) ui.glassTintHue = Number(params.get('tintHue'))
     if (params.get('view')) ui.view = params.get('view') as ViewMode
     if (params.get('picked')) ui.picked = params.get('picked')!.split(',')
