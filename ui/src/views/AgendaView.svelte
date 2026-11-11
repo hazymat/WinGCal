@@ -26,6 +26,18 @@
     const line = list.scrollTop + readingLine(), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > line)
     if (section) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
   }
+  // The wheel over the month flips a month at a time; the list glides to that month's first day with something on
+  let lastFlip = 0, flipMonth = new Date()
+  function monthWheel(wheelEvent: WheelEvent) {
+    wheelEvent.preventDefault()
+    if (Math.abs(wheelEvent.deltaY) < 4 || performance.now() - lastFlip < 260 || !list) return
+    lastFlip = performance.now()
+    const from = isWarping(list) ? flipMonth : topDay, target = new Date(from.getFullYear(), from.getMonth() + (wheelEvent.deltaY > 0 ? 1 : -1), 1), offset = Math.round((target.getTime() - ui.focus.getTime()) / 86_400_000)
+    flipMonth = target
+    if (offset < -lookBack) lookBack = -offset + 28
+    if (offset + 40 > span) span = offset + 70
+    requestAnimationFrame(() => { if (!list) return; const key = dayKey(target), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.dataset.day! >= key); if (section && section.dataset.day!.slice(0, 7) === key.slice(0, 7)) warpScroll(list, section.offsetTop - readingLine()); else ui.focus = target })
+  }
   // Keep adding while the list doesn't yet reach past the bottom (quiet stretches), up to ten years
   $effect(() => { days.length; requestAnimationFrame(() => { if (list && span < 3650 && list.scrollHeight < list.clientHeight + 600) span += 56 }) })
   const days = $derived(Array.from({ length: span + lookBack }, (unused, index) => addDays(ui.focus, index - lookBack)).map(day => ({ day, list: eventsOn(events, day) })).filter(entry => entry.list.length > 0 || sameDay(entry.day, ui.focus) || sameDay(entry.day, today)))
@@ -33,7 +45,7 @@
 </script>
 
 <div class="agenda" bind:clientHeight={height}>
-  {#if height > 520}<div class="mini"><MiniMonth {events} follow={topDay} /></div>{/if}
+  {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={topDay} /></div>{/if}
   <div class="list-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => scrollToDay(today, true)} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="list" bind:this={list} onscroll={onListScroll}>
@@ -67,7 +79,7 @@
   .jump-today { position: absolute; z-index: 2; top: 8px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 12px 0 9px; border: 0; border-radius: 13px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); animation: jump-in 0.2s ease-out; }
   .jump-today:hover { filter: brightness(1.1); }
   @keyframes jump-in { from { opacity: 0; transform: translate(-50%, -6px); } }
-  .list { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 12px; mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }
+  .list { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 60vh; /* room below so even the last day can reach the reading line */ mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }
   /* Days drift in from below and fade as they pass the top, so today reads as the middle of a moving strip (Chromium scroll-driven animation; without it the list is plain) */
   .day, .month-break { animation: agenda-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
   .day.gone .items, .day.gone .when { opacity: 0.55; }
