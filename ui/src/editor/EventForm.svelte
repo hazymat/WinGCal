@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CalendarPicker from './CalendarPicker.svelte'
   import { sendToShell } from '../bridge'
   import { addDays, dayKey, parseWhen } from '../lib/dates'
   import Icon from '../parts/Icon.svelte'
@@ -8,7 +9,8 @@
   let { event, calendars, day, time, endDay = '', savedAt, problem = $bindable() }: { event: EditorEvent | null; calendars: EditorCalendar[]; day: string; time: string; endDay?: string; savedAt: number; problem: string } = $props()
   const clock = (date: Date) => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
   const notesOf = (html: string) => html ? new DOMParser().parseFromString(html.replace(/<(br|\/p|\/li|\/div)\s*\/?>/gi, '\n$&'), 'text/html').body.textContent?.trim() ?? '' : ''
-  const writable = $derived(calendars.filter(calendar => !calendar.readOnly))
+  // New events go only in calendars picked in Settings › Calendars (all writable ones if none are picked)
+  const writable = $derived.by(() => { const open = calendars.filter(calendar => !calendar.readOnly), picked = open.filter(calendar => calendar.inSwitcher); return picked.length ? picked : open })
   const calendar = $derived(calendars.find(candidate => candidate.key === (event?.calendarKey ?? draft.calendarKey)))
   const readOnly = $derived(!!event && !!calendar?.readOnly)
   type Draft = { title: string; allDay: boolean; startDate: string; startTime: string; endDate: string; endTime: string; location: string; description: string; calendarKey: string }
@@ -82,7 +84,7 @@
   <div class="title-row"><span class="swatch"></span><textarea class="title" rows="1" bind:this={titleInput} bind:value={draft.title} placeholder={event ? 'Title' : 'Add a title'} disabled={readOnly} onkeydown={(keyEvent) => { if (keyEvent.key === 'Enter') keyEvent.preventDefault() }}></textarea></div>
   <div class="row quiet"><Icon name="calendar" size={15} />
     {#if event}<span>{calendar?.name}{calendar ? ' · ' + calendar.account : ''}{readOnly ? ' (read only)' : ''}</span>
-    {:else}<select bind:value={draft.calendarKey}>{#each writable as option}<option value={option.key}>{option.name} · {option.account}</option>{/each}</select>{/if}
+    {:else}<CalendarPicker calendars={writable} bind:value={draft.calendarKey} />{/if}
   </div>
   <div class="row"><Icon name="clock" size={15} /><label class="check"><input type="checkbox" bind:checked={draft.allDay} disabled={readOnly} />All day</label></div>
   <div class="row times"><span class="label">Starts</span><input type="date" value={draft.startDate} onchange={(changeEvent) => moveStart(changeEvent.currentTarget.value, draft.startTime)} disabled={readOnly} />{#if !draft.allDay}<input type="time" value={draft.startTime} onchange={(changeEvent) => moveStart(draft.startDate, changeEvent.currentTarget.value)} disabled={readOnly} />{/if}</div>
@@ -116,14 +118,14 @@
   .form { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 16px 16px; }
   .title-row { display: flex; align-items: center; gap: 11px; margin-bottom: 2px; }
   .swatch { width: 14px; height: 14px; border-radius: 4px; background: var(--colour); flex: none; }
-  input:not([type="checkbox"]):not([type="radio"]), textarea, select { min-width: 0; background: color-mix(in srgb, var(--fg) 6%, transparent); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font: inherit; font-size: 13px; outline: none; color-scheme: light dark; }
-  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  input:not([type="checkbox"]):not([type="radio"]), textarea { min-width: 0; background: color-mix(in srgb, var(--fg) 6%, transparent); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font: inherit; font-size: 13px; outline: none; color-scheme: light dark; }
+  input:focus, textarea:focus { border-color: var(--accent); }
   input:disabled, textarea:disabled { opacity: 0.75; }
   .title { flex: 1; font-size: 14px !important; font-weight: 650; line-height: 1.3; padding: 6px 10px !important; resize: none; field-sizing: content; min-height: 0; max-height: 5.4em; overflow-y: auto; margin-left: 0; } /* wraps rather than cutting long titles off */
   .row { display: flex; align-items: center; gap: 10px; min-height: 30px; font-size: 13px; }
   .row + .times { margin-top: -2px; }
   .row :global(svg) { color: var(--fg-quiet); flex: none; }
-  .row input:not([type="checkbox"]), .row select { flex: 1; }
+  .row input:not([type="checkbox"]) { flex: 1; }
   .quiet { color: var(--fg-quiet); }
   .times { padding-left: 25px; }
   .times .label { width: 44px; flex: none; color: var(--fg-quiet); font-size: 12.5px; }

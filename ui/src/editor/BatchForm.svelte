@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CalendarPicker from './CalendarPicker.svelte'
   import { sendToShell } from '../bridge'
   import { dayKey } from '../lib/dates'
   import SaveChanges from './SaveChanges.svelte'
@@ -14,7 +15,7 @@
   $effect(() => { if (problem) saving = false })
   // Google moves events only between calendars of one account
   const accounts = $derived(Array.from(new Set(events.map(event => calendars.find(calendar => calendar.key === event.calendarKey)?.account))))
-  const targets = $derived(accounts.length === 1 ? calendars.filter(calendar => calendar.account === accounts[0] && !calendar.readOnly) : [])
+  const targets = $derived(accounts.length === 1 ? calendars.filter(calendar => calendar.account === accounts[0] && !calendar.readOnly && (calendar.inSwitcher || events.some(event => event.calendarKey === calendar.key))) : [])
   $effect(() => { if (!values.calendar && events[0]) values.calendar = events[0].calendarKey })
   const anything = $derived(Object.values(change).some(Boolean))
   function apply() {
@@ -34,7 +35,7 @@
   <p class="hint">Keeps each one's length. All-day events become an hour long.</p>
   <label class="row"><input type="checkbox" bind:checked={change.end} /><span class="label">Ends at</span><input type="time" bind:value={values.end} oninput={() => change.end = true} /></label>
   <label class="row"><input type="checkbox" bind:checked={change.place} /><span class="label">Place</span><input bind:value={values.place} placeholder="Leave empty to clear it" oninput={() => change.place = true} /></label>
-  {#if targets.length > 1}<label class="row"><input type="checkbox" bind:checked={change.calendar} /><span class="label">Calendar</span><select bind:value={values.calendar} onchange={() => change.calendar = true}>{#each targets as target}<option value={target.key}>{target.name}</option>{/each}</select></label>{/if}
+  {#if targets.length > 1}<div class="row"><input type="checkbox" bind:checked={change.calendar} aria-label="Change calendar" /><span class="label">Calendar</span><CalendarPicker calendars={targets} bind:value={values.calendar} onchange={() => change.calendar = true} /></div>{/if}
   {#if events.some(event => event.recurring)}<p class="hint">Repeating events change only these occurrences, and can't move to another calendar.</p>{/if}
   {#if problem}<p class="problem">{problem}</p>{/if}
   {#if askingSave}<SaveChanges saveLabel={`Change ${events.length} events`} onsave={apply} ondiscard={closeWindow} />
@@ -49,8 +50,8 @@
   .quiet { margin: 2px 0 6px; color: var(--fg-quiet); font-size: 12px; }
   .row { display: flex; align-items: center; gap: 8px; min-height: 32px; cursor: pointer; }
   .label { width: 70px; flex: none; }
-  .row input:not([type="checkbox"]), .row select { flex: 1; min-width: 0; background: color-mix(in srgb, var(--fg) 6%, transparent); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font: inherit; outline: none; color-scheme: light dark; }
-  .row input:focus, .row select:focus { border-color: var(--accent); }
+  .row input:not([type="checkbox"]) { flex: 1; min-width: 0; background: color-mix(in srgb, var(--fg) 6%, transparent); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font: inherit; outline: none; color-scheme: light dark; }
+  .row input:focus { border-color: var(--accent); }
   .hint { margin: -2px 0 4px 99px; font-size: 11.5px; color: var(--fg-quiet); }
   .problem { color: var(--danger, #e5534b); font-size: 12px; }
   .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
