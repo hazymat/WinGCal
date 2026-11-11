@@ -25,6 +25,12 @@ public sealed class CalendarStore
         private set => calendarsAsSynced = value;
     }
     // Moves a calendar up (-1) or down (+1) among its account's calendars
+    public void MoveCalendarTo(string key, int targetIndex)
+    {
+        var ordered = Calendars; var moving = ordered.FirstOrDefault(calendar => calendar.Key == key); if (moving == null) return;
+        var siblings = ordered.Where(calendar => calendar.Account == moving.Account).ToList(); siblings.Remove(moving); siblings.Insert(Math.Clamp(targetIndex, 0, siblings.Count), moving);
+        settings().Sync.CalendarOrder = ordered.Where(calendar => calendar.Account != moving.Account).Select(calendar => calendar.Key).Concat(siblings.Select(calendar => calendar.Key)).ToList(); settings().Save(); Changed?.Invoke();
+    }
     public void MoveCalendar(string key, int direction)
     {
         var ordered = Calendars; var moving = ordered.FirstOrDefault(calendar => calendar.Key == key); if (moving == null) return;

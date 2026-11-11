@@ -83,17 +83,16 @@
             <TextBlock Text="Calendars" Style="{StaticResource CardTitle}" />
             <DockPanel x:Name="calendarsHeader" Margin="0,0,0,2">
               <TextBlock DockPanel.Dock="Right" Text="In switcher" Style="{StaticResource Quiet}" Width="146" />
-              <TextBlock Text="Order   Show" Style="{StaticResource Quiet}" Margin="2,0,0,0" xml:space="preserve" />
+              <TextBlock Text="Order  Show" Style="{StaticResource Quiet}" Margin="2,0,0,0" xml:space="preserve" />
             </DockPanel>
             <ItemsControl x:Name="calendarsList">
               <ItemsControl.ItemTemplate><DataTemplate>
                 <StackPanel>
                   <TextBlock Text="{Binding AccountHeading}" Visibility="{Binding HeadingVisibility}" FontSize="11" FontWeight="SemiBold" Foreground="#888" Margin="0,10,0,2" />
-                  <DockPanel Margin="0,2">
+                  <DockPanel Margin="0,2" Background="White">
                     <Button DockPanel.Dock="Right" Content="Colour…" Tag="{Binding Key}" Click="CalendarColour_Click" Padding="8,1" Margin="0" />
                     <CheckBox DockPanel.Dock="Right" IsChecked="{Binding InSwitcher, Mode=OneWay}" Tag="{Binding Key}" Click="CalendarInSwitcher_Click" Margin="0,0,62,0" VerticalAlignment="Center" ToolTip="List this calendar in the quick switcher at the top of the window" />
-                    <Button DockPanel.Dock="Left" Tag="{Binding Key}" Click="CalendarUp_Click" Content="&#xE70E;" FontFamily="Segoe MDL2 Assets" FontSize="10" Padding="4,2" Margin="0,0,2,0" Background="Transparent" BorderThickness="0" ToolTip="Move up" />
-                    <Button DockPanel.Dock="Left" Tag="{Binding Key}" Click="CalendarDown_Click" Content="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="10" Padding="4,2" Margin="0,0,6,0" Background="Transparent" BorderThickness="0" ToolTip="Move down" />
+                    <Border DockPanel.Dock="Left" Tag="{Binding Key}" Background="Transparent" Cursor="SizeNS" Padding="6,4" Margin="0,0,6,0" ToolTip="Press and hold, then drag" PreviewMouseLeftButtonDown="CalendarGrip_Down" PreviewMouseMove="CalendarGrip_Move" PreviewMouseLeftButtonUp="CalendarGrip_Up" LostMouseCapture="CalendarGrip_Lost"><TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#888" VerticalAlignment="Center" /></Border>
                     <Border Width="14" Height="14" CornerRadius="3" Background="{Binding ColourBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
                     <CheckBox Content="{Binding Name}" IsChecked="{Binding Shown, Mode=OneWay}" Tag="{Binding Key}" Click="CalendarShown_Click" Margin="0" VerticalAlignment="Center" />
                   </DockPanel>

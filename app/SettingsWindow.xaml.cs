@@ -93,8 +93,55 @@ public partial class SettingsWindow : Window
         await App.Store.RemoveAccountAsync(email);
     }
     void CalendarShown_Click(object sender, RoutedEventArgs args) { if (sender is CheckBox { Tag: string key } box) App.Store.SetShown(key, box.IsChecked == true); }
-    void CalendarUp_Click(object sender, RoutedEventArgs args) { if (sender is Button { Tag: string key }) App.Store.MoveCalendar(key, -1); }
-    void CalendarDown_Click(object sender, RoutedEventArgs args) { if (sender is Button { Tag: string key }) App.Store.MoveCalendar(key, 1); }
+    // Calendar order: press and hold the grip, the row lifts with a wiggle, then drag it into place among its account's calendars
+    string? dragKey; FrameworkElement? dragRow, dragGrip; List<FrameworkElement> dragSiblings = new(); double dragStartY; int dragFrom, dragTo; bool dragLifted;
+    readonly System.Windows.Threading.DispatcherTimer liftTimer = new() { Interval = TimeSpan.FromMilliseconds(140) };
+    IEnumerable<(FrameworkElement Row, CalendarRow Item)> CalendarRows() => calendarsList.Items.Cast<CalendarRow>().Select((item, index) => (calendarsList.ItemContainerGenerator.ContainerFromIndex(index) is FrameworkElement container && VisualTreeHelper.GetChildrenCount(container) > 0 && VisualTreeHelper.GetChild(container, 0) is StackPanel stack ? (FrameworkElement)stack.Children[1] : null, item)).Where(pair => pair.Item1 != null).Select(pair => (pair.Item1!, pair.item));
+    void CalendarGrip_Down(object sender, System.Windows.Input.MouseButtonEventArgs args)
+    {
+        if (sender is not FrameworkElement { Tag: string key } grip || grip.Parent is not FrameworkElement row) return;
+        var account = calendarsList.Items.Cast<CalendarRow>().First(item => item.Key == key).AccountHeading;
+        dragKey = key; dragGrip = grip; dragRow = row; dragLifted = false; dragStartY = args.GetPosition(calendarsList).Y;
+        dragSiblings = CalendarRows().Where(pair => pair.Item.AccountHeading == account).Select(pair => pair.Row).ToList(); dragFrom = dragTo = dragSiblings.IndexOf(row);
+        grip.CaptureMouse(); args.Handled = true;
+        liftTimer.Tick -= Lift; liftTimer.Tick += Lift; liftTimer.Start();
+    }
+    void Lift(object? sender, EventArgs args)
+    {
+        liftTimer.Stop(); if (dragRow == null) return;
+        dragLifted = true; Panel.SetZIndex(VisualTreeHelper.GetParent(VisualTreeHelper.GetParent(dragRow)) as UIElement ?? dragRow, 10);
+        var wiggle = new RotateTransform(); var group = new TransformGroup(); group.Children.Add(new ScaleTransform(1.03, 1.03)); group.Children.Add(wiggle); group.Children.Add(new TranslateTransform());
+        dragRow.RenderTransformOrigin = new Point(0.5, 0.5); dragRow.RenderTransform = group; dragRow.Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 14, ShadowDepth = 3, Opacity = 0.35 };
+        // A quick wiggle as it comes up, like picking up a card
+        var swing = new System.Windows.Media.Animation.DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(320) };
+        foreach (var (angle, at) in new[] { (0.0, 0), (-1.4, 60), (1.2, 130), (-0.8, 200), (0.4, 260), (0.0, 320) }) swing.KeyFrames.Add(new System.Windows.Media.Animation.EasingDoubleKeyFrame(angle, System.Windows.Media.Animation.KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(at))));
+        wiggle.BeginAnimation(RotateTransform.AngleProperty, swing);
+    }
+    void CalendarGrip_Move(object sender, System.Windows.Input.MouseEventArgs args)
+    {
+        if (!dragLifted || dragRow?.RenderTransform is not TransformGroup group) return;
+        var offset = args.GetPosition(calendarsList).Y - dragStartY; ((TranslateTransform)group.Children[2]).Y = offset;
+        // Where it would land: past the middles of the rows it has crossed. The rows in between slide aside to make room
+        var pitch = dragRow.ActualHeight + dragRow.Margin.Top + dragRow.Margin.Bottom;
+        dragTo = Math.Clamp(dragFrom + (int)Math.Round(offset / pitch), 0, dragSiblings.Count - 1);
+        for (var index = 0; index < dragSiblings.Count; index++)
+        {
+            if (index == dragFrom) continue;
+            var shift = index > dragFrom && index <= dragTo ? -pitch : index < dragFrom && index >= dragTo ? pitch : 0;
+            if (dragSiblings[index].RenderTransform is not TranslateTransform slide) dragSiblings[index].RenderTransform = slide = new TranslateTransform();
+            if (dragSiblings[index].Tag as double? != shift) { dragSiblings[index].Tag = shift; slide.BeginAnimation(TranslateTransform.YProperty, new System.Windows.Media.Animation.DoubleAnimation(shift, TimeSpan.FromMilliseconds(120)) { EasingFunction = new System.Windows.Media.Animation.QuadraticEase() }); }
+        }
+    }
+    void CalendarGrip_Up(object sender, System.Windows.Input.MouseButtonEventArgs args) { var move = dragLifted && dragTo != dragFrom ? (dragKey, dragTo) : (null, 0); EndDrag(); if (move.dragKey != null) App.Store.MoveCalendarTo(move.dragKey, move.dragTo); }
+    void CalendarGrip_Lost(object sender, System.Windows.Input.MouseEventArgs args) => EndDrag();
+    void EndDrag()
+    {
+        liftTimer.Stop(); var grip = dragGrip; dragGrip = null;
+        foreach (var row in dragSiblings) { row.RenderTransform = Transform.Identity; row.Effect = null; row.Tag = null; }
+        if (dragRow != null) Panel.SetZIndex(VisualTreeHelper.GetParent(VisualTreeHelper.GetParent(dragRow)) as UIElement ?? dragRow, 0);
+        dragRow = null; dragKey = null; dragLifted = false; dragSiblings = new();
+        if (grip?.IsMouseCaptured == true) grip.ReleaseMouseCapture();
+    }
     void CalendarInSwitcher_Click(object sender, RoutedEventArgs args) { if (sender is CheckBox { Tag: string key } box) App.Store.SetInSwitcher(key, box.IsChecked == true); }
     void CalendarColour_Click(object sender, RoutedEventArgs args)
     {
