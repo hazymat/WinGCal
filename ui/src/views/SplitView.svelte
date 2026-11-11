@@ -6,6 +6,7 @@
   import { warpScroll } from '../lib/warp'
   import { glideWheel } from '../lib/glide'
   import { chaseOnView } from '../lib/chase'
+  import { createLamp, paneTilt } from '../lib/lamp.svelte'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   // Short, wide windows (SPEC.md › Calendar views › Split): a browsable month on the left, a scrolling day list on the right that follows the selected day
@@ -57,8 +58,9 @@
   // The day on the reading line becomes the selected day
   // Today out of sight: a Today pill floats over the top of the list, pointing the way (as in Agenda)
   let todayInView = $state(true)
+  const { lamp, update: updateLamp } = createLamp() // tungsten over past days, as in Agenda (lib/lamp)
   function onScroll() {
-    if (list) { const todaySection = list.querySelector<HTMLElement>('section.today'); todayInView = !!todaySection && todaySection.offsetTop + todaySection.offsetHeight > list.scrollTop + 20 && todaySection.offsetTop < list.scrollTop + list.clientHeight - 20 }
+    if (list) { const todaySection = list.querySelector<HTMLElement>('section.today'); todayInView = !!todaySection && todaySection.offsetTop + todaySection.offsetHeight > list.scrollTop + 20 && todaySection.offsetTop < list.scrollTop + list.clientHeight - 20; const line = list.scrollTop + readingLine() + 6; updateLamp(list, Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > line)) }
     if (!userScrolling || !list) return
     const top = list.scrollTop + readingLine() + 6
     const section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > top)
@@ -88,14 +90,15 @@
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="days-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => pickDay(today)} title="Back to today (T)"><Icon name={ui.focus > today ? 'up' : 'down'} size={12} />Today</button>{/if}
-  <div class="days" bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={(wheelEvent) => { userScrolling = true; if (list) glideWheel(list, wheelEvent) }} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
+  <div class="lamp" class:on={lamp.warmed} style="height: min(100%, {lamp.height}px)" aria-hidden="true"></div>
+  <div class="days" class:warmed={lamp.warmed} class:lit={(ui.lookVersion, prefs.stripLight > 0)} style:--strip={(ui.lookVersion, prefs.stripLight / 50)} bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={(wheelEvent) => { userScrolling = true; if (list) glideWheel(list, wheelEvent) }} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
     {#each listDays.filter(entry => entry.list.length > 0 || sameDay(entry.day, today) || sameDay(entry.day, ui.focus)) as { day, list: dayEvents } (day.getTime())}
       <section data-day={dayKey(day)} data-newday={dayKey(day)} class:today={sameDay(day, today)} class:today-chase={sameDay(day, today)} use:chaseOnView={sameDay(day, today)} class:gone={day < today}>
-        <h3>{dayLabel(day)}</h3>
-        <div class="day-items" class:two={listWidth >= 480 && dayEvents.length > 1}>
+        <h3 class="warm">{dayLabel(day)}</h3>
+        <div class="day-items warm" class:two={listWidth >= 480 && dayEvents.length > 1}>
         {#if dayEvents.length === 0}<div class="empty">Nothing on</div>{/if}
         {#each dayEvents as event (event.id)}
-          <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
+          <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}; {paneTilt(event.id + dayKey(day))}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
             <i class="dot"></i>
             <span class="time">{event.allDay ? allDayLabel(event, day) : formatTime(event.startAt) + ' – ' + formatTime(event.endAt)}{#if event.meetUrl}<Icon name="video" size={12} />{/if}</span>
             <span class="title">{event.title}</span>
