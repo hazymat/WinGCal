@@ -1,6 +1,6 @@
 <script lang="ts">
   import { sendToShell } from '../bridge'
-  import { app, type TaskItem } from '../state.svelte'
+  import { app, ui, type TaskItem } from '../state.svelte'
   import { parseWhen, startOfDay, shortDate } from '../lib/dates'
   import Icon from './Icon.svelte'
   let { overlay = false, onclose }: { overlay?: boolean; onclose: () => void } = $props()
@@ -10,7 +10,7 @@
   const accountCount = $derived(new Set(app.tasks.lists.map(list => list.account)).size)
   let openCompleted = $state<Record<string, boolean>>({})
   let drafts = $state<Record<string, string>>({})
-  const today = startOfDay(new Date())
+  const today = $derived(ui.today)
   // Top-level tasks in Google's order, each followed by its subtasks
   function ordered(listKey: string, completed: boolean) {
     const items = app.tasks.items.filter(item => item.listKey === listKey && item.completed === completed)

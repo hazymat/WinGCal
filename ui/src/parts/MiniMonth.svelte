@@ -8,7 +8,7 @@
   // Follows the day list's scrolling (agenda), turning the page when the list reaches another month
   $effect(() => { const day = follow; if (day) untrack(() => { if (day.getMonth() !== shownMonth.getMonth() || day.getFullYear() !== shownMonth.getFullYear()) shownMonth = new Date(day.getFullYear(), day.getMonth(), 1) }) })
   const days = $derived(Array.from({ length: 42 }, (unused, index) => addDays(startOfWeek(shownMonth, prefs.weekStart), index)))
-  const today = startOfDay(new Date())
+  const today = $derived(ui.today)
   // Up to three dots under a day, one per calendar with something on
   const dots = (day: Date) => Array.from(new Set(eventsOn(events, day).map(event => event.colourShown))).slice(0, 3)
 </script>

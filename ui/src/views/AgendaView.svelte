@@ -7,7 +7,7 @@
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   let height = $state(600)
-  const today = startOfDay(new Date())
+  const today = $derived(ui.today)
   // From the focus day onwards, eight weeks at a time: scrolling near the end adds more, without end. Empty days are skipped, except the focus day itself
   let span = $state(56), list: HTMLDivElement | undefined = $state(), topDay = $state(ui.focus)
   $effect(() => { topDay = ui.focus; span = 56; if (list) list.scrollTop = 0 })
@@ -54,7 +54,7 @@
   .list { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 12px; }
   .month-break { margin: 14px 6px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-quiet); }
   .day { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 6px 4px; border-radius: 10px; }
-  .day.today { background: var(--today-column); }
+  .day.today { background: var(--today-column); animation: today-pulse 3s ease-in-out infinite; border-radius: 8px; }
   .when { display: flex; flex-direction: column; align-items: center; padding-top: 2px; color: var(--fg-quiet); }
   .weekday { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
   .date { font-size: 20px; font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums; line-height: 1.15; }
