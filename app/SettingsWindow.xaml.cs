@@ -14,6 +14,17 @@ public partial class SettingsWindow : Window
     AppSettings Settings => App.Settings;
     CancellationTokenSource? exportCancel;
 
+    // Dragging a look slider fires on every step: the calendar is redrawn at most every 50 ms, and saved once the drag rests
+    System.Windows.Threading.DispatcherTimer? lookApplyTimer, lookSaveTimer;
+    bool restyleWindow;
+    void LookChangedSoon(bool restyle = false)
+    {
+        restyleWindow |= restyle;
+        lookApplyTimer ??= NewTimer(50, () => { if (restyleWindow) App.ApplyWindowStyle(); else App.ApplySkin(); restyleWindow = false; }); lookSaveTimer ??= NewTimer(400, () => Settings.Save());
+        if (!lookApplyTimer.IsEnabled) lookApplyTimer.Start();
+        lookSaveTimer.Stop(); lookSaveTimer.Start();
+    }
+    System.Windows.Threading.DispatcherTimer NewTimer(int milliseconds, Action action) { var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(milliseconds) }; timer.Tick += (sender, args) => { timer.Stop(); action(); }; return timer; }
     public SettingsWindow()
     {
         InitializeComponent(); settingsTabs.SelectedItem = App.Settings.Sync.Accounts.Count == 0 ? accountsTab : appearanceTab;
@@ -190,7 +201,7 @@ public partial class SettingsWindow : Window
             look.AccentColour = $"#{colourDialog.Color.R:x2}{colourDialog.Color.G:x2}{colourDialog.Color.B:x2}"; Settings.Save(); App.ApplySkin(); ShowAccent();
         };
         eventTintSlider.Value = look.EventTint; eventTintText.Text = look.EventTint == 0 ? "None" : $"{look.EventTint}%";
-        eventTintSlider.ValueChanged += (sender, args) => { look.EventTint = (int)eventTintSlider.Value; eventTintText.Text = look.EventTint == 0 ? "None" : $"{look.EventTint}%"; Settings.Save(); App.ApplySkin(); };
+        eventTintSlider.ValueChanged += (sender, args) => { look.EventTint = (int)eventTintSlider.Value; eventTintText.Text = look.EventTint == 0 ? "None" : $"{look.EventTint}%"; LookChangedSoon(); };
         accentResetButton.Click += (sender, args) => { look.AccentColour = ""; Settings.Save(); App.ApplySkin(); ShowAccent(); };
         // Scale belongs to the monitor setup (SPEC.md › Monitor setups)
         uiScaleSlider.Value = Math.Round(App.UiScale * 100); uiScaleText.Text = $"{uiScaleSlider.Value}%";
@@ -204,8 +215,8 @@ public partial class SettingsWindow : Window
         }
         var fillingGlass = true;
         glassTransparencySlider.Value = look.GlassTransparency < 0 ? 62 : look.GlassTransparency; glassTintSlider.Value = look.GlassTintHue; fillingGlass = false; ShowGlass();
-        glassTransparencySlider.ValueChanged += (sender, args) => { if (fillingGlass) return; look.GlassTransparency = (int)glassTransparencySlider.Value; Settings.Save(); App.ApplySkin(); ShowGlass(); };
-        glassTintSlider.ValueChanged += (sender, args) => { if (fillingGlass) return; look.GlassTintHue = (int)glassTintSlider.Value; Settings.Save(); App.ApplySkin(); ShowGlass(); };
+        glassTransparencySlider.ValueChanged += (sender, args) => { if (fillingGlass) return; look.GlassTransparency = (int)glassTransparencySlider.Value; LookChangedSoon(); ShowGlass(); };
+        glassTintSlider.ValueChanged += (sender, args) => { if (fillingGlass) return; look.GlassTintHue = (int)glassTintSlider.Value; LookChangedSoon(); ShowGlass(); };
         glassResetButton.Click += (sender, args) => { look.GlassTransparency = -1; look.GlassTintHue = 0; fillingGlass = true; glassTransparencySlider.Value = 62; glassTintSlider.Value = 0; fillingGlass = false; Settings.Save(); App.ApplySkin(); ShowGlass(); };
         glassInactiveBox.IsChecked = look.GlassWhenInactive;
         glassInactiveBox.Click += (sender, args) => { look.GlassWhenInactive = glassInactiveBox.IsChecked == true; Settings.Save(); App.RefreshInactiveGlass(); };
@@ -213,11 +224,11 @@ public partial class SettingsWindow : Window
         // Clear glass: tint of the see-through window and of the frosted panels
         void ShowClear() { clearGlassBox.IsChecked = look.ClearGlass; clearControls.Visibility = look.ClearGlass ? Visibility.Visible : Visibility.Collapsed; transparencyRow.Visibility = look.ClearGlass ? Visibility.Collapsed : Visibility.Visible; windowTintText.Text = $"{look.WindowTint}%"; panelTintText.Text = $"{look.PanelTint}%"; panelFrostText.Text = look.PanelFrost == 0 ? "None" : $"{look.PanelFrost}%"; panelGrainText.Text = look.PanelGrain == 0 ? "None" : $"{look.PanelGrain}%"; }
         windowTintSlider.Value = look.WindowTint; panelTintSlider.Value = look.PanelTint; panelFrostSlider.Value = look.PanelFrost; panelGrainSlider.Value = look.PanelGrain; ShowClear();
-        panelFrostSlider.ValueChanged += (sender, args) => { look.PanelFrost = (int)panelFrostSlider.Value; Settings.Save(); App.ApplyWindowStyle(); ShowClear(); };
-        panelGrainSlider.ValueChanged += (sender, args) => { look.PanelGrain = (int)panelGrainSlider.Value; Settings.Save(); App.ApplySkin(); ShowClear(); };
+        panelFrostSlider.ValueChanged += (sender, args) => { look.PanelFrost = (int)panelFrostSlider.Value; LookChangedSoon(restyle: true); ShowClear(); };
+        panelGrainSlider.ValueChanged += (sender, args) => { look.PanelGrain = (int)panelGrainSlider.Value; LookChangedSoon(); ShowClear(); };
         clearGlassBox.Click += (sender, args) => { look.ClearGlass = clearGlassBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); App.ApplySkin(); ShowClear(); };
-        windowTintSlider.ValueChanged += (sender, args) => { look.WindowTint = (int)windowTintSlider.Value; Settings.Save(); App.ApplySkin(); ShowClear(); };
-        panelTintSlider.ValueChanged += (sender, args) => { look.PanelTint = (int)panelTintSlider.Value; Settings.Save(); App.ApplySkin(); ShowClear(); };
+        windowTintSlider.ValueChanged += (sender, args) => { look.WindowTint = (int)windowTintSlider.Value; LookChangedSoon(); ShowClear(); };
+        panelTintSlider.ValueChanged += (sender, args) => { look.PanelTint = (int)panelTintSlider.Value; LookChangedSoon(); ShowClear(); };
         glassControls.IsEnabled = look.Glass;
         glassBox.Click += (sender, args) => { look.Glass = glassBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); glassControls.IsEnabled = look.Glass; };
         framelessBox.Click += (sender, args) => { look.Frameless = framelessBox.IsChecked == true; Settings.Save(); App.ApplyWindowStyle(); };
