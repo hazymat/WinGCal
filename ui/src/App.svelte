@@ -110,12 +110,13 @@
   // Shorter as the window narrows: "November 2026", "Nov 2026", "Nov"
   // The month name is left out rather than cut to a stub ("N…") when the strip is too crowded for it
   let headingRoom = $state(0), headingNatural = $state(0)
-  const heading = $derived(width < 380 ? shortMonth(ui.focus) : width < 460 ? `${shortMonth(ui.focus)} ${ui.focus.getFullYear()}` : shownView === 'week' && width >= 560 ? weekHeading(startOfWeek(ui.focus, prefs.weekStart)) : `${monthName(ui.focus)} ${ui.focus.getFullYear()}`)
+  const headingDay = $derived(shownView === 'agenda' && ui.readingDay ? ui.readingDay : ui.focus)
+  const heading = $derived(width < 380 ? shortMonth(headingDay) : width < 460 ? `${shortMonth(headingDay)} ${headingDay.getFullYear()}` : shownView === 'week' && width >= 560 ? weekHeading(startOfWeek(ui.focus, prefs.weekStart)) : `${monthName(headingDay)} ${headingDay.getFullYear()}`)
   function weekHeading(weekStart: Date) { const weekEnd = addDays(weekStart, 6); return weekStart.getMonth() === weekEnd.getMonth() ? `${monthName(weekStart)} ${weekStart.getFullYear()}` : `${shortDate(weekStart)} – ${shortDate(weekEnd)}` }
   function step(direction: number) {
     if (shownView === 'month' || shownView === 'split') ui.focus = addMonths(ui.focus, direction)
     else if (shownView === 'week') ui.focus = addDays(ui.focus, direction * (width >= 560 ? 7 : width >= 360 ? 3 : 1))
-    else ui.focus = addDays(ui.focus, direction * 7)
+    else { const month = addMonths(headingDay, direction); ui.focus = month.getMonth() === ui.today.getMonth() && month.getFullYear() === ui.today.getFullYear() ? ui.today : month } // Agenda: the month the heading shows
   }
   const isToday = $derived(startOfDay(new Date()).getTime() === ui.focus.getTime())
   // The Today pill shows only while today is out of view (Agenda has its own, over its list)

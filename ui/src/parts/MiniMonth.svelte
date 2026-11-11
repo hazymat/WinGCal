@@ -31,12 +31,12 @@
   })
   // Changing month, the days slide in from the way it went: up for later, down for earlier
   let previousMonth = untrack(() => shownMonth.getTime())
-  $effect(() => { const month = shownMonth.getTime(); untrack(() => { if (month === previousMonth) return; const direction = month > previousMonth ? 1 : -1; previousMonth = month; cells?.animate([{ transform: `translateY(${direction * 60}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 320, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }) }) })
+  $effect(() => { const month = shownMonth.getTime(); untrack(() => { if (month === previousMonth) return; const direction = month > previousMonth ? 1 : -1; previousMonth = month; cells?.animate([{ transform: `translateY(${direction * 60}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 480, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }) }) })
   const dots = (day: Date) => Array.from(new Set(eventsOn(events, day).map(event => event.colourShown))).slice(0, 3)
 </script>
 
 <div class="mini-month">
-  <div class="mini-head"><span>{monthName(shownMonth)} {shownMonth.getFullYear()}</span>{#if !follow && (shownMonth.getMonth() !== today.getMonth() || shownMonth.getFullYear() !== today.getFullYear())}<button class="back-today" onclick={() => { ui.focus = today; shownMonth = new Date(today.getFullYear(), today.getMonth(), 1) }} title="Back to today (T)">Today</button>{/if}<button onclick={() => shownMonth = addMonths(shownMonth, -1)} aria-label="Previous month"><Icon name="previous" size={14} /></button><button onclick={() => shownMonth = addMonths(shownMonth, 1)} aria-label="Next month"><Icon name="next" size={14} /></button></div>
+  {#if !follow}<div class="mini-head"><span>{monthName(shownMonth)} {shownMonth.getFullYear()}</span>{#if !follow && (shownMonth.getMonth() !== today.getMonth() || shownMonth.getFullYear() !== today.getFullYear())}<button class="back-today" onclick={() => { ui.focus = today; shownMonth = new Date(today.getFullYear(), today.getMonth(), 1) }} title="Back to today (T)">Today</button>{/if}<button onclick={() => shownMonth = addMonths(shownMonth, -1)} aria-label="Previous month"><Icon name="previous" size={14} /></button><button onclick={() => shownMonth = addMonths(shownMonth, 1)} aria-label="Next month"><Icon name="next" size={14} /></button></div>{/if}
   <div class="cells" bind:this={cells} bind:clientWidth={cellsWidth}>
     <span class="blob" bind:this={blob} aria-hidden="true"></span>
     {#each days.slice(0, 7) as day}<span class="weekday">{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
