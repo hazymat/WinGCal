@@ -11,7 +11,8 @@
   // The focus day sits a quarter of the way down, with a glimpse of the last few weeks above it; scrolling near the end adds eight weeks more, without end. Empty days are skipped, except the focus day and today
   let lookBack = $state(30), span = $state(56), list: HTMLDivElement | undefined = $state(), topDay = $state(ui.focus)
   const readingLine = () => (list?.clientHeight ?? 0) * 0.25
-  $effect(() => { const focus = ui.focus; topDay = focus; span = 56; lookBack = 30; requestAnimationFrame(() => { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(focus)}"]`); if (list && section) list.scrollTop = section.offsetTop - readingLine() }) })
+  $effect(() => { const focus = ui.focus; topDay = focus; span = 56; lookBack = 30; requestAnimationFrame(() => scrollToDay(focus, false)) })
+  function scrollToDay(day: Date, smooth: boolean) { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (list && section) list.scrollTo({ top: section.offsetTop - readingLine(), behavior: smooth ? 'smooth' : 'instant' }) }
   let growingBack = false
   // The month above follows the day on the reading line
   function onListScroll() {
@@ -29,7 +30,7 @@
 </script>
 
 <div class="agenda" bind:clientHeight={height}>
-  {#if height > 520}<div class="mini"><MiniMonth {events} follow={topDay} /></div>{/if}
+  {#if height > 520}<div class="mini"><MiniMonth {events} follow={topDay} ontoday={() => requestAnimationFrame(() => scrollToDay(today, true))} /></div>{/if}
   <div class="list" bind:this={list} onscroll={onListScroll}>
     {#each days as { day, list }, index (day.getTime())}
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
