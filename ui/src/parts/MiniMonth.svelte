@@ -18,7 +18,7 @@
   <div class="cells">
     {#each days.slice(0, 7) as day}<span class="weekday">{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
     {#each days as day (day.getTime())}
-      <button class="cell" class:other={day.getMonth() !== shownMonth.getMonth()} class:today={sameDay(day, today)} class:focus={sameDay(day, ui.focus)} onclick={() => ui.focus = day}>
+      <button class="cell" class:other={day.getMonth() !== shownMonth.getMonth()} class:today={sameDay(day, today)} class:focus={sameDay(day, follow ?? ui.focus)} onclick={() => ui.focus = day}>
         {day.getDate()}<span class="dots">{#each dots(day) as colour}<i style="background: {colour}"></i>{/each}</span>
       </button>
     {/each}
@@ -37,7 +37,7 @@
   .cell { position: relative; height: 28px; border: 0; border-radius: 8px; background: none; color: var(--fg); font: inherit; font-size: 12px; font-variant-numeric: tabular-nums; cursor: pointer; padding: 0 0 6px; }
   .cell:hover { background: var(--hover); }
   .cell.other { color: var(--fg-quiet); opacity: 0.6; }
-  .cell.focus { background: var(--accent-soft); }
+  .cell.focus { background: var(--accent-soft); transition: background 0.2s; } /* in Agenda it moves with the day on the reading line */
   .cell.today { color: var(--accent); font-weight: 700; }
   .dots { position: absolute; left: 0; right: 0; bottom: 4px; display: flex; justify-content: center; gap: 2px; }
   .dots i { width: 4px; height: 4px; border-radius: 50%; }
