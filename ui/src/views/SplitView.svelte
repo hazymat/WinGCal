@@ -14,10 +14,10 @@
   let paneHeight = $state(300), paneWidth = $state(700), listWidth = $state(400)
   const monthStart = $derived(new Date(ui.focus.getFullYear(), ui.focus.getMonth(), 1))
   const gridDays = $derived(Array.from({ length: 42 }, (unused, index) => addDays(startOfWeek(monthStart, prefs.weekStart), index)))
-  // Cells stay roughly square: the month takes what the height allows, never more than half the width
+  // Cells stay roughly square: the month takes what the height allows, up to two thirds of the width (the list is a compact column)
   // The handle between the halves sets the month's share of the width (remembered; double-click returns to automatic)
   let monthShare = $state(Number(readSetting('splitMonthShare', '0')))
-  const monthWidth = $derived(monthShare > 0 ? Math.max(180, paneWidth * monthShare) : Math.min(paneWidth * 0.5, (paneHeight - 8) / 7 * 7 * 1.45))
+  const monthWidth = $derived(monthShare > 0 ? Math.max(180, paneWidth * monthShare) : Math.min(paneWidth * 0.68, (paneHeight - 8) * 1.45))
   function dragHandle(pointerEvent: PointerEvent) {
     const handle = pointerEvent.currentTarget as HTMLElement, startX = pointerEvent.clientX, startWidth = monthWidth
     handle.setPointerCapture(pointerEvent.pointerId)
@@ -100,7 +100,7 @@
         {#each dayEvents as event (event.id)}
           <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}; {paneTilt(event.id + dayKey(day))}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
             <i class="dot"></i>
-            <span class="time">{event.allDay ? allDayLabel(event, day) : formatTime(event.startAt) + ' – ' + formatTime(event.endAt)}{#if event.meetUrl}<Icon name="video" size={12} />{/if}</span>
+            <span class="time">{event.allDay ? allDayLabel(event, day) : formatTime(event.startAt)}{#if event.meetUrl}<Icon name="video" size={10} />{/if}</span>
             <span class="title">{event.title}</span>
           </button>
         {/each}
@@ -122,7 +122,7 @@
   .cell:hover { background: var(--hover); }
   .cell.today { animation: today-pulse 3s ease-in-out infinite; }
   section.today { animation: agenda-drift linear both, today-pulse 3s ease-in-out infinite; animation-timeline: view(), auto; animation-range: cover 0% cover 100%, normal; }
-  section.today { border-radius: 8px; padding: 2px 4px 6px; }
+  section.today { border-radius: 6px; padding: 1px 2px 3px; }
   .cell.today .number { color: var(--accent); font-weight: 750; }
   .cell.selected { box-shadow: inset 0 0 0 1.5px var(--fg); }
   .cell.today.selected { box-shadow: none; }
@@ -143,16 +143,16 @@
   /* As Agenda: days drift in from below and fade as they pass the top */
   section { animation: agenda-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
   section.gone .day-items, section.gone h3 { opacity: 0.55; }
-  section { padding-bottom: 8px; }
-  h3 { margin: 0; padding: 2px 4px 3px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-quiet); }
+  section { padding-bottom: 4px; }
+  h3 { margin: 0; padding: 1px 3px 2px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-quiet); }
   .today h3 { color: var(--accent); }
-  .empty { padding: 1px 4px 2px 10px; font-size: 12px; color: var(--fg-quiet); }
-  .day-items { display: grid; grid-template-columns: 1fr; gap: 4px 6px; padding: 0 2px; }
+  .empty { padding: 0 3px 1px 8px; font-size: 10px; color: var(--fg-quiet); }
+  .day-items { display: grid; grid-template-columns: 1fr; gap: 2px 4px; padding: 0 1px; }
   .day-items.two { grid-template-columns: 1fr 1fr; }
-  .item { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; padding: 5px 8px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); color: var(--fg); font: inherit; font-size: 12.5px; line-height: 1.35; text-align: left; cursor: pointer; }
+  .item { display: flex; align-items: center; gap: 5px; min-width: 0; width: 100%; padding: 2px 6px; border: 0; border-radius: 5px; background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); color: var(--fg); font: inherit; font-size: 10.5px; line-height: 1.3; text-align: left; cursor: pointer; }
   .item:hover { background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel-strong)); }
   .item.past { opacity: 0.55; }
-  .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--colour); }
-  .time { flex: none; display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--fg-quiet); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--colour); }
+  .time { flex: none; display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--fg-quiet); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .title { min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
