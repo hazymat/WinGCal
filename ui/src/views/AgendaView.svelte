@@ -18,6 +18,8 @@
   $effect(() => { const focus = ui.focus; topDay = focus; wheelDay = null; span = 56; lookBack = 30; requestAnimationFrame(() => scrollToDay(focus, false)) })
   function scrollToDay(day: Date, smooth: boolean) { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (!list) return; if (!section) { ui.focus = day; return } if (smooth) warpScroll(list, section.offsetTop - readingLine()); else list.scrollTop = section.offsetTop - readingLine() }
   let growingBack = false, todayInView = $state(true)
+  // Lingering among only past days: after a moment they warm back up a little, like a tungsten bulb coming on (they stay warm until a day from today on comes into view)
+  let warmed = $state(false), warmTimer = 0
   // The month above follows the day on the reading line
   function onListScroll() {
     if (!list) return
@@ -25,6 +27,8 @@
     // Scrolling up reaches further back, eight weeks at a time, without the list jumping
     if (list.scrollTop < 300 && lookBack < 3650 && !growingBack && !isWarping(list)) { growingBack = true; const before = list.scrollHeight; lookBack += 56; requestAnimationFrame(() => { if (list) list.scrollTop += list.scrollHeight - before; growingBack = false }) }
     const todaySection = list.querySelector<HTMLElement>('.day.today')
+    const bottomSection = Array.from(list.querySelectorAll<HTMLElement>('.day')).filter(section => section.offsetTop < list!.scrollTop + list!.clientHeight - 20).pop(), onlyPast = !!bottomSection?.classList.contains('gone')
+    if (!onlyPast) { clearTimeout(warmTimer); warmTimer = 0; warmed = false } else if (!warmed && !warmTimer) warmTimer = setTimeout(() => { warmed = true; warmTimer = 0 }, 1400)
     todayInView = !!todaySection && todaySection.offsetTop + todaySection.offsetHeight > list.scrollTop + 20 && todaySection.offsetTop < list.scrollTop + list.clientHeight - 20
     const line = list.scrollTop + readingLine() + 6, section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > line)
     if (section) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
@@ -58,7 +62,7 @@
   {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={wheelDay ?? topDay} /></div>{/if}
   <div class="list-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
-  <div class="list" bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
+  <div class="list" class:warmed bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
     {#each days as { day, list }, index (day.getTime())}
       <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
@@ -89,14 +93,17 @@
   .agenda { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .mini { padding: 0 14px 8px; border-bottom: 1px solid var(--line); }
   .list-wrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  /* Back to today: floats at the top of the list whenever it has scrolled away from today, pointing the way */
-  .jump-today { position: absolute; z-index: 2; top: 8px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 12px 0 9px; border: 0; border-radius: 13px; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); animation: jump-in 0.2s ease-out; }
-  .jump-today:hover { filter: brightness(1.1); }
+  /* Back to today: a small pane of glass floating at the top of the list whenever it has scrolled away from today, pointing the way */
+  .jump-today { position: absolute; z-index: 2; top: 8px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 12px 0 9px; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 13px; background: color-mix(in srgb, var(--panel-solid) 55%, transparent); backdrop-filter: blur(14px) saturate(1.5); color: var(--accent); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08); animation: jump-in 0.2s ease-out; }
+  .jump-today:hover { background: color-mix(in srgb, var(--accent) 22%, color-mix(in srgb, var(--panel-solid) 55%, transparent)); }
   @keyframes jump-in { from { opacity: 0; transform: translate(-50%, -6px); } }
   .list { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 60vh; /* room below so even the last day can reach the reading line */ mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }
   /* Days drift in from below and fade as they pass the top, so today reads as the middle of a moving strip (Chromium scroll-driven animation; without it the list is plain) */
   .day, .month-break { animation: agenda-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
   .day.gone .items, .day.gone .when { opacity: 0.55; }
+  .warmed .day.gone .items, .warmed .day.gone .when { animation: tungsten 1.6s ease-in both; }
+  /* A filament catching: a flicker, a dip, then a slow warm glow up to most of the way */
+  @keyframes tungsten { 0% { opacity: 0.55; filter: none; } 8% { opacity: 0.68; filter: sepia(0.35) brightness(1.15); } 14% { opacity: 0.52; filter: none; } 22% { opacity: 0.64; filter: sepia(0.3) brightness(1.1); } 28% { opacity: 0.58; filter: sepia(0.15); } 100% { opacity: 0.82; filter: sepia(0.12) saturate(1.1); } }
   .month-break { margin: 14px 6px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-quiet); }
   .day { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 6px 4px; border-radius: 10px; }
   .day.today { background: var(--today-column); border-radius: 8px; animation: agenda-drift linear both, today-pulse-bright 3s ease-in-out infinite; animation-timeline: view(), auto; animation-range: cover 0% cover 100%, normal; }
