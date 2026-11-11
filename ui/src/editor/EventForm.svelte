@@ -62,14 +62,18 @@
   // Esc: backs out of a question first, closes straight away when nothing changed, otherwise asks (Save is the default)
   const unsaved = $derived(dirty && !readOnly)
   function onEscape(keyEvent: KeyboardEvent) {
+    // Del (outside a text box) asks to delete the event, as the bin button does
+    if (keyEvent.key === 'Delete' && event && !readOnly && !askingSave && !(keyEvent.target as HTMLElement).matches('input, textarea, select')) { keyEvent.preventDefault(); confirmingDelete = true; return }
     if (keyEvent.key !== 'Escape') return
     keyEvent.preventDefault()
     if (confirmingDelete) confirmingDelete = false; else if (askingSave) askingSave = false; else if (unsaved && !saving) askingSave = true; else closeWindow()
   }
-  let titleInput: HTMLTextAreaElement | undefined = $state(), form: HTMLDivElement | undefined = $state()
+  let deleteButton: HTMLButtonElement | undefined = $state(), titleInput: HTMLTextAreaElement | undefined = $state(), form: HTMLDivElement | undefined = $state()
   // The delete question grows the window by whatever no longer fits, rather than leaving it to scroll
   $effect(() => { if (!(confirmingDelete || askingSave) || !form) return; requestAnimationFrame(() => { if (!form) return; const overflow = form.scrollHeight - form.clientHeight; if (overflow > 0) sendToShell({ type: 'growWindow', by: overflow }) }) })
   $effect(() => { if (!event) titleInput?.focus() })
+  // The delete question takes the focus, so Enter deletes and Esc backs out
+  $effect(() => { if (confirmingDelete) deleteButton?.focus() })
 </script>
 
 <svelte:window onkeydown={onEscape} />
@@ -95,15 +99,14 @@
     <div class="confirm">
       <b>Delete “{event.title}”?</b>
       {#if event.recurring}<label><input type="radio" name="series" checked={!wholeSeries} onchange={() => wholeSeries = false} />This event</label><label><input type="radio" name="series" checked={wholeSeries} onchange={() => wholeSeries = true} />All events in the series</label>{/if}
-      <div class="buttons"><button class="ghost" onclick={() => confirmingDelete = false}>Cancel</button><button class="danger" onclick={() => sendToShell({ type: 'deleteEvents', ids: [event.id], series: event.recurring && wholeSeries })}>Delete</button></div>
+      <div class="buttons"><button class="ghost" onclick={() => confirmingDelete = false}>Cancel<kbd>Esc</kbd></button><button class="danger" bind:this={deleteButton} onclick={() => sendToShell({ type: 'deleteEvents', ids: [event.id], series: event.recurring && wholeSeries })}>Delete<kbd>Enter</kbd></button></div>
     </div>
   {:else}
     <div class="buttons">
-      {#if event && !readOnly}<button class="ghost icon" onclick={() => confirmingDelete = true} title="Delete"><Icon name="trash" size={16} /></button>{/if}
-      {#if event?.link}<a class="more" href={event.link} target="_blank" rel="noreferrer" title="Guests, reminders and the rest">Open in Google</a>{/if}
+      {#if event && !readOnly}<button class="ghost icon" onclick={() => confirmingDelete = true} title="Delete"><Icon name="trash" size={16} /><kbd>Del</kbd></button>{/if}
       <span class="grow"></span>
-      <button class="ghost" onclick={closeWindow}>{readOnly ? 'Close' : 'Cancel'}</button>
-      {#if !readOnly}<button class="primary" disabled={!!draftProblem || saving || (!!event && !dirty)} onclick={save}>{saving ? 'Saving…' : event ? 'Save' : 'Add event'}</button>{/if}
+      <button class="ghost" onclick={closeWindow}>{readOnly ? 'Close' : 'Cancel'}<kbd>Esc</kbd></button>
+      {#if !readOnly}<button class="primary" disabled={!!draftProblem || saving || (!!event && !dirty)} onclick={save}>{saving ? 'Saving…' : event ? 'Save' : 'Add event'}<kbd>Enter</kbd></button>{/if}
     </div>
   {/if}
 </div>
@@ -133,12 +136,14 @@
   .join { font-weight: 600; }
   .buttons { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
   .grow { flex: 1; }
-  .more { font-size: 12px; }
   button { height: 32px; padding: 0 16px; border: 0; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
   .primary { background: var(--accent); color: white; }
   .primary:disabled { opacity: 0.45; cursor: default; }
   .ghost { background: var(--hover); color: var(--fg); }
-  .ghost.icon { display: grid; place-items: center; width: 34px; padding: 0; color: var(--fg-quiet); }
+  .ghost.icon { display: flex; align-items: center; justify-content: center; gap: 0; padding: 0 10px; color: var(--fg-quiet); }
+  /* Each button shows its key */
+  kbd { margin-left: 7px; font: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; opacity: 0.6; }
+  button:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
   .danger { background: #d9453a; color: white; }
   .confirm { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, #d9453a 12%, transparent); font-size: 13px; }
   .confirm label { display: flex; align-items: center; gap: 8px; cursor: pointer; }

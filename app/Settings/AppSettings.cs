@@ -45,6 +45,7 @@ public class LookSettings
     public int PanelFrost { get; set; } = 100; // clear glass: 0..100 how much of the blur shows behind the panels (0 = see-through panels)
     public int EventTint { get; set; } = 0; // 0..60 how much each event's panel takes its calendar's colour (Agenda, Split)
     public int PanelGrain { get; set; } = 0; // clear glass: 0..100 extra frosted grain on the panels
+    public int GlassThickness { get; set; } = 40; // clear glass: 0..100 how thick the panels look (light bent at a thin bright edge)
     public bool ShowTitleBar { get; set; } // frameless by default
     [JsonIgnore] public bool Frameless { get => !ShowTitleBar; set => ShowTitleBar = !value; }
 }
