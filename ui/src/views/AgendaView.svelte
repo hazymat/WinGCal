@@ -87,6 +87,12 @@
     const hold = () => { const now = list?.querySelector<HTMLElement>(`[data-day="${key}"]`); if (list && now) list.scrollTop = now.offsetTop - offset; if (performance.now() < until) anchorFrame = requestAnimationFrame(hold) }
     tick().then(hold) // straight after the new days are drawn, before they're painted
   }) })
+  // Each item sits at its own slight tilt, like hand-set panes in an old sash window: the strip light's reflection jumps and slides differently from one to the next instead of running across them in one line. Fixed per event and day, so it's the same every time
+  function paneTilt(seed: string) {
+    let hash = 2166136261; for (let index = 0; index < seed.length; index++) hash = Math.imul(hash ^ seed.charCodeAt(index), 16777619)
+    const part = (shift: number) => ((hash >>> shift) & 255) / 255 // 0..1
+    return `--pane-angle: ${(part(0) * 26 - 13).toFixed(1)}deg; --pane-phase: ${(part(8) * 36 - 18).toFixed(1)}%; --pane-size: ${(250 + part(16) * 110).toFixed(0)}%; --pane-gain: ${(0.75 + part(24) * 0.5).toFixed(2)}`
+  }
   const allDayLabel = (event: Placed, day: Date) => { const total = Math.round((event.endAt.getTime() - event.startAt.getTime()) / 86_400_000); if (total <= 1) return 'All day'; const dayNumber = Math.round((startOfDay(day).getTime() - event.startAt.getTime()) / 86_400_000) + 1; return `Day ${dayNumber} of ${total}` }
 </script>
 
@@ -105,7 +111,7 @@
           {#if list.length === 0 && carry.active}<div class="slot">{shortDate(day)}</div>
           {:else if list.length === 0}<div class="empty">{sameDay(day, today) ? 'Nothing on today' : 'Nothing on ' + shortDate(day)}</div>{/if}
           {#each list as event (event.id)}
-            <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
+            <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}; {paneTilt(event.id + dayKey(day))}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
               <span class="bar"></span>
               <span class="time">{event.allDay ? allDayLabel(event, day) : formatTime(event.startAt) + ' – ' + formatTime(event.endAt)}</span>
               <span class="title">{event.title}</span>
@@ -158,10 +164,10 @@
   .item.past { opacity: 0.6; }
   /* Strip light (Settings › Appearance, amount = --strip, 1 at the default 50%): a soft daylight glow fixed in space, so each of today's and upcoming events catches it as it scrolls past (Chromium scroll-driven animation). A broad feathered glow on screen blend reads as light, not brushed metal */
   .lit .day:not(.gone) .item { position: relative; overflow: clip; } /* clip, not hidden: hidden makes the item its own scroller, and the light would then ride along with it */
-  .lit .day:not(.gone) .item::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; mix-blend-mode: screen; opacity: min(calc(var(--strip, 1) * 0.5), 1); background: linear-gradient(100deg, transparent 36%, rgba(255, 246, 228, 0.07) 42%, rgba(255, 248, 236, 0.2) 48%, rgba(255, 250, 242, 0.26) 50%, rgba(255, 248, 236, 0.2) 52%, rgba(255, 246, 228, 0.07) 58%, transparent 64%) no-repeat; background-size: 300% 100%; animation: strip-light linear both; animation-timeline: view(); animation-range: cover 20% cover 80%; } /* tied to scroll position, crossing each event within the middle of the view so it moves briskly with the wheel */
+  .lit .day:not(.gone) .item::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; mix-blend-mode: screen; opacity: min(calc(var(--strip, 1) * 0.5 * var(--pane-gain, 1)), 1); background: linear-gradient(calc(100deg + var(--pane-angle, 0deg)), transparent 36%, rgba(255, 246, 228, 0.07) 42%, rgba(255, 248, 236, 0.2) 48%, rgba(255, 250, 242, 0.26) 50%, rgba(255, 248, 236, 0.2) 52%, rgba(255, 246, 228, 0.07) 58%, transparent 64%) no-repeat; background-size: var(--pane-size, 300%) 100%; animation: strip-light linear both; animation-timeline: view(); animation-range: cover 20% cover 80%; } /* tied to scroll position, crossing each event within the middle of the view so it moves briskly with the wheel */
   /* Today catches it brighter */
-  .lit .day.today .item::after { opacity: min(calc(var(--strip, 1) * 0.8), 1); }
-  @keyframes strip-light { from { background-position: 85% 0; } to { background-position: 15% 0; } }
+  .lit .day.today .item::after { opacity: min(calc(var(--strip, 1) * 0.8 * var(--pane-gain, 1)), 1); }
+  @keyframes strip-light { from { background-position: calc(85% + var(--pane-phase, 0%)) 0; } to { background-position: calc(15% + var(--pane-phase, 0%)) 0; } } /* each pane's own phase, angle and travel (paneTilt) */
   .bar { grid-row: 1 / span 2; align-self: stretch; border-radius: 2px; background: var(--colour); }
   .time { font-size: 12px; color: var(--fg-quiet); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
