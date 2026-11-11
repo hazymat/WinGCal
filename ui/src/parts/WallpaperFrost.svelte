@@ -2,7 +2,7 @@
   import { ui } from '../state.svelte'
   // Clear glass (SPEC.md › Window › Clear glass): behind each frosted panel, the wallpaper exactly where it sits on screen, blurred by Panel frost.
   // Under the page's own tint and grain, so the panel reads as frosted glass over the desktop. Screen pixels → page pixels via devicePixelRatio
-  // Glass thickness bends the light: the desktop behind a panel is magnified a little about its middle, so it no longer lines up with what's around it, and each edge catches a thin bright line of the colours just beyond it
+  // Glass thickness bends the light: the desktop behind a panel is magnified a little about its middle, so it no longer lines up with what's around it, and each edge catches a thin bright line, a pale wash of the colours just beyond it
   const scale = $derived(window.devicePixelRatio || 1)
   const blur = $derived((ui.wallpaper?.frost ?? 0) * 0.4)
   const thickness = $derived(ui.glassThickness / 100)
@@ -19,7 +19,7 @@
     {#each ui.frostRects as rect}
       <div class="clip" style="left: {rect.left}px; top: {rect.top}px; width: {rect.width}px; height: {rect.height}px">
         <div class="picture" style="{placed(rect, 1 + thickness * 0.1)}; filter: blur({blur}px) saturate({1 + blur / 80})"></div>
-        {#if thickness > 0}<div class="rim" style="--rim: {1 + thickness * 1.5}px; opacity: {0.45 + thickness * 0.55}"><div class="picture" style="{placed(rect, 1 + thickness * 0.3)}; filter: blur(0.6px) saturate(2.2) brightness(2.8)"></div></div>{/if}
+        {#if thickness > 0}<div class="rim" style="--rim: {1 + thickness * 1.5}px; opacity: {0.45 + thickness * 0.55}"><div class="picture" style="{placed(rect, 1 + thickness * 0.3)}; filter: blur(0.6px) saturate(0.45) brightness(2.4)"></div></div>{/if}
       </div>
     {/each}
   </div>
