@@ -156,6 +156,7 @@
   .item { display: flex; align-items: center; gap: 5px; min-width: 0; width: 100%; padding: 2px 6px; border: 0; border-radius: 5px; background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); color: var(--fg); font: inherit; font-size: 10.5px; line-height: 1.3; text-align: left; cursor: pointer; }
   .item:hover { background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel-strong)); }
   .item.past { opacity: 0.55; }
+  section.today .item.past { opacity: 1; } /* today stays bright, its earlier events too */
   .dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--colour); }
   .time { flex: none; display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--fg-quiet); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .title { min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

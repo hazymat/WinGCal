@@ -164,6 +164,7 @@
   .item { display: grid; grid-template-columns: 4px auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 6px 8px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel)); /* Event tint, Settings › Appearance */ color: var(--fg); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
   .item:hover { background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel-strong)); }
   .item.past { opacity: 0.6; }
+  .day.today .item.past { opacity: 1; } /* today stays bright, its earlier events too: the wash sits behind them, never dims them */
   .bar { grid-row: 1 / span 2; align-self: stretch; border-radius: 2px; background: var(--colour); }
   .time { font-size: 12px; color: var(--fg-quiet); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
