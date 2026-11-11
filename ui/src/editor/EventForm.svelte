@@ -92,6 +92,7 @@
   <div class="row"><Icon name="location" size={15} /><input bind:value={draft.location} placeholder="Add a place" disabled={readOnly} />{#if draft.location}<a class="icon-link" href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(draft.location)} target="_blank" rel="noreferrer" title="Open in Maps">Map</a>{/if}</div>
   {#if event?.meetUrl}<div class="row"><Icon name="video" size={15} /><a class="join" href={event.meetUrl} target="_blank" rel="noreferrer">Join video call</a></div>{/if}
   <textarea bind:value={draft.description} placeholder="Add notes" disabled={readOnly}></textarea>
+  {#if event?.link}<a class="more" href={event.link} target="_blank" rel="noreferrer" title="Guests, reminders and the rest">Open in Google</a>{/if}
   {#if problem}<div class="problem">{problem}</div>{/if}
   {#if askingSave}
     <SaveChanges saveLabel={event ? 'Save' : 'Add event'} canSave={!draftProblem} onsave={save} ondiscard={closeWindow} />
@@ -112,14 +113,15 @@
 </div>
 
 <style>
-  .form { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 16px 14px; }
-  .title-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
-  .swatch { width: 14px; height: 14px; border-radius: 4px; background: var(--colour); flex: none; margin-top: 9px; }
+  .form { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 16px 16px; }
+  .title-row { display: flex; align-items: center; gap: 11px; margin-bottom: 2px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; background: var(--colour); flex: none; }
   input:not([type="checkbox"]):not([type="radio"]), textarea, select { min-width: 0; background: color-mix(in srgb, var(--fg) 6%, transparent); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; font: inherit; font-size: 13px; outline: none; color-scheme: light dark; }
   input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   input:disabled, textarea:disabled { opacity: 0.75; }
-  .title { flex: 1; font-size: 14px !important; font-weight: 650; line-height: 1.3; padding: 6px 10px !important; resize: none; field-sizing: content; min-height: 0; max-height: 5.4em; overflow-y: auto; } /* wraps rather than cutting long titles off */
+  .title { flex: 1; font-size: 14px !important; font-weight: 650; line-height: 1.3; padding: 6px 10px !important; resize: none; field-sizing: content; min-height: 0; max-height: 5.4em; overflow-y: auto; margin-left: 0; } /* wraps rather than cutting long titles off */
   .row { display: flex; align-items: center; gap: 10px; min-height: 30px; font-size: 13px; }
+  .row + .times { margin-top: -2px; }
   .row :global(svg) { color: var(--fg-quiet); flex: none; }
   .row input:not([type="checkbox"]), .row select { flex: 1; }
   .quiet { color: var(--fg-quiet); }
@@ -134,16 +136,18 @@
   a:hover { text-decoration: underline; }
   .icon-link { flex: none; font-size: 12px; }
   .join { font-weight: 600; }
-  .buttons { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .buttons { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
   .grow { flex: 1; }
+  .more { align-self: flex-start; margin-left: 25px; padding-left: 0; font-size: 12px; }
   button { height: 32px; padding: 0 16px; border: 0; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
   .primary { background: var(--accent); color: white; }
   .primary:disabled { opacity: 0.45; cursor: default; }
   .ghost { background: var(--hover); color: var(--fg); }
   .ghost.icon { display: flex; align-items: center; justify-content: center; gap: 0; padding: 0 10px; color: var(--fg-quiet); }
   /* Each button shows its key */
-  kbd { margin-left: 7px; font: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; opacity: 0.6; }
-  button:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+  kbd { margin-left: 6px; color: inherit; border-color: color-mix(in srgb, currentColor 30%, transparent); opacity: 0.7; }
+  button { outline: none; }
+  button:focus-visible { outline: none; box-shadow: none; filter: brightness(1.1); }
   .danger { background: #d9453a; color: white; }
   .confirm { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, #d9453a 12%, transparent); font-size: 13px; }
   .confirm label { display: flex; align-items: center; gap: 8px; cursor: pointer; }

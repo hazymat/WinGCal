@@ -55,7 +55,8 @@
   .problem { color: var(--danger, #e5534b); font-size: 12px; }
   .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
   .ghost { background: var(--hover); color: var(--fg); }
-  kbd { margin-left: 7px; font: inherit; font-size: 10.5px; font-weight: 600; opacity: 0.6; }
+  kbd { margin-left: 6px; color: inherit; border-color: color-mix(in srgb, currentColor 30%, transparent); opacity: 0.7; }
   button { height: 32px; padding: 0 16px; border: 0; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; background: var(--accent); color: white; }
   button:disabled { opacity: 0.45; cursor: default; }
+  button:focus-visible { outline: none; filter: brightness(1.1); }
 </style>

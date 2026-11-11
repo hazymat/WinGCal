@@ -39,7 +39,6 @@
     rootStyle.setProperty('--clear-rgb', getComputedStyle(swatch).color.match(/\d+/g)!.slice(0, 3).join(' ')); swatch.remove()
   })
   sendToShell({ type: 'ready' })
-  const heading = $derived(mode === 'new' ? 'New event' : mode === 'batch' ? `Change ${payload?.events.length ?? ''} events` : 'Event')
   // The forms handle Esc themselves (close, or ask first when something changed)
   const formShown = $derived(!!payload && (mode !== 'event' || payload.events.length > 0))
   function drag(event: MouseEvent) { if (event.button === 0 && !(event.target as HTMLElement).closest('button, input, select, textarea, a')) sendToShell({ type: 'dragWindow' }) }
@@ -47,14 +46,15 @@
 <svelte:window onkeydown={(event) => { if (event.key === 'Escape' && !formShown) sendToShell({ type: 'windowControl', action: 'close' }) }} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} />
 
 <WallpaperFrost />
-<div class="frame shell">
-  <header role="presentation" onmousedown={drag} data-frost>
-    <span class="heading">{heading}</span>
-    {#if mode === 'event' && payload?.events[0]?.link}<a class="more" href={payload.events[0].link} target="_blank" rel="noreferrer" title="Guests, reminders and the rest">Open in Google</a>{/if}
+<!-- The whole window is one frosted panel (with clear glass) -->
+<div class="frame" data-frost>
+  <!-- No heading: just the window buttons and a drag area -->
+  <header role="presentation" onmousedown={drag}>
+    <span class="grow"></span>
     <button onclick={() => sendToShell({ type: 'windowControl', action: 'minimise' })} aria-label="Minimise"><Icon name="minimise" size={15} /></button>
     <button class="close" onclick={() => sendToShell({ type: 'windowControl', action: 'close' })} aria-label="Close"><Icon name="close" size={15} /></button>
   </header>
-  {#if payload}<div class="panel" data-frost>
+  {#if payload}<div class="panel">
     {#if mode === 'batch'}<BatchForm events={payload.events} calendars={payload.calendars} bind:problem />
     {:else if mode === 'new' || payload.events.length > 0}<EventForm event={mode === 'new' ? null : payload.events[0]} calendars={payload.calendars} day={payload.day} time={payload.time} {savedAt} bind:problem />
     {:else}<p class="gone">This event isn't in your calendar any more.</p>{/if}
@@ -65,12 +65,10 @@
   :global(html.editor-window), :global(html.editor-window body) { background: transparent; height: 100%; margin: 0; overflow: hidden; }
   .frame { display: flex; flex-direction: column; height: 100vh; background: var(--popover); color: var(--fg); box-sizing: border-box; border-radius: 8px; }
   :global(html.editor-window.glass) .frame { background: var(--glass-tint); }
-  :global(html.editor-window.clear) .frame { background: none; }
+  :global(html.editor-window.clear) .frame { background: rgb(var(--clear-rgb) / var(--clear-panel-tint, 0.42)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); }
   .panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  header { display: flex; align-items: center; gap: 2px; height: 38px; padding: 0 6px 0 16px; flex: none; }
-  .heading { flex: 1; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-quiet); }
-  .more { margin-right: 8px; font-size: 12px; color: var(--accent); text-decoration: none; }
-  .more:hover { text-decoration: underline; }
+  header { display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 4px 0 16px; flex: none; }
+  .grow { flex: 1; }
   header button { display: grid; place-items: center; width: 34px; height: 28px; border: 0; border-radius: 6px; background: none; color: var(--fg-quiet); cursor: pointer; }
   header button:hover { background: var(--hover); color: var(--fg); }
   header .close:hover { background: #c42b1c; color: white; }

@@ -72,6 +72,7 @@
   {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={wheelDay ?? topDay} onday={glideToDay} /></div>{/if}
   <div class="list-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
+  <div class="lamp" class:on={warmed} aria-hidden="true"></div>
   <div class="list" class:warmed bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
     {#each days as { day, list }, index (day.getTime())}
       <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
@@ -112,8 +113,12 @@
   .day, .month-break { animation: agenda-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
   .day.gone .items, .day.gone .when { opacity: 0.55; }
   .warmed .day.gone .items, .warmed .day.gone .when { animation: tungsten 1.6s ease-in both; }
-  /* A filament catching: a flicker, a dip, then a slow warm glow up to most of the way */
-  @keyframes tungsten { 0% { opacity: 0.55; filter: none; } 8% { opacity: 0.68; filter: sepia(0.35) brightness(1.15); } 14% { opacity: 0.52; filter: none; } 22% { opacity: 0.64; filter: sepia(0.3) brightness(1.1); } 28% { opacity: 0.58; filter: sepia(0.15); } 100% { opacity: 0.82; filter: sepia(0.12) saturate(1.1); } }
+  /* A filament catching: a flicker, a dip, then a slow warm yellow glow, nearly full brightness */
+  @keyframes tungsten { 0% { opacity: 0.55; filter: none; } 8% { opacity: 0.8; filter: sepia(0.6) saturate(1.6) brightness(1.3); } 14% { opacity: 0.5; filter: none; } 22% { opacity: 0.75; filter: sepia(0.5) saturate(1.4) brightness(1.2); } 28% { opacity: 0.6; filter: sepia(0.25); } 100% { opacity: 0.96; filter: sepia(0.55) saturate(1.7) brightness(1.18) hue-rotate(-6deg); } }
+  /* ...and the bulb's light falls across the whole list: a warm pool, brightest just above the middle, flickering on with the days */
+  .lamp { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; border-radius: 10px; mix-blend-mode: screen; background: radial-gradient(ellipse 85% 65% at 50% 38%, rgba(255, 196, 92, 0.3), rgba(255, 160, 60, 0.12) 50%, rgba(255, 140, 40, 0.03) 75%, transparent 90%); transition: opacity 0.6s ease-out; }
+  .lamp.on { opacity: 1; animation: lamp-on 1.6s ease-in both; }
+  @keyframes lamp-on { 0% { opacity: 0; } 8% { opacity: 0.55; } 14% { opacity: 0.08; } 22% { opacity: 0.45; } 28% { opacity: 0.2; } 100% { opacity: 1; } }
   .month-break { margin: 14px 6px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-quiet); }
   .day { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 6px 4px; border-radius: 10px; }
   .day.today { background: var(--today-column); border-radius: 8px; animation: agenda-drift linear both, today-pulse-bright 3s ease-in-out infinite; animation-timeline: view(), auto; animation-range: cover 0% cover 100%, normal; }
