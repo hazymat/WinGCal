@@ -22,7 +22,14 @@
     handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', stop)
   }
   function resetHandle() { monthShare = 0; writeSetting('splitMonthShare', '0') }
-  const dots = (day: Date) => Array.from(new Set(eventsOn(events, day).map(event => event.colourShown))).slice(0, 3)
+  // Each day's shape: timed events as coloured marks on a 7am-11pm line, all-day and multi-day events as a ribbon along the bottom that runs on into the next day
+  const dayStartHour = 7, dayEndHour = 23
+  function dayShape(day: Date) {
+    const dayEvents = eventsOn(events, day), dayStart = startOfDay(day).getTime() + dayStartHour * 3_600_000, span = (dayEndHour - dayStartHour) * 3_600_000
+    const timed = dayEvents.filter(event => !event.allDay).map(event => { const from = Math.max(0, (event.startAt.getTime() - dayStart) / span), to = Math.min(1, (event.endAt.getTime() - dayStart) / span); return { colour: event.colourShown, left: Math.min(from, 0.97) * 100, width: Math.max(3, (to - from) * 100) } })
+    const ribbons = dayEvents.filter(event => event.allDay).sort((first, second) => first.startAt.getTime() - second.startAt.getTime() || (second.endAt.getTime() - first.endAt.getTime())).slice(0, 3).map(event => ({ colour: event.colourShown, first: sameDay(event.startAt, day), last: sameDay(new Date(event.endAt.getTime() - 1), day) }))
+    return { timed, ribbons }
+  }
   const isWeekend = (day: Date) => day.getDay() === 0 || day.getDay() === 6
 
   // The day list covers a window of days around an anchor; it moves when the selection nears either end
@@ -66,7 +73,7 @@
     {#each gridDays.slice(0, 7) as day}<span class="weekday" class:weekend={isWeekend(day)}>{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
     {#each gridDays as day (day.getTime())}
       <button class="cell" data-newday={dayKey(day)} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:other={day.getMonth() !== monthStart.getMonth()} class:today={sameDay(day, today)} class:selected={sameDay(day, ui.focus)} onclick={() => pickDay(day)}>
-        <span class="number">{day.getDate()}</span>{#if sameDay(day, today) || sameDay(day, ui.focus)}<HandCircle seed={dayKey(day)} />{/if}<span class="dots">{#each dots(day) as colour}<i style="background: {colour}"></i>{/each}</span>
+        <span class="number">{day.getDate()}</span>{#if sameDay(day, today) || sameDay(day, ui.focus)}<HandCircle seed={dayKey(day)} />{/if}<span class="hours">{#each dayShape(day).timed as mark}<i style="left: {mark.left}%; width: {mark.width}%; background: {mark.colour}"></i>{/each}</span><span class="ribbons">{#each dayShape(day).ribbons as ribbon}<i class:first={ribbon.first} class:last={ribbon.last} style="background: {ribbon.colour}"></i>{/each}</span>
       </button>
     {/each}
   </div>
@@ -107,8 +114,12 @@
   .cell.today .number { color: var(--accent); font-weight: 750; }
   .cell.selected { box-shadow: inset 0 0 0 1.5px var(--fg); }
   .cell.today.selected { box-shadow: none; }
-  .dots { position: absolute; left: 0; right: 0; bottom: 12%; display: flex; justify-content: center; gap: 2px; }
-  .dots i { width: 4px; height: 4px; border-radius: 50%; }
+  .hours { position: absolute; left: 14%; right: 14%; bottom: 26%; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--fg) 8%, transparent); }
+  .hours i { position: absolute; top: 0; bottom: 0; border-radius: 2px; min-width: 3px; }
+  .ribbons { position: absolute; left: -1.5px; right: -1.5px; bottom: 5px; display: flex; flex-direction: column-reverse; gap: 2px; } /* the longest-running stays on the bottom lane so a trip lines up across days */
+  .ribbons i { height: 3px; opacity: 0.85; }
+  .ribbons i.first { margin-left: 8px; border-top-left-radius: 2px; border-bottom-left-radius: 2px; }
+  .ribbons i.last { margin-right: 8px; border-top-right-radius: 2px; border-bottom-right-radius: 2px; }
   .handle { flex: none; width: 14px; display: grid; place-items: center; cursor: col-resize; touch-action: none; }
   .handle i { width: 3px; height: 36px; border-radius: 2px; background: var(--line); transition: background 0.15s, height 0.15s; }
   .handle:hover i, .handle:active i { background: var(--accent); height: 56px; }
