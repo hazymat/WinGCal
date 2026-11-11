@@ -40,6 +40,8 @@
     if (offset + 40 > span) span = offset + 70
     requestAnimationFrame(() => { if (!list) return; const key = dayKey(target), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.dataset.day! >= key); if (section) warpScroll(list, section.offsetTop - readingLine()) })
   }
+  // The strip's month heading follows the day being read, so the month isn't shown twice
+  $effect(() => { ui.readingDay = wheelDay ?? topDay; return () => { ui.readingDay = null } })
   // Keep adding while the list doesn't yet reach past the bottom (quiet stretches), up to ten years
   $effect(() => { days.length; requestAnimationFrame(() => { if (list && span < 3650 && list.scrollHeight < list.clientHeight + 600) span += 56 }) })
   const days = $derived(Array.from({ length: span + lookBack }, (unused, index) => addDays(ui.focus, index - lookBack)).map(day => ({ day, list: eventsOn(events, day) })).filter(entry => entry.list.length > 0 || sameDay(entry.day, ui.focus) || sameDay(entry.day, today)))
