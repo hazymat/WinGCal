@@ -6,8 +6,9 @@
   let { views }: { views: [ViewMode, string][] } = $props()
   const skins: [string, string][] = [['auto', 'Glass'], ['dark', 'Glass dark'], ['light', 'Glass light'], ['paper', 'Paper'], ['technical', 'Technical'], ['wall', 'Wall calendar']]
   const viewNames: Record<string, string> = { auto: 'Auto', month: 'Month', week: 'Week', agenda: 'Agenda', split: 'Month and days' }
-  let open = $state(false), menuRight = $state(0), menuTop = $state(0)
-  function toggle(event: MouseEvent) { const box = (event.currentTarget as HTMLElement).getBoundingClientRect(); menuRight = Math.max(8, innerWidth - box.right); menuTop = box.bottom + 6; open = !open }
+  let open = $state(false), menuLeft = $state(0), menuTop = $state(0)
+  // Under the button's right edge, but never past either side of the window
+  function toggle(event: MouseEvent) { const box = (event.currentTarget as HTMLElement).getBoundingClientRect(); menuLeft = Math.max(8, Math.min(innerWidth - 208, box.right - 200)); menuTop = box.bottom + 6; open = !open }
   function run(action: () => void) { open = false; action() }
 </script>
 <svelte:window onkeydown={(event) => { if (event.key === 'Escape') open = false }} />
@@ -15,7 +16,7 @@
 <button class="tool" class:on={open} onclick={toggle} title="More" aria-haspopup="menu" aria-expanded={open}><Icon name="more" size={16} /></button>
 {#if open}
   <div class="scrim" role="presentation" onpointerdown={() => open = false}></div>
-  <div class="menu" role="menu" style="right: {menuRight}px; top: {menuTop}px">
+  <div class="menu" role="menu" style="left: {menuLeft}px; top: {menuTop}px">
     <div class="group">View</div>
     {#each views as [view]}<button role="menuitemradio" aria-checked={ui.view === view} onclick={() => run(() => ui.view = view)}><Icon name={view} size={15} /><span>{viewNames[view]}</span>{#if ui.view === view}<Icon name="check" size={13} />{/if}</button>{/each}
     <div class="group">Skin</div>
@@ -32,7 +33,7 @@
   .tool:hover, .tool.on { background: var(--hover); color: var(--fg); }
   .scrim { position: fixed; inset: 0; z-index: 50; }
   /* Always solid, like the skin menu */
-  .menu { position: fixed; z-index: 51; width: 200px; max-height: calc(100vh - 60px); overflow-y: auto; padding: 6px; border-radius: 12px; background: #23262e; color: #e8eaef; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 12px 32px rgba(0, 0, 0, 0.45); }
+  .menu { position: fixed; z-index: 51; width: 200px; max-width: calc(100vw - 16px); box-sizing: border-box; max-height: calc(100vh - 60px); overflow-y: auto; padding: 6px; border-radius: 12px; background: #23262e; color: #e8eaef; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 12px 32px rgba(0, 0, 0, 0.45); }
   .group { padding: 6px 8px 3px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #9aa0ab; }
   .line { height: 1px; margin: 5px 6px; background: rgba(255, 255, 255, 0.1); }
   button[role^="menuitem"] { display: flex; align-items: center; gap: 9px; width: 100%; height: 30px; padding: 0 8px; border: 0; border-radius: 7px; background: none; color: inherit; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
