@@ -118,6 +118,13 @@
     else ui.focus = addDays(ui.focus, direction * 7)
   }
   const isToday = $derived(startOfDay(new Date()).getTime() === ui.focus.getTime())
+  // The Today pill shows only while today is out of view (Agenda has its own, over its list)
+  const todayShown = $derived.by(() => {
+    const today = ui.today, focus = ui.focus
+    if (shownView === 'agenda') return true
+    if (shownView === 'week') { const dayCount = width >= 560 ? 7 : width >= 360 ? 3 : 1, firstDay = dayCount === 7 ? startOfWeek(focus, prefs.weekStart) : startOfDay(focus); return today >= firstDay && today < addDays(firstDay, dayCount) }
+    return today.getMonth() === focus.getMonth() && today.getFullYear() === focus.getFullYear()
+  })
   const views: [ViewMode, string][] = [['auto', 'Auto: picks by window size'], ['month', 'Month'], ['week', 'Week'], ['agenda', 'Agenda'], ['split', 'Month and days']]
   // Tasks: a column beside the calendar when there's room, otherwise a panel over it
   const tasksColumn = $derived(app.tasks.enabled && ui.tasksOpen && width >= 760)
@@ -172,18 +179,19 @@
   <header class="strip" role="presentation" onmousedown={dragWindow} data-frost>
     <div class="heading" bind:clientWidth={headingRoom}>
       <span class="today measure" aria-hidden="true" bind:clientWidth={headingNatural}>{heading}</span>
-      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 220 ? 64 : 0) - (isToday ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
+      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 220 ? 64 : 0) - (todayShown ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
       {#if width >= 220}
         <button class="step" onclick={() => step(-1)} aria-label="Previous"><Icon name="previous" size={16} /></button>
         <button class="step" onclick={() => step(1)} aria-label="Next"><Icon name="next" size={16} /></button>
-        {#if !isToday}<button class="back-today" onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">Today</button>{/if}
+        {#if !todayShown}<button class="back-today" onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">Today</button>{/if}
       {/if}
     </div>
     <div class="tools">
       {#if app.offline}<span class="offline" title="Can't reach Google: showing what was saved last time"><Icon name="offline" size={15} />{narrow ? '' : 'Offline'}</span>{/if}
       {#if !narrow}
         <div class="views" role="group" aria-label="View">
-          {#each views as [view, label]}<button class:on={ui.view === view} onclick={() => ui.view = view} title={label} aria-pressed={ui.view === view}><Icon name={view} size={16} /></button>{/each}
+          <!-- No Auto button: the view the window picks shows lit with a small dot; clicking a view keeps it, clicking the kept view again goes back to following the window -->
+          {#each views.slice(1) as [view, label]}<button class:on={shownView === view} class:auto={ui.view === 'auto' && shownView === view} onclick={() => ui.view = ui.view === view ? 'auto' : view} title={ui.view === 'auto' && shownView === view ? `${label} (picked for this window size). Click to keep it` : ui.view === view ? `${label}. Click again to follow the window size` : label} aria-pressed={shownView === view}><Icon name={view} size={16} /></button>{/each}
         </div>
         <SkinPicker />
       {/if}
@@ -249,6 +257,8 @@
   .views button { display: grid; place-items: center; width: 30px; height: 26px; border: 0; border-radius: 7px; background: none; color: var(--fg-quiet); cursor: pointer; }
   .views button:hover { color: var(--fg); }
   .views button.on { background: var(--panel-strong); color: var(--fg); box-shadow: 0 1px 2px var(--shadow-soft); }
+  .views button { position: relative; }
+  .views button.auto::after { content: ""; position: absolute; bottom: 2px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); } /* picked by the window size */
   .dots { display: flex; align-items: center; gap: 3px; height: 30px; padding: 0 9px; margin-right: 2px; border: 0; border-radius: 15px; background: var(--panel); color: var(--fg-quiet); cursor: pointer; }
   .dots:hover, .dots.on { background: var(--panel-strong); }
   .dots i { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12); }

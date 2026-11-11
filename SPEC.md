@@ -66,7 +66,7 @@ Clear glass sliders: **Window tint** (the see-through window), **Panel tint** (h
 
 ### Title strip
 
-Left: month and year of what's shown (click: back to today; left out rather than cut to a stub when the strip is too crowded), previous and next arrows, and a small quiet "Today" pill while you're away from today (the mini month has the same pill). Right: view switcher (Auto, Month, Week, Agenda; Auto picks by size), skin picker (a dropdown of the skins, each name shown in its own skin's colours and lettering), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
+Left: month and year of what's shown (click: back to today; left out rather than cut to a stub when the strip is too crowded), previous and next arrows, and an accent "Today" pill while you're away from today (the mini month has the same pill). Right: view switcher (Month, Week, Agenda, Month and days; by default the window size picks the view, which shows lit with a small accent dot; clicking a view keeps it, clicking the kept view again goes back to following the size), skin picker (a dropdown of the skins, each name shown in its own skin's colours and lettering), calendar switcher, refresh, Settings, pin, and (unpinned only) minimise and close. The strip hides its quieter buttons as the window narrows; the pin and the calendar switcher always stay.
 
 Nothing in the window selects as text or can be dragged: a desktop widget must not change by an accidental drag. Data only changes through a second deliberate step (open the card, then edit).
 

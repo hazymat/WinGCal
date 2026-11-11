@@ -33,7 +33,7 @@
 </script>
 
 <div class="mini-month">
-  <div class="mini-head"><span>{monthName(shownMonth)} {shownMonth.getFullYear()}</span>{#if !sameDay(ui.focus, today) || shownMonth.getMonth() !== today.getMonth() || shownMonth.getFullYear() !== today.getFullYear()}<button class="back-today" onclick={() => { ui.focus = today; shownMonth = new Date(today.getFullYear(), today.getMonth(), 1) }} title="Back to today (T)">Today</button>{/if}<button onclick={() => shownMonth = addMonths(shownMonth, -1)} aria-label="Previous month"><Icon name="previous" size={14} /></button><button onclick={() => shownMonth = addMonths(shownMonth, 1)} aria-label="Next month"><Icon name="next" size={14} /></button></div>
+  <div class="mini-head"><span>{monthName(shownMonth)} {shownMonth.getFullYear()}</span>{#if !follow && (shownMonth.getMonth() !== today.getMonth() || shownMonth.getFullYear() !== today.getFullYear())}<button class="back-today" onclick={() => { ui.focus = today; shownMonth = new Date(today.getFullYear(), today.getMonth(), 1) }} title="Back to today (T)">Today</button>{/if}<button onclick={() => shownMonth = addMonths(shownMonth, -1)} aria-label="Previous month"><Icon name="previous" size={14} /></button><button onclick={() => shownMonth = addMonths(shownMonth, 1)} aria-label="Next month"><Icon name="next" size={14} /></button></div>
   <div class="cells" bind:this={cells} bind:clientWidth={cellsWidth}>
     <span class="blob" bind:this={blob} aria-hidden="true"></span>
     {#each days.slice(0, 7) as day}<span class="weekday">{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
