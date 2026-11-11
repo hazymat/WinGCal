@@ -252,7 +252,9 @@
         </div>
         <SkinPicker />
       {/if}
-      {#if compact}<MoreMenu {views} />{:else}
+      <!-- Below 560 px the view buttons and skin picker go: the menu holds them (and below 440 px everything else too) -->
+      {#if narrow}<MoreMenu {views} />{/if}
+      {#if !compact}
       <button class="dots" class:on={ui.switcherOpen} onclick={() => ui.switcherOpen = !ui.switcherOpen} title="Calendars">{#each shownCalendars.slice(0, width < 320 ? 3 : 5) as calendar}<i style="background: {calendar.colour}"></i>{/each}{#if shownCalendars.length === 0}<Icon name="calendar" size={16} />{/if}</button>
       {#if app.tasks.enabled}<button class="tool" class:on={tasksColumn || tasksOverlay} onclick={toggleTasks} title="Tasks"><Icon name="tasks" size={16} /></button>{/if}
       {#if width >= 400}<button class="tool" class:spinning={app.syncing} onclick={() => sendToShell({ type: 'refresh' })} title="Refresh from Google"><Icon name="refresh" size={16} /></button>{/if}
