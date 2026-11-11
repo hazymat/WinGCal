@@ -34,7 +34,8 @@ public partial class MainWindow : Window
         SourceInitialized += (sender, args) => { pin = new DesktopPin(new WindowInteropHelper(this).Handle); frost = new FrostPanels(this); RestorePlacement(); ApplyWindowStyle(); ApplyPinned(); };
         Activated += (sender, args) => { OnFirstActivation(); if (App.Settings.Window.Pinned) pin?.SendToBottom(); };
         StateChanged += (sender, args) => { UpdateFrameMargin(); PushWindowState(); placementSaveTimer.Stop(); placementSaveTimer.Start(); };
-        LocationChanged += (sender, args) => { if (!placing) { placementSaveTimer.Stop(); placementSaveTimer.Start(); } if (wallpaperFrost) PushWallpaper(); };
+        LocationChanged += (sender, args) => { if (!placing) { placementSaveTimer.Stop(); placementSaveTimer.Start(); } if (wallpaperFrost) PushWallpaper(); CheckBehind(); };
+        behindTimer.Tick += (sender, args) => CheckBehind();
         SizeChanged += (sender, args) => { if (wallpaperFrost) PushWallpaper(); };
         SizeChanged += (sender, args) => { if (!placing) { placementSaveTimer.Stop(); placementSaveTimer.Start(); } };
         placementSaveTimer.Tick += (sender, args) => { placementSaveTimer.Stop(); SavePlacement(); };
@@ -190,6 +191,21 @@ public partial class MainWindow : Window
         if (Content is not FrameworkElement content || wallpaperFeed.Message(content, ActualWidth, ActualHeight, webViewReady, recheck) is not { } message) return false;
         Push(message); return true;
     }
+    // The page draws the frost from the wallpaper (adjustable) while only the desktop is behind the window; over another app's window, or when
+    // the wallpaper can't be read, the panels get Windows' own frost (fixed strength) so they blur what is really there
+    bool overWindows;
+    readonly DispatcherTimer behindTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    void ChooseFrost(bool recheck = false)
+    {
+        var look = App.Settings.Look;
+        overWindows = clearActive && WindowsBehind.Any(new WindowInteropHelper(this).Handle);
+        var wasWallpaper = wallpaperFrost;
+        wallpaperFrost = clearActive && look.PanelFrost > 0 && !overWindows && PushWallpaper(recheck || !wasWallpaper);
+        if (!wallpaperFrost && (wasWallpaper || recheck)) PushWallpaperOff();
+        frost?.SetEnabled(clearActive && !wallpaperFrost && look.PanelFrost > 0, darkTheme, 100);
+        if (clearActive) behindTimer.Start(); else behindTimer.Stop();
+    }
+    void CheckBehind() { if (clearActive && IsVisible && WindowsBehind.Any(new WindowInteropHelper(this).Handle) != overWindows) ChooseFrost(); }
     void PushWallpaperOff() { wallpaperFeed.Off(); Push(JsonSerializer.Serialize(new { type = "wallpaper", off = true })); }
 
     public void PushSkin() { Push(SkinMessage()); App.PushSkinToPopups(); }
@@ -333,10 +349,7 @@ public partial class MainWindow : Window
         var backdrop = wantGlass && !clear ? AcrylicBackdrop : NoBackdrop;
         glassActive = wantGlass && DwmSetWindowAttribute(windowHandle, BackdropAttribute, ref backdrop, sizeof(int)) == 0;
         clearActive = glassActive && clear;
-        // The page draws the frost from the wallpaper (adjustable); Windows' fixed frost is the fallback when the wallpaper can't be read
-        wallpaperFrost = clearActive && look.PanelFrost > 0 && PushWallpaper(true);
-        if (!wallpaperFrost) PushWallpaperOff();
-        frost?.SetEnabled(clearActive && !wallpaperFrost && look.PanelFrost > 0, darkTheme, 100);
+        ChooseFrost(true);
         // Clear: an extended frame with no backdrop is painted in the Windows accent colour, so instead the window keeps its alpha through blur-behind with an empty region (see-through, no blur, no accent)
         var margins = glassActive && !clearActive ? new FrameMargins { Left = -1, Right = -1, Top = -1, Bottom = -1 } : new FrameMargins();
         DwmExtendFrameIntoClientArea(windowHandle, ref margins);
