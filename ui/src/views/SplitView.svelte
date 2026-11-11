@@ -4,6 +4,7 @@
   import { addDays, addMonths, sameDay, startOfDay, startOfWeek, prefs, formatTime, dayKey, weekdayShort, shortDate } from '../lib/dates'
   import Icon from '../parts/Icon.svelte'
   import { warpScroll } from '../lib/warp'
+  import { glideWheel } from '../lib/glide'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   // Short, wide windows (SPEC.md › Calendar views › Split): a browsable month on the left, a scrolling day list on the right that follows the selected day
@@ -81,7 +82,7 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="handle" onpointerdown={dragHandle} ondblclick={resetHandle} title="Drag to resize; double-click for automatic"><i></i></div>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div class="days" bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={() => userScrolling = true} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
+  <div class="days" bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={(wheelEvent) => { userScrolling = true; if (list) glideWheel(list, wheelEvent) }} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
     {#each listDays.filter(entry => entry.list.length > 0 || sameDay(entry.day, today) || sameDay(entry.day, ui.focus)) as { day, list: dayEvents } (day.getTime())}
       <section data-day={dayKey(day)} data-newday={dayKey(day)} class:today={sameDay(day, today)} class:gone={day < today}>
         <h3>{dayLabel(day)}</h3>

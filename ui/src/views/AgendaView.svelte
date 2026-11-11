@@ -15,7 +15,9 @@
   // The focus day sits a quarter of the way down, with a glimpse of the last few weeks above it; scrolling near the end adds eight weeks more, without end. Empty days are skipped, except the focus day and today
   let lookBack = $state(30), span = $state(56), list: HTMLDivElement | undefined = $state(), topDay = $state(ui.focus)
   const readingLine = () => (list?.clientHeight ?? 0) * 0.25
-  $effect(() => { const focus = ui.focus; topDay = focus; wheelDay = null; span = 56; lookBack = 30; requestAnimationFrame(() => scrollToDay(focus, false)) })
+  // While the list rebuilds around a newly picked day, its scrolling isn't read (it would flick the month above back and forth)
+  let settling = false
+  $effect(() => { const focus = ui.focus; topDay = focus; wheelDay = null; span = 56; lookBack = 30; settling = true; requestAnimationFrame(() => { scrollToDay(focus, false); requestAnimationFrame(() => settling = false) }) })
   function scrollToDay(day: Date, smooth: boolean) { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (!list) return; if (!section) { ui.focus = day; return } if (smooth) warpScroll(list, section.offsetTop - readingLine()); else list.scrollTop = section.offsetTop - readingLine() }
   let growingBack = false, todayInView = $state(true)
   // Lingering among only past days: after a moment they warm back up a little, like a tungsten bulb coming on (they stay warm until a day from today on comes into view)
@@ -31,7 +33,7 @@
     if (!onlyPast) { clearTimeout(warmTimer); warmTimer = 0; warmed = false } else if (!warmed && !warmTimer) warmTimer = setTimeout(() => { warmed = true; warmTimer = 0 }, 1400)
     todayInView = !!todaySection && todaySection.offsetTop + todaySection.offsetHeight > list.scrollTop + 20 && todaySection.offsetTop < list.scrollTop + list.clientHeight - 20
     const line = list.scrollTop + readingLine() + 6, section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > line)
-    if (section) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
+    if (section && !settling) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
   }
   // The wheel over the month steps a day at a time, empty days included; the list glides to that day, or the next one with something on
   let wheelDay: Date | null = $state(null), wheelPending = 0

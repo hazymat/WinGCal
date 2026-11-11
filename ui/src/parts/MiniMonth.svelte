@@ -31,7 +31,7 @@
   })
   // Changing month, the days slide in from the way it went: up for later, down for earlier
   let previousMonth = untrack(() => shownMonth.getTime())
-  $effect(() => { const month = shownMonth.getTime(); untrack(() => { if (month === previousMonth) return; const direction = month > previousMonth ? 1 : -1; previousMonth = month; cells?.animate([{ transform: `translateY(${direction * 60}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 480, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }) }) })
+  $effect(() => { const month = shownMonth.getTime(); untrack(() => { if (month === previousMonth) return; const direction = month > previousMonth ? 1 : -1; previousMonth = month; cells?.animate([{ transform: `translateY(${direction * 60}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 960, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }) }) })
   const dots = (day: Date) => Array.from(new Set(eventsOn(events, day).map(event => event.colourShown))).slice(0, 3)
 </script>
 
