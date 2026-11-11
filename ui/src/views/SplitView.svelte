@@ -88,7 +88,7 @@
   .cell.other { background: none; color: var(--fg-quiet); opacity: 0.55; }
   .cell:hover { background: var(--hover); }
   .cell.today, section.today { animation: today-pulse 3s ease-in-out infinite; }
-  section.today { border-radius: 8px; }
+  section.today { border-radius: 8px; padding: 2px 4px 6px; }
   .cell.today .number { color: var(--accent); font-weight: 750; }
   .cell.selected { box-shadow: inset 0 0 0 1.5px var(--fg); }
   .cell.today.selected { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
@@ -98,11 +98,11 @@
   section { padding-bottom: 8px; }
   h3 { margin: 0; padding: 2px 4px 3px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-quiet); }
   .today h3 { color: var(--accent); }
-  .empty { padding: 1px 4px 2px 21px; font-size: 12px; color: var(--fg-quiet); }
-  .day-items { display: grid; grid-template-columns: 1fr; column-gap: 6px; }
+  .empty { padding: 1px 4px 2px 10px; font-size: 12px; color: var(--fg-quiet); }
+  .day-items { display: grid; grid-template-columns: 1fr; gap: 4px 6px; padding: 0 2px; }
   .day-items.two { grid-template-columns: 1fr 1fr; }
-  .item { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; padding: 3px 4px; border: 0; border-radius: 6px; background: none; color: var(--fg); font: inherit; font-size: 12.5px; line-height: 1.35; text-align: left; cursor: pointer; }
-  .item:hover { background: var(--hover); }
+  .item { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; padding: 5px 8px; border: 0; border-radius: 8px; background: var(--panel); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); color: var(--fg); font: inherit; font-size: 12.5px; line-height: 1.35; text-align: left; cursor: pointer; }
+  .item:hover { background: var(--panel-strong); }
   .item.past { opacity: 0.55; }
   .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--colour); }
   .time { flex: none; display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--fg-quiet); font-variant-numeric: tabular-nums; white-space: nowrap; }
