@@ -73,7 +73,7 @@
       <div class="day-list" class:today={sameDay(day, today)}>
         {#each eventsOn(events, day) as event (event.id)}
           {#if event.allDay}<button class="pill" style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{#if !isBirthday(event)}<HandStar seed={event.id} />{/if}{shortTitle(event)}<HandArrow {event} {day} /></button>
-          {:else}<button class="line" class:past={event.endAt < now} class:picked={ui.picked.includes(event.id)} data-event={event.id} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{event.title}</span></button>{/if}
+          {:else}<button class="line" class:past={event.endAt < now} class:picked={ui.picked.includes(event.id)} data-event={event.id} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{shortTitle(event)}</span></button>{/if}
         {/each}
       </div>
     {/each}
@@ -91,7 +91,7 @@
           {#each layout(day) as item (item.event.id)}
             {@const height = Math.max(18, (item.bottom - item.top) / 60 * hourHeight - 2)}
             <button class="event" class:short={height < 36} class:past={item.event.endAt < now} style="--colour: {item.event.colourShown}; top: {item.top / 60 * hourHeight + 1}px; height: {height}px; left: calc({item.column} * 100% / {item.columns} + 2px); width: calc(100% / {item.columns} - 4px)" class:picked={ui.picked.includes(item.event.id)} data-event={item.event.id} onclick={(clickEvent) => onpick(item.event, clickEvent.currentTarget)}>
-              <span class="title">{item.event.title}</span><span class="time">{formatTime(item.event.startAt)}{height >= 36 ? ' – ' + formatTime(item.event.endAt) : ''}</span>
+              <span class="title">{shortTitle(item.event)}</span><span class="time">{formatTime(item.event.startAt)}{height >= 36 ? ' – ' + formatTime(item.event.endAt) : ''}</span>
             </button>
           {/each}
           {#if carry.active && carry.previewTop >= 0 && carry.targetDay === dayKey(day)}<div class="drop-preview" style="top: {carry.previewTop / 60 * hourHeight + 1}px; height: {Math.max(18, carry.previewLength / 60 * hourHeight - 2)}px"></div>{/if}

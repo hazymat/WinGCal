@@ -88,7 +88,7 @@ The windows are glass like the calendar (acrylic for the glass skins, solid for 
 
 Press and hold an event (or Ctrl+click or Shift+click) to start picking several; while some are picked, a click adds or removes one. A floating rounded bar near the bottom (over the calendar, never pushing it up) shows "N events selected" with Edit… (a glass "Change N events" window: tick Date, Starts at, Ends at, Place or Calendar; each event keeps its own time and length where it makes sense; only ticked fields change; moving calendars stays within the account, never for repeats), Copy (titles and times as text), Delete (a glass dialog listing them; for repeats, only these occurrences or the whole series) and ×. Esc or × ends picking.
 
-**Birthdays in small views:** in Month, Week's all-day row and Split, an event whose title says birthday (or bday), or any event from Google's contacts birthdays calendar, shows as a cake and the person's first name and initials ("🎂 Ingrid G"; "Mum's birthday" is "🎂 Mum"). Agenda and the event window keep the full title.
+**Birthdays:** in every view, an event titled "<name>'s birthday" (or bday), or a contacts birthday titled with just the name, shows as a cake and the person's first name and initials ("🎂 Ingrid G"; "Mum's birthday" is "🎂 Mum"). Any other title with birthday in it ("Birthday meal") keeps its words with the cake in front. The event window keeps the full title.
 
 **Today** holds a steady accent wash (no pulse); in Agenda and Split, each time today comes into view a line chases once round its border, then the ring fades as a glint sweeps across today's panel. It plays again only after today has left the view and come back.
 
