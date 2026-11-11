@@ -20,15 +20,15 @@ public sealed class EventPopup : Window
     public readonly Kind Mode;
     public readonly string EventId; // Event: the event shown; Batch: "" (ids below)
     readonly List<string> batchIds;
-    readonly string newDay, newTime;
+    readonly string newDay, newTime, newEndDay; // New: the day (or first of the days picked in Agenda's month) and the hour, if any
     readonly WebView2 webView = new();
     bool ready;
     App App => App.Instance;
     static readonly JsonSerializerOptions camel = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    public EventPopup(Kind mode, string eventId = "", List<string>? ids = null, string day = "", string time = "")
+    public EventPopup(Kind mode, string eventId = "", List<string>? ids = null, string day = "", string time = "", string endDay = "")
     {
-        Mode = mode; EventId = eventId; batchIds = ids ?? new(); newDay = day; newTime = time;
+        Mode = mode; EventId = eventId; batchIds = ids ?? new(); newDay = day; newTime = time; newEndDay = endDay;
         Title = mode == Kind.New ? "New event" : mode == Kind.Batch ? "Change events" : App.Store.FindEvent(eventId)?.Title ?? "Event";
         Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/WinGCal.ico"));
         Width = 400; Height = mode == Kind.Batch ? 470 : 540; MinWidth = 320; MinHeight = 300;
@@ -90,7 +90,7 @@ public sealed class EventPopup : Window
         var store = App.Store;
         var calendars = store.Calendars.Select(calendar => new { key = calendar.Key, name = calendar.Name, colour = store.ColourOf(calendar), account = calendar.Account, readOnly = calendar.ReadOnly, shown = store.IsShown(calendar.Key) });
         var shown = Mode == Kind.Event ? store.FindEvent(EventId) is { } found ? new[] { UiEventJson(found) } : Array.Empty<object>() : Mode == Kind.Batch ? batchIds.Select(id => store.FindEvent(id)).Where(found => found != null).Select(found => UiEventJson(found!)).ToArray() : Array.Empty<object>();
-        Push(JsonSerializer.Serialize(new { type = "editor", mode = Mode.ToString().ToLowerInvariant(), events = shown, calendars, day = newDay, time = newTime }, camel));
+        Push(JsonSerializer.Serialize(new { type = "editor", mode = Mode.ToString().ToLowerInvariant(), events = shown, calendars, day = newDay, time = newTime, endDay = newEndDay }, camel));
         if (Mode == Kind.Event && shown.Length > 0 && store.FindEvent(EventId) is { } current) Title = current.Title;
     }
 
@@ -110,13 +110,14 @@ public sealed class EventPopup : Window
                     if (message.TryGetProperty("by", out var growBy) && growBy.TryGetDouble(out var extra)) { var screen = System.Windows.Forms.Screen.FromHandle(new WindowInteropHelper(this).Handle).WorkingArea; var scale = VisualTreeHelper.GetDpi(this).DpiScaleY; double bottom = screen.Bottom / scale, top = screen.Top / scale; Height = Math.Min(Height + extra + 4, bottom - top); if (Top + Height > bottom) Top = Math.Max(top, bottom - Height); }
                     break;
                 case "openUrl": MainWindow.OpenLink(Text(message, "url")); break;
-                case "saveEvent": await App.Store.UpdateEventAsync(EventId, EventChanges.FromMessage(message)); Push("{\"type\":\"saved\"}"); break;
+                case "saveEvent": using (ChangeHistory.Begin($"Edited “{App.Store.FindEvent(EventId)?.Title ?? "event"}”")) await App.Store.UpdateEventAsync(EventId, EventChanges.FromMessage(message)); Push("{\"type\":\"saved\"}"); break;
                 case "createEvent":
                     var newEvent = EventChanges.FromMessage(message);
                     await App.Store.CreateEventAsync(Text(message, "calendarKey"), newEvent); Close(); break;
                 case "deleteEvents":
                     var series = message.TryGetProperty("series", out var seriesValue) && seriesValue.GetBoolean();
-                    foreach (var id in message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "")) await App.Store.DeleteEventAsync(id, series);
+                    var deleting = message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList();
+                    using (ChangeHistory.Begin(deleting.Count == 1 ? $"Deleted “{App.Store.FindEvent(deleting[0])?.Title ?? "event"}”" : $"Deleted {deleting.Count} events")) foreach (var id in deleting) await App.Store.DeleteEventAsync(id, series);
                     Close(); break;
                 case "batchSave":
                     DateTime? date = Text(message, "date") is { Length: > 0 } dateText ? DateTime.ParseExact(dateText, "yyyy-MM-dd", CultureInfo.InvariantCulture) : null;

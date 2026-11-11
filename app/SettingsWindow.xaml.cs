@@ -32,14 +32,32 @@ public partial class SettingsWindow : Window
         FillLists();
         // Esc closes (settings save as they change); an open drop-down takes the Esc first and marks it handled
         KeyDown += (sender, keyArgs) => { if (keyArgs.Key == System.Windows.Input.Key.Escape && !keyArgs.Handled) { keyArgs.Handled = true; Close(); } };
-        App.Store.Changed += OnStoreChanged; App.Store.Tasks.Changed += OnStoreChanged; App.SettingsChanged += OnStoreChanged;
-        Closed += (sender, args) => { App.Store.Changed -= OnStoreChanged; App.Store.Tasks.Changed -= OnStoreChanged; App.SettingsChanged -= OnStoreChanged; };
+        App.Store.Changed += OnStoreChanged; App.Store.Tasks.Changed += OnStoreChanged; App.SettingsChanged += OnStoreChanged; ChangeHistory.Changed += OnHistoryChanged;
+        Closed += (sender, args) => { App.Store.Changed -= OnStoreChanged; App.Store.Tasks.Changed -= OnStoreChanged; App.SettingsChanged -= OnStoreChanged; ChangeHistory.Changed -= OnHistoryChanged; };
+        FillHistory();
     }
     void OnStoreChanged() => Dispatcher.BeginInvoke(() => { FillLists(); if (Math.Abs(uiScaleSlider.Value - Math.Round(App.UiScale * 100)) > 0.5) uiScaleSlider.Value = Math.Round(App.UiScale * 100); });
 
+    // ---- History (SPEC.md › Undo) ----
+    record HistoryRow(long Id, string When, string Summary, string Action, double Fade);
+    void OnHistoryChanged(HistoryEntry entry, string action) => Dispatcher.BeginInvoke(FillHistory);
+    void FillHistory()
+    {
+        var rows = Enumerable.Reverse(ChangeHistory.Entries).Select(entry => new HistoryRow(entry.Id, entry.At.Date == DateTime.Today ? entry.At.ToString("t") : entry.At.ToString("d MMM, t"), entry.Undone ? $"Undone: {entry.Summary}" : entry.Summary, entry.Undone ? "Redo" : "Undo", entry.Undone ? 0.55 : 1)).ToList();
+        historyList.ItemsSource = rows; noHistoryText.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+    async void HistoryAction_Click(object sender, RoutedEventArgs args)
+    {
+        if (sender is not Button { Tag: long id } button) return;
+        var entry = ChangeHistory.Entries.FirstOrDefault(candidate => candidate.Id == id); if (entry == null) return;
+        button.IsEnabled = false;
+        try { if (entry.Undone) await ChangeHistory.RedoAsync(App.Store, id); else await ChangeHistory.UndoAsync(App.Store, id); }
+        catch (Exception historyError) { MessageBox.Show(this, historyError.Message, entry.Undone ? "Couldn't redo that" : "Couldn't undo that", MessageBoxButton.OK, MessageBoxImage.Warning); FillHistory(); }
+    }
+
     public void SelectTab(string tabName)
     {
-        var tabByName = new Dictionary<string, TabItem> { ["Accounts"] = accountsTab, ["Calendars"] = calendarsTab, ["Sync"] = syncTab, ["Tasks"] = tasksTab, ["Export"] = exportTab, ["Appearance"] = appearanceTab, ["View"] = viewTab, ["Window"] = windowTab, ["About"] = aboutTab };
+        var tabByName = new Dictionary<string, TabItem> { ["Accounts"] = accountsTab, ["Calendars"] = calendarsTab, ["Sync"] = syncTab, ["Tasks"] = tasksTab, ["Export"] = exportTab, ["History"] = historyTab, ["Appearance"] = appearanceTab, ["View"] = viewTab, ["Window"] = windowTab, ["About"] = aboutTab };
         if (tabByName.TryGetValue(tabName, out var selectedTab)) settingsTabs.SelectedItem = selectedTab;
     }
 

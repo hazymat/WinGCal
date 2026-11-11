@@ -5,7 +5,7 @@
   import SaveChanges from './SaveChanges.svelte'
   import type { EditorEvent, EditorCalendar } from './types'
   // One event, shown ready to edit (or a new one): Save sends only what changed; the window stays open until closed
-  let { event, calendars, day, time, savedAt, problem = $bindable() }: { event: EditorEvent | null; calendars: EditorCalendar[]; day: string; time: string; savedAt: number; problem: string } = $props()
+  let { event, calendars, day, time, endDay = '', savedAt, problem = $bindable() }: { event: EditorEvent | null; calendars: EditorCalendar[]; day: string; time: string; endDay?: string; savedAt: number; problem: string } = $props()
   const clock = (date: Date) => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
   const notesOf = (html: string) => html ? new DOMParser().parseFromString(html.replace(/<(br|\/p|\/li|\/div)\s*\/?>/gi, '\n$&'), 'text/html').body.textContent?.trim() ?? '' : ''
   const writable = $derived(calendars.filter(calendar => !calendar.readOnly))
@@ -16,7 +16,7 @@
     if (!event) {
       // A double-clicked day is an all-day event; a double-clicked hour (Week) starts then, for an hour
       const startHour = time || '09:00', endAt = new Date(new Date(`${day || dayKey(new Date())}T${startHour}`).getTime() + 3_600_000)
-      return { title: '', allDay: !time, startDate: day || dayKey(new Date()), startTime: startHour, endDate: time ? dayKey(endAt) : day || dayKey(new Date()), endTime: clock(endAt), location: '', description: '', calendarKey: (writable.find(candidate => candidate.shown) ?? writable[0])?.key ?? '' }
+      return { title: '', allDay: !time, startDate: day || dayKey(new Date()), startTime: startHour, endDate: time ? dayKey(endAt) : endDay || day || dayKey(new Date()), endTime: clock(endAt), location: '', description: '', calendarKey: (writable.find(candidate => candidate.shown) ?? writable[0])?.key ?? '' }
     }
     const startAt = parseWhen(event.start), endAt = parseWhen(event.end), lastDay = event.allDay ? addDays(endAt, -1) : endAt
     return { title: event.title, allDay: event.allDay, startDate: dayKey(startAt), startTime: event.allDay ? '09:00' : clock(startAt), endDate: dayKey(lastDay), endTime: event.allDay ? '10:00' : clock(endAt), location: event.location ?? '', description: notesOf(event.description), calendarKey: event.calendarKey }

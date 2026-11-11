@@ -16,6 +16,7 @@
   import WhatsNew from './parts/WhatsNew.svelte'
   import SkinPicker from './parts/SkinPicker.svelte'
   import SelectionBar from './parts/SelectionBar.svelte'
+  import UndoBar from './parts/UndoBar.svelte'
   import WallpaperFrost from './parts/WallpaperFrost.svelte'
   import MoreMenu from './parts/MoreMenu.svelte'
   import ConfirmDelete from './parts/ConfirmDelete.svelte'
@@ -154,16 +155,16 @@
     holdTimer = setTimeout(() => { holdTimer = 0; const id = element.dataset.event!; heldId = id; ui.selectedEvent = null; if (!ui.picked.includes(id)) ui.picked = ui.picked.concat(id); lift(element) }, prefs.holdMs)
   }
   function moveHold(pointer: PointerEvent) {
-    if (carry.active) { carry.x = pointer.clientX; carry.y = pointer.clientY; aim(); return }
+    if (carry.active) { carry.x = pointer.clientX; carry.y = pointer.clientY; if (Math.hypot(pointer.clientX - holdStart.x, pointer.clientY - holdStart.y) > 8) carryMoved = true; aim(); return }
     if (holdTimer && Math.hypot(pointer.clientX - holdStart.x, pointer.clientY - holdStart.y) > 6) { clearTimeout(holdTimer); holdTimer = 0 }
   }
   function endHold() { clearTimeout(holdTimer); holdTimer = 0; if (carry.active) drop(true) }
-  let liftMinute = -1, carryScroller: HTMLElement | null = null
+  let liftMinute = -1, carryScroller: HTMLElement | null = null, carryMoved = false // picked up and let go without moving the pointer: it goes back where it was, whatever moved underneath
   const minuteAt = (cell: HTMLElement, clientY: number) => (clientY - cell.getBoundingClientRect().top) / Number(cell.dataset.hourHeight) * 60
   const scrollParent = (node: HTMLElement | null) => { for (; node; node = node.parentElement) if (/(auto|scroll)/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight) return node; return null }
   function lift(element: HTMLElement) {
     const cell = element.closest<HTMLElement>('[data-newday]'); if (!cell) return
-    carry.ids = ui.picked.slice(); carry.originDay = carry.targetDay = cell.dataset.newday!; carry.x = holdStart.x; carry.y = holdStart.y; carry.minutes = 0; carry.previewTop = -1
+    carry.ids = ui.picked.slice(); carry.originDay = carry.targetDay = cell.dataset.newday!; carry.x = holdStart.x; carry.y = holdStart.y; carry.minutes = 0; carry.previewTop = -1; carryMoved = false
     liftMinute = cell.dataset.hourHeight ? minuteAt(cell, holdStart.y) : -1; carryScroller = scrollParent(element)
     carry.active = true; document.documentElement.classList.add('carrying')
     try { document.body.setPointerCapture(holdPointer) } catch { /* the pointer already went up */ }
@@ -193,6 +194,7 @@
   }
   // Dropped on another day (or time): moved at once here, then in Google; dropped where it started, it stays picked
   function drop(place: boolean) {
+    place = place && carryMoved
     const days = place && carry.targetDay ? Math.round((parseWhen(carry.targetDay).getTime() - parseWhen(carry.originDay).getTime()) / dayMs) : 0, minutes = place && carry.targetDay ? carry.minutes : 0
     if (days || minutes) {
       const localText = (date: Date) => `${dayKey(date)}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:00`
@@ -215,8 +217,8 @@
   }
   function onKey(event: KeyboardEvent) {
     if ((event.target as HTMLElement).closest('input, textarea')) return
-    if (event.key === 'Escape' && carry.active) { drop(false); return }
-    if (event.key === 'Escape') { ui.selectedEvent = null; ui.picked = []; ui.switcherOpen = false; tasksOverlay = false }
+    if (event.key === 'Escape' && carry.active) { (document.activeElement as HTMLElement | null)?.blur?.(); drop(false); return }
+    if (event.key === 'Escape') { (document.activeElement as HTMLElement | null)?.blur?.(); ui.selectedEvent = null; ui.picked = []; ui.pickedDays = null; ui.switcherOpen = false; tasksOverlay = false } // the blur: no focus ring left behind on the event that was held
     else if (event.key === 'ArrowLeft' || event.key === 'PageUp') step(-1)
     else if (event.key === 'ArrowRight' || event.key === 'PageDown') step(1)
     else if (event.key === 't') ui.focus = startOfDay(new Date())
@@ -291,6 +293,7 @@
 
 <WhatsNew />
 <SelectionBar />
+<UndoBar />
 <!-- What's being carried: up to three stacked, with a count when there are more than one -->
 {#if carry.active && carried.length}
   <div class="carried" style="left: {carry.x}px; top: {carry.y}px" aria-hidden="true">

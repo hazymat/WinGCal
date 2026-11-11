@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  export type IconName = 'pin' | 'settings' | 'minimise' | 'maximise' | 'restore' | 'close' | 'previous' | 'next' | 'refresh' | 'plus' | 'month' | 'week' | 'agenda' | 'split' | 'auto' | 'location' | 'video' | 'repeat' | 'clock' | 'calendar' | 'edit' | 'trash' | 'lock' | 'offline' | 'tasks' | 'check' | 'skin' | 'copy' | 'more' | 'up' | 'down'
+  export type IconName = 'pin' | 'settings' | 'minimise' | 'maximise' | 'restore' | 'close' | 'previous' | 'next' | 'refresh' | 'plus' | 'month' | 'week' | 'agenda' | 'split' | 'auto' | 'location' | 'video' | 'repeat' | 'clock' | 'calendar' | 'edit' | 'trash' | 'lock' | 'offline' | 'tasks' | 'check' | 'skin' | 'copy' | 'more' | 'up' | 'down' | 'undo' | 'redo'
 </script>
 <script lang="ts">
   // SVG icons: text glyphs render off-centre with colour fringes in WebView2
@@ -16,6 +16,8 @@
   {:else if name === 'previous'}<path d="M14.5 6l-6 6 6 6" class="stroke" />
   {:else if name === 'next'}<path d="M9.5 6l6 6-6 6" class="stroke" />
   {:else if name === 'up'}<path d="M6 14.5l6-6 6 6" class="stroke" />
+  {:else if name === 'undo'}<path d="M9 8.5L5.5 12 9 15.5M5.5 12h9a4 4 0 0 1 0 8H12" class="stroke" />
+  {:else if name === 'redo'}<path d="M15 8.5l3.5 3.5-3.5 3.5M18.5 12h-9a4 4 0 0 0 0 8H12" class="stroke" />
   {:else if name === 'down'}<path d="M6 9.5l6 6 6-6" class="stroke" />
   {:else if name === 'refresh'}<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v3.2h-3.2" class="stroke" />
   {:else if name === 'tasks'}<path d="M4.5 7l1.6 1.6L9 5.7M4.5 13.5l1.6 1.6L9 12.2M12 7h7.5M12 13.5h7.5M12 19h5" class="stroke" />

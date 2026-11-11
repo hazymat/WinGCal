@@ -45,6 +45,8 @@ public partial class MainWindow : Window
         App.StatusChanged += () => Push(JsonSerializer.Serialize(new { type = "update", version = App.Updater.ReadyVersion }));
         App.Tip += (title, text) => Push(JsonSerializer.Serialize(new { type = "tip", title, text }));
         App.Store.Changed += () => Dispatcher.BeginInvoke(PushCalendars);
+        // Every change (and every undo or redo) shows in the page's undo bar (SPEC.md › Undo)
+        ChangeHistory.Changed += (entry, action) => Push(JsonSerializer.Serialize(new { type = "history", action, id = entry.Id, summary = entry.Summary }));
         App.Store.Tasks.Changed += () => Dispatcher.BeginInvoke(PushTasks);
         // WebView2 forwards accelerator keys to WPF as KeyDown
         PreviewKeyDown += (sender, keyArgs) =>
@@ -112,13 +114,15 @@ public partial class MainWindow : Window
                 case "setPinned": App.Settings.Window.Pinned = message.GetProperty("on").GetBoolean(); App.Settings.Save(); ApplyPinned(); App.NotifySettingsChanged(); break;
                 case "editEvent": if (App.Store.FindEvent(Text(message, "id")) is { Link.Length: > 0 } toEdit) OpenUrl(toEdit.Link); break; // "More in Google Calendar": guests, reminders and the rest
                 case "openEditor": App.OpenEventEditor(Text(message, "id")); break;
-                case "newEvent": App.OpenNewEvent(Text(message, "day"), Text(message, "time")); break;
+                case "newEvent": App.OpenNewEvent(Text(message, "day"), Text(message, "time"), Text(message, "endDay")); break;
                 case "batchEdit": App.OpenBatchEditor(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList()); break;
                 case "moveEvents":
                     var carried = message.GetProperty("ids").EnumerateArray().Select(id => App.Store.FindEvent(id.GetString() ?? "")).Where(found => found != null).Select(found => found!).ToList();
                     var moveFailed = await EventChanges.ShiftManyAsync(App.Store, carried, message.GetProperty("days").GetInt32(), message.TryGetProperty("minutes", out var minutesValue) ? minutesValue.GetInt32() : 0);
                     if (moveFailed.Count > 0) { App.ShowTip(moveFailed.Count == 1 ? "Couldn't move one event" : $"Couldn't move {moveFailed.Count} events", string.Join(" ", moveFailed)); PushCalendars(); }
                     break;
+                case "undo": await HistoryActionAsync(() => ChangeHistory.UndoAsync(App.Store, message.TryGetProperty("id", out var undoId) && undoId.TryGetInt64(out var undoNumber) ? undoNumber : null), "Couldn't undo that"); break;
+                case "redo": await HistoryActionAsync(() => ChangeHistory.RedoAsync(App.Store, message.TryGetProperty("id", out var redoId) && redoId.TryGetInt64(out var redoNumber) ? redoNumber : null), "Couldn't redo that"); break;
                 case "deleteEvents": await DeleteEventsAsync(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList(), message.TryGetProperty("series", out var series) && series.GetBoolean()); break;
                 case "taskDone": await TaskActionAsync(() => App.Store.Tasks.SetCompletedAsync(Text(message, "id"), message.GetProperty("done").GetBoolean())); break;
                 case "taskAdd": await TaskActionAsync(() => App.Store.Tasks.AddAsync(Text(message, "listKey"), Text(message, "title"))); break;
@@ -154,9 +158,12 @@ public partial class MainWindow : Window
         var toDelete = uiEventIds.Select(id => App.Store.FindEvent(id)).Where(found => found != null).Select(found => found!).ToList();
         if (toDelete.Count == 0) return;
         var failed = new List<string>();
+        using var group = ChangeHistory.Begin(toDelete.Count == 1 ? $"Deleted “{toDelete[0].Title}”" : $"Deleted {toDelete.Count} events");
         foreach (var found in toDelete) { try { await App.Store.DeleteEventAsync(found.Id, wholeSeries); } catch (Exception deleteError) { failed.Add($"{found.Title}: {deleteError.Message}"); } }
         if (failed.Count > 0) App.ShowTip(failed.Count == 1 ? "Couldn't delete one event" : $"Couldn't delete {failed.Count} events", string.Join(" ", failed));
     }
+
+    async Task HistoryActionAsync(Func<Task> action, string failedTitle) { try { await action(); } catch (Exception historyError) { App.ShowTip(failedTitle, historyError.Message); } }
 
     async Task TaskActionAsync(Func<Task> action) { try { await action(); } catch (Exception taskError) { App.ShowTip("Google Tasks didn't take that", taskError.Message); PushTasks(); } }
 
