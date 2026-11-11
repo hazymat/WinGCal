@@ -20,7 +20,7 @@
   $effect(() => { const focus = ui.focus; topDay = focus; wheelDay = null; span = 56; lookBack = 30; settling = true; requestAnimationFrame(() => { scrollToDay(focus, false); requestAnimationFrame(() => { settling = false; onListScroll() }) }) })
   function scrollToDay(day: Date, smooth: boolean) { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (!list) return; if (!section) { ui.focus = day; return } if (smooth) warpScroll(list, section.offsetTop - readingLine()); else list.scrollTop = section.offsetTop - readingLine() }
   let growingBack = false, todayInView = $state(true)
-  // Lingering among only past days: after a moment they warm back up a little, like a tungsten bulb coming on (they stay warm until a day from today on comes into view)
+  // Reading past days: after a moment they warm back up, like a tungsten bulb coming on (until today or later is back on the reading line)
   let warmed = $state(false), warmTimer = 0
   // The month above follows the day on the reading line
   function onListScroll() {
@@ -29,10 +29,10 @@
     // Scrolling up reaches further back, eight weeks at a time, without the list jumping
     if (list.scrollTop < 300 && lookBack < 3650 && !growingBack && !isWarping(list)) { growingBack = true; const before = list.scrollHeight; lookBack += 56; requestAnimationFrame(() => { if (list) list.scrollTop += list.scrollHeight - before; growingBack = false }) }
     const todaySection = list.querySelector<HTMLElement>('.day.today')
-    const bottomSection = Array.from(list.querySelectorAll<HTMLElement>('.day')).filter(section => section.offsetTop < list!.scrollTop + list!.clientHeight - 20).pop(), onlyPast = !!bottomSection?.classList.contains('gone')
-    if (!onlyPast) { clearTimeout(warmTimer); warmTimer = 0; warmed = false } else if (!warmed && !warmTimer) warmTimer = setTimeout(() => { warmed = true; warmTimer = 0 }, 1400)
     todayInView = !!todaySection && todaySection.offsetTop + todaySection.offsetHeight > list.scrollTop + 20 && todaySection.offsetTop < list.scrollTop + list.clientHeight - 20
     const line = list.scrollTop + readingLine() + 6, section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > line)
+    // The bulb comes on once a past day is on the reading line (today may still be lower down), after a short pause
+    if (!section?.classList.contains('gone')) { clearTimeout(warmTimer); warmTimer = 0; warmed = false } else if (!warmed && !warmTimer) warmTimer = setTimeout(() => { warmed = true; warmTimer = 0 }, 700)
     if (section && !settling) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
   }
   // The wheel over the month steps a day at a time, empty days included; the list glides to that day, or the next one with something on
