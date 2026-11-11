@@ -39,15 +39,15 @@
     if (!pastFills) { clearTimeout(warmTimer); warmTimer = 0; warmed = false } else if (!warmed && !warmTimer) warmTimer = setTimeout(() => { warmed = true; warmTimer = 0 }, 700)
     if (section && !settling) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
   }
-  // The wheel over the month steps a day at a time, empty days included; the list glides to that day, or the next one with something on
+  // The wheel over the month turns a month per notch; the list glides to the 1st of that month, or the next day with something on
   let wheelDay: Date | null = $state(null), wheelPending = 0
   function monthWheel(wheelEvent: WheelEvent) {
     wheelEvent.preventDefault()
     if (!list) return
     wheelPending += Math.abs(wheelEvent.deltaY) >= Math.abs(wheelEvent.deltaX) ? wheelEvent.deltaY : wheelEvent.deltaX
-    const steps = Math.trunc(wheelPending / 50); if (!steps) return
-    wheelPending -= steps * 50
-    const target = addDays(wheelDay ?? topDay, Math.sign(steps)), offset = Math.round((target.getTime() - ui.focus.getTime()) / 86_400_000)
+    const steps = Math.trunc(wheelPending / 100); if (!steps) return
+    wheelPending -= steps * 100
+    const shownMonth = wheelDay ?? topDay, target = new Date(shownMonth.getFullYear(), shownMonth.getMonth() + Math.sign(steps), 1), offset = Math.round((target.getTime() - ui.focus.getTime()) / 86_400_000)
     wheelDay = target
     if (offset < -lookBack) lookBack = -offset + 28
     if (offset + 40 > span) span = offset + 70
@@ -80,7 +80,7 @@
   <div class="list-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="lamp" class:on={warmed} style="height: min(100%, {lampHeight}px)" aria-hidden="true"></div>
-  <div class="list" class:warmed class:lit={(ui.lookVersion, prefs.fluorescent)} bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
+  <div class="list" class:warmed class:lit={(ui.lookVersion, prefs.stripLight > 0)} style:--strip={(ui.lookVersion, prefs.stripLight / 50)} bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
     {#each days as { day, list }, index (day.getTime())}
       <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
@@ -141,11 +141,11 @@
   .item { display: grid; grid-template-columns: 4px auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 6px 8px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel)); /* Event tint, Settings › Appearance */ color: var(--fg); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
   .item:hover { background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel-strong)); }
   .item.past { opacity: 0.6; }
-  /* Strip light (Settings › View): a cool fluorescent band fixed in space, so each of today's and upcoming events catches it as it scrolls past (Chromium scroll-driven animation) */
-  .lit .day:not(.gone) .item { position: relative; overflow: hidden; }
-  .lit .day:not(.gone) .item::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; mix-blend-mode: soft-light; background: linear-gradient(100deg, transparent 44%, rgba(255, 255, 255, 0.35) 49.2%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.35) 50.8%, transparent 56%) no-repeat; background-size: 300% 100%; animation: strip-light linear both; animation-timeline: view(); animation-range: cover 20% cover 80%; } /* tied to scroll position, crossing each event within the middle of the view so it moves briskly with the wheel */
-  /* Today is glossier: the same tube, reflected a little brighter */
-  .lit .day.today .item::after { mix-blend-mode: overlay; background-image: linear-gradient(100deg, transparent 43%, rgba(255, 255, 255, 0.4) 49%, rgba(255, 255, 255, 0.75) 50%, rgba(255, 255, 255, 0.4) 51%, transparent 57%); }
+  /* Strip light (Settings › Appearance, amount = --strip, 1 at the default 50%): a soft daylight glow fixed in space, so each of today's and upcoming events catches it as it scrolls past (Chromium scroll-driven animation). A broad feathered glow on screen blend reads as light, not brushed metal */
+  .lit .day:not(.gone) .item { position: relative; overflow: clip; } /* clip, not hidden: hidden makes the item its own scroller, and the light would then ride along with it */
+  .lit .day:not(.gone) .item::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; mix-blend-mode: screen; opacity: min(calc(var(--strip, 1) * 0.5), 1); background: linear-gradient(100deg, transparent 36%, rgba(255, 246, 228, 0.07) 42%, rgba(255, 248, 236, 0.2) 48%, rgba(255, 250, 242, 0.26) 50%, rgba(255, 248, 236, 0.2) 52%, rgba(255, 246, 228, 0.07) 58%, transparent 64%) no-repeat; background-size: 300% 100%; animation: strip-light linear both; animation-timeline: view(); animation-range: cover 20% cover 80%; } /* tied to scroll position, crossing each event within the middle of the view so it moves briskly with the wheel */
+  /* Today catches it brighter */
+  .lit .day.today .item::after { opacity: min(calc(var(--strip, 1) * 0.8), 1); }
   @keyframes strip-light { from { background-position: 85% 0; } to { background-position: 15% 0; } }
   .bar { grid-row: 1 / span 2; align-self: stretch; border-radius: 2px; background: var(--colour); }
   .time { font-size: 12px; color: var(--fg-quiet); white-space: nowrap; font-variant-numeric: tabular-nums; }
