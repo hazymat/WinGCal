@@ -174,6 +174,7 @@ public sealed class CalendarStore
         if (found == null || calendar == null) return;
         var series = wholeSeries && found.RecurringId.Length > 0 ? found.RecurringId : "";
         await Api.DeleteEventAsync(calendar.Account, calendar.Id, series.Length > 0 ? series : found.EventId, CancellationToken.None);
+        ChangeHistory.Record(new HistoryStep { Kind = "delete", CalendarKey = calendar.Key, EventId = series.Length > 0 ? series : found.EventId, Before = FieldsOf(found) }, $"Deleted “{found.Title}”");
         EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Where(item => item.Id != uiEventId && (series.Length == 0 || item.RecurringId != series)).ToList();
         SaveCache(); Changed?.Invoke();
     }
@@ -183,7 +184,9 @@ public sealed class CalendarStore
         var found = FindEvent(uiEventId);
         var calendar = found == null ? null : Calendars.FirstOrDefault(candidate => candidate.Key == found.CalendarKey);
         if (found == null || calendar == null) return;
+        var before = FieldsOf(found); foreach (var key in before.Select(pair => pair.Key).Where(key => !changes.ContainsKey(key)).ToList()) before.Remove(key);
         var saved = await Api.PatchEventAsync(calendar.Account, calendar.Id, found.EventId, changes, CancellationToken.None);
+        ChangeHistory.Record(new HistoryStep { Kind = "update", CalendarKey = calendar.Key, EventId = found.EventId, Before = before, After = (System.Text.Json.Nodes.JsonObject)changes.DeepClone() }, $"Changed “{found.Title}”");
         var updated = ToUiEvent(calendar, saved);
         EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Select(item => item.Id == uiEventId ? updated : item).Where(item => item != null).Select(item => item!).ToList();
         SaveCache(); Changed?.Invoke();
@@ -194,6 +197,7 @@ public sealed class CalendarStore
         var calendar = Calendars.FirstOrDefault(candidate => candidate.Key == calendarKey) ?? throw new InvalidOperationException("That calendar isn't available");
         var saved = await Api.InsertEventAsync(calendar.Account, calendar.Id, newEvent, CancellationToken.None);
         var created = ToUiEvent(calendar, saved);
+        ChangeHistory.Record(new HistoryStep { Kind = "create", CalendarKey = calendar.Key, EventId = Text(saved, "id"), After = (System.Text.Json.Nodes.JsonObject)newEvent.DeepClone() }, $"Added “{created?.Title ?? "event"}”");
         if (created != null) EventsByCalendar[calendar.Key] = EventsByCalendar.GetValueOrDefault(calendar.Key, new()).Append(created).ToList();
         SaveCache(); Changed?.Invoke();
         return created;
@@ -206,8 +210,44 @@ public sealed class CalendarStore
         var destination = Calendars.FirstOrDefault(candidate => candidate.Key == destinationKey);
         if (found == null || calendar == null || destination == null || destination.Key == calendar.Key) return;
         var moved = await Api.MoveEventAsync(calendar.Account, calendar.Id, found.EventId, destination.Id, CancellationToken.None);
+        ChangeHistory.Record(new HistoryStep { Kind = "move", CalendarKey = calendar.Key, EventId = found.EventId, ToCalendarKey = destination.Key }, $"Moved “{found.Title}” to {destination.Name}");
         EventsByCalendar[calendar.Key] = EventsByCalendar[calendar.Key].Where(item => item.Id != uiEventId).ToList();
         if (ToUiEvent(destination, moved) is { } arrived) EventsByCalendar[destination.Key] = EventsByCalendar.GetValueOrDefault(destination.Key, new()).Append(arrived).ToList();
+        SaveCache(); Changed?.Invoke();
+    }
+
+    // What undo can put back: the fields WinGCal itself changes, as a Google patch
+    static System.Text.Json.Nodes.JsonObject FieldsOf(UiEvent item)
+    {
+        System.Text.Json.Nodes.JsonObject When(string text) => item.AllDay ? new() { ["date"] = text, ["dateTime"] = null, ["timeZone"] = null } : new() { ["dateTime"] = text, ["date"] = null };
+        return new() { ["summary"] = item.Title == "(No title)" ? "" : item.Title, ["location"] = item.Location, ["description"] = item.Description, ["start"] = When(item.Start), ["end"] = When(item.End) };
+    }
+
+    // Undo (backwards) or redo of one recorded step, straight to Google and into the cache; it isn't recorded again. A deleted event comes back as itself (Google keeps it, marked cancelled), or failing that is added again from its saved fields
+    public async Task ReplayAsync(HistoryStep step, bool backwards)
+    {
+        var calendar = Calendars.FirstOrDefault(candidate => candidate.Key == step.CalendarKey) ?? throw new InvalidOperationException("That calendar isn't available any more");
+        var cancel = CancellationToken.None;
+        void Drop(CalendarInfo from, string eventId) => EventsByCalendar[from.Key] = EventsByCalendar.GetValueOrDefault(from.Key, new()).Where(item => item.EventId != eventId && item.RecurringId != eventId).ToList();
+        void Put(CalendarInfo into, JsonElement saved) { var eventId = Text(saved, "id"); Drop(into, eventId); if (!saved.TryGetProperty("recurrence", out _) && ToUiEvent(into, saved) is { } shown) EventsByCalendar[into.Key] = EventsByCalendar[into.Key].Append(shown).ToList(); }
+        async Task Remove() { await Api.DeleteEventAsync(calendar.Account, calendar.Id, step.EventId, cancel); Drop(calendar, step.EventId); }
+        async Task Restore(System.Text.Json.Nodes.JsonObject? fields)
+        {
+            JsonElement saved;
+            try { saved = await Api.PatchEventAsync(calendar.Account, calendar.Id, step.EventId, new() { ["status"] = "confirmed" }, cancel); }
+            catch (HttpRequestException) when (fields != null) { saved = await Api.InsertEventAsync(calendar.Account, calendar.Id, (System.Text.Json.Nodes.JsonObject)fields.DeepClone(), cancel); ChangeHistory.Renamed(calendar.Key, step.EventId, Text(saved, "id")); }
+            Put(calendar, saved);
+        }
+        switch (step.Kind)
+        {
+            case "update": if ((backwards ? step.Before : step.After) is { } fields) Put(calendar, await Api.PatchEventAsync(calendar.Account, calendar.Id, step.EventId, (System.Text.Json.Nodes.JsonObject)fields.DeepClone(), cancel)); break;
+            case "create": if (backwards) await Remove(); else await Restore(step.After); break;
+            case "delete": if (backwards) await Restore(step.Before); else await Remove(); break;
+            case "move":
+                var other = Calendars.FirstOrDefault(candidate => candidate.Key == step.ToCalendarKey) ?? throw new InvalidOperationException("That calendar isn't available any more");
+                var (from, to) = backwards ? (other, calendar) : (calendar, other);
+                var moved = await Api.MoveEventAsync(from.Account, from.Id, step.EventId, to.Id, cancel); Drop(from, step.EventId); Put(to, moved); break;
+        }
         SaveCache(); Changed?.Invoke();
     }
 

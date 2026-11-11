@@ -34,6 +34,10 @@ public static class EventChanges
     public static async Task<List<string>> ShiftManyAsync(CalendarStore store, List<UiEvent> events, int days, int minutes)
     {
         var failed = new List<string>();
+        // "Moved “Team stand-up” to Thu 12 Nov", or "… to 14:30" when only the time changed
+        var first = events.FirstOrDefault(); var landed = first == null ? DateTime.Today : LocalTimes(first).start + TimeSpan.FromDays(days) + (first.AllDay ? TimeSpan.Zero : TimeSpan.FromMinutes(minutes));
+        var where = days == 0 && first is { AllDay: false } ? landed.ToString("t", CultureInfo.CurrentCulture) : landed.ToString("ddd d MMM", CultureInfo.CurrentCulture) + (minutes != 0 && first is { AllDay: false } ? " " + landed.ToString("t", CultureInfo.CurrentCulture) : "");
+        using var group = ChangeHistory.Begin(events.Count == 1 ? $"Moved “{first!.Title}” to {where}" : $"Moved {events.Count} events to {where}");
         foreach (var item in events)
         {
             try
@@ -52,6 +56,7 @@ public static class EventChanges
     public static async Task<List<string>> ApplyToManyAsync(CalendarStore store, List<UiEvent> events, DateTime? newDate, TimeSpan? newStart, TimeSpan? newEnd, string? place, string? targetKey, IProgress<int>? progress = null)
     {
         var failed = new List<string>(); var done = 0;
+        using var group = ChangeHistory.Begin(events.Count == 1 ? $"Changed “{events[0].Title}”" : $"Changed {events.Count} events");
         foreach (var item in events)
         {
             progress?.Report(++done);

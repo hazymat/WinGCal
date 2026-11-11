@@ -9,7 +9,7 @@
   import { glideWheel } from '../lib/glide'
   import { chaseOnView } from '../lib/chase'
   import { slide } from 'svelte/transition'
-  import { tick } from 'svelte'
+  import { tick, untrack } from 'svelte'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   let height = $state(600)
@@ -75,11 +75,23 @@
   // While events are carried, every day opens up (empty ones as dashed boxes to drop into), sliding the others aside; afterwards they close again
   let sliding = $state(false), slideTimer = 0
   $effect(() => { carry.active; sliding = true; clearTimeout(slideTimer); slideTimer = setTimeout(() => sliding = false, 700) })
+  // As that room opens (or closes), the day under the pointer stays exactly where it is and the days above and below move apart around it, so a lift and a still release land back home
+  let anchorFrame = 0, carryWas = false
+  $effect.pre(() => { const opening = carry.active; untrack(() => {
+    if (opening === carryWas || !list) return
+    carryWas = opening
+    const section = document.elementsFromPoint(carry.x, carry.y).map(node => node.closest<HTMLElement>('[data-day]')).find(found => found && list!.contains(found)) ?? list.querySelector<HTMLElement>(`[data-day="${carry.originDay}"]`)
+    if (!section) return
+    const key = section.dataset.day!, offset = section.offsetTop - list.scrollTop, until = performance.now() + 800
+    cancelAnimationFrame(anchorFrame)
+    const hold = () => { const now = list?.querySelector<HTMLElement>(`[data-day="${key}"]`); if (list && now) list.scrollTop = now.offsetTop - offset; if (performance.now() < until) anchorFrame = requestAnimationFrame(hold) }
+    tick().then(hold) // straight after the new days are drawn, before they're painted
+  }) })
   const allDayLabel = (event: Placed, day: Date) => { const total = Math.round((event.endAt.getTime() - event.startAt.getTime()) / 86_400_000); if (total <= 1) return 'All day'; const dayNumber = Math.round((startOfDay(day).getTime() - event.startAt.getTime()) / 86_400_000) + 1; return `Day ${dayNumber} of ${total}` }
 </script>
 
 <div class="agenda" bind:clientHeight={height}>
-  {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={wheelDay ?? topDay} onday={glideToDay} /></div>{/if}
+  {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={wheelDay ?? topDay} onday={glideToDay} range={ui.pickedDays} onrange={(from, to) => ui.pickedDays = { from, to }} /></div>{/if}
   <div class="list-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="lamp" class:on={warmed} style="height: min(100%, {lampHeight}px)" aria-hidden="true"></div>

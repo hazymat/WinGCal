@@ -119,7 +119,7 @@ public partial class App : Application
         if (Store.FindEvent(uiEventId) == null) return;
         ShowPopup(new EventPopup(EventPopup.Kind.Event, uiEventId));
     }
-    public void OpenNewEvent(string day, string time) => ShowPopup(new EventPopup(EventPopup.Kind.New, day: day, time: time));
+    public void OpenNewEvent(string day, string time, string endDay = "") => ShowPopup(new EventPopup(EventPopup.Kind.New, day: day, time: time, endDay: endDay));
     public void OpenBatchEditor(List<string> uiEventIds) => ShowPopup(new EventPopup(EventPopup.Kind.Batch, ids: uiEventIds));
     void ShowPopup(EventPopup popup) { eventWindows.Add(popup); popup.Closed += (sender, args) => eventWindows.Remove(popup); popup.Show(); popup.Activate(); }
     public void PushSkinToPopups() { foreach (var popup in eventWindows.OfType<EventPopup>()) popup.PushSkin(); }

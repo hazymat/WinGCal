@@ -179,6 +179,28 @@
       </StackPanel>
       </ScrollViewer>
     </TabItem>
+    <TabItem Header="History" x:Name="historyTab">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="20,8,20,16">
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Changes you've made" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" Text="Every change to an event, newest first (the last 1,000). Undo or redo any of them, in any order. Ctrl+Z and Ctrl+Y in the calendar undo the newest and redo the last undone." />
+            <TextBlock x:Name="noHistoryText" Style="{StaticResource Quiet}" Text="Nothing changed yet." Margin="0,10,0,0" />
+            <ItemsControl x:Name="historyList" Margin="0,8,0,0">
+              <ItemsControl.ItemTemplate><DataTemplate>
+                <DockPanel Margin="0,3">
+                  <Button DockPanel.Dock="Right" Content="{Binding Action}" Tag="{Binding Id}" Click="HistoryAction_Click" MinWidth="64" Margin="8,0,0,0" VerticalAlignment="Center" />
+                  <TextBlock DockPanel.Dock="Left" Text="{Binding When}" Width="110" Foreground="#888" FontSize="12" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding Summary}" Opacity="{Binding Fade}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Summary}" />
+                </DockPanel>
+              </DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+      </ScrollViewer>
+    </TabItem>
     <TabItem Header="Look" Style="{StaticResource SectionHeader}" />
     <TabItem Header="Appearance" x:Name="appearanceTab">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
