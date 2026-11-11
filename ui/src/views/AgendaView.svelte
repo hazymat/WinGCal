@@ -56,7 +56,6 @@
   .list { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 12px; mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }
   /* Days drift in from below and fade as they pass the top, so today reads as the middle of a moving strip (Chromium scroll-driven animation; without it the list is plain) */
   .day, .month-break { animation: agenda-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
-  @keyframes agenda-drift { 0% { opacity: 0.2; transform: translateY(14px) scale(0.96); } 24% { opacity: 1; transform: none; } 68% { opacity: 1; transform: none; } 100% { opacity: 0.25; transform: scale(0.98); } }
   .day.gone .items, .day.gone .when { opacity: 0.55; }
   .month-break { margin: 14px 6px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-quiet); }
   .day { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 6px 4px; border-radius: 10px; }

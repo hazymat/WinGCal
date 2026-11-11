@@ -107,3 +107,5 @@ a, img, svg { -webkit-user-drag: none; }
 
 /* Today breathes gently in every view: a soft accent wash, no outline */
 @keyframes today-pulse { 0%, 100% { background-color: color-mix(in srgb, var(--accent) 3%, transparent); } 50% { background-color: color-mix(in srgb, var(--accent) 11%, transparent); } }
+/* Agenda and Split: days drift in from below and fade as they pass the top */
+@keyframes agenda-drift { 0% { opacity: 0.2; transform: translateY(14px) scale(0.96); } 24% { opacity: 1; transform: none; } 68% { opacity: 1; transform: none; } 100% { opacity: 0.25; transform: scale(0.98); } }
