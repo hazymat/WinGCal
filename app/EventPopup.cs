@@ -39,7 +39,8 @@ public sealed class EventPopup : Window
         Loaded += async (sender, args) => { PlaceNearPointer(); await StartAsync(); };
         App.Store.Changed += OnStoreChanged;
         Closed += (sender, args) => App.Store.Changed -= OnStoreChanged;
-        LocationChanged += (sender, args) => { if (clearOn) PushWallpaper(); };
+        LocationChanged += (sender, args) => { if (clearOn) PushWallpaper(); CheckBehind(); };
+        behindTimer.Tick += (sender, args) => CheckBehind(); Loaded += (sender, args) => behindTimer.Start(); Closed += (sender, args) => behindTimer.Stop();
         SizeChanged += (sender, args) => { if (clearOn) PushWallpaper(); };
     }
     static int openCount;
@@ -133,7 +134,10 @@ public sealed class EventPopup : Window
     }
 
     // Glass skins: an acrylic window the page tints; Paper, Technical and Wall calendar: the page is solid
-    bool glassOn, clearOn;
+    bool glassOn, clearOn, overWindows;
+    readonly System.Windows.Threading.DispatcherTimer behindTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    // Another app's window moved behind (or away): switch between clear glass and Windows' acrylic
+    void CheckBehind() { if (glassOn && IsVisible && App.Settings.Look.ClearGlass && WindowsBehind.Any(new WindowInteropHelper(this).Handle) != overWindows) PushSkin(); }
     void ApplyGlass()
     {
         var handle = new WindowInteropHelper(this).Handle; if (handle == IntPtr.Zero) return;
@@ -144,8 +148,9 @@ public sealed class EventPopup : Window
         var style = GetWindowLong(handle, -16); var wantedStyle = style & ~(0x00C00000 | 0x00080000);
         if (wantedStyle != style) { SetWindowLong(handle, -16, wantedStyle); SetWindowPos(handle, IntPtr.Zero, 0, 0, 0, 0, 0x0027 /*NOMOVE|NOSIZE|NOZORDER|FRAMECHANGED*/); }
         var captionColour = unchecked((int)0xFFFFFFFE); DwmSetWindowAttribute(handle, 35, ref captionColour, sizeof(int));
-        // Clear glass needs the wallpaper to frost from; without it (or with Panel frost at none) the window keeps Windows' acrylic
-        var clear = look.IsGlassSkin && look.Glass && look.ClearGlass && look.PanelFrost > 0 && wallpaperFeed.Message(webView, ActualWidth, ActualHeight, false, true) != null;
+        // Clear glass needs the wallpaper to frost from, and only the desktop behind; otherwise (or with Panel frost at none) the window keeps Windows' acrylic, which blurs what is really there
+        overWindows = WindowsBehind.Any(handle);
+        var clear = look.IsGlassSkin && look.Glass && look.ClearGlass && look.PanelFrost > 0 && !overWindows && wallpaperFeed.Message(webView, ActualWidth, ActualHeight, false, true) != null;
         var backdrop = look.IsGlassSkin && !clear ? 3 : 1;
         glassOn = look.IsGlassSkin && DwmSetWindowAttribute(handle, 38, ref backdrop, sizeof(int)) == 0;
         clearOn = glassOn && clear;
