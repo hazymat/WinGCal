@@ -11,7 +11,7 @@
   // A glass event window (SPEC.md › Event windows): ?window=event | new | batch. The shell sends the look, then what to show
   const mode = new URLSearchParams(location.search).get('window') ?? 'event'
   let glass = $state(false), clear = $state(false), payload = $state<{ events: EditorEvent[]; calendars: EditorCalendar[]; day: string; time: string } | null>(null), problem = $state(''), savedAt = $state(0)
-  onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.windowTint = message.windowTint ?? ui.windowTint; ui.panelTint = message.panelTint ?? ui.panelTint; ui.panelGrain = message.panelGrain ?? ui.panelGrain; ui.glassThickness = message.glassThickness ?? ui.glassThickness })
+  onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.windowTint = message.windowTint ?? ui.windowTint; ui.panelTint = message.panelTint ?? ui.panelTint; ui.panelGrain = message.panelGrain ?? ui.panelGrain; ui.glassThickness = message.glassThickness ?? ui.glassThickness; ui.frostColour = message.frostColour ?? ui.frostColour })
   onShellMessage('window', message => { glass = !!message.glass; clear = !!message.clear })
   // Clear glass, as the calendar window: see-through, the heading and the form each a frosted panel over the wallpaper behind them
   onShellMessage('wallpaper', message => { if (message.off) { ui.wallpaper = null; return } ui.wallpaper = { image: message.image ?? ui.wallpaper?.image ?? '', monitor: message.monitor, origin: message.origin, frost: message.frost } })

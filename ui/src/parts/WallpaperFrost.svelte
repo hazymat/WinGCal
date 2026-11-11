@@ -5,7 +5,7 @@
   // Glass thickness bends the light: the desktop behind a panel is magnified a little about its middle, so it no longer lines up with what's around it, and each edge catches a thin bright line, a pale wash of the colours just beyond it
   const scale = $derived(window.devicePixelRatio || 1)
   const blur = $derived((ui.wallpaper?.frost ?? 0) * 0.4)
-  const thickness = $derived(ui.glassThickness / 100)
+  const thickness = $derived(ui.glassThickness / 100) // Frost colour (below) desaturates the blurred desktop, 0 = grey
   // The picture placed for one panel, magnified about the panel's middle by `zoom`
   function placed(rect: { left: number; top: number; width: number; height: number }, zoom: number) {
     const paper = ui.wallpaper!, left = (paper.monitor.x - paper.origin.x) / scale - rect.left, top = (paper.monitor.y - paper.origin.y) / scale - rect.top, width = paper.monitor.width / scale, height = paper.monitor.height / scale
@@ -18,7 +18,7 @@
   <div class="wallpaper-frost" aria-hidden="true">
     {#each ui.frostRects as rect}
       <div class="clip" style="left: {rect.left}px; top: {rect.top}px; width: {rect.width}px; height: {rect.height}px">
-        <div class="picture" style="{placed(rect, 1 + thickness * 0.1)}; filter: blur({blur}px) saturate({1 + blur / 80})"></div>
+        <div class="picture" style="{placed(rect, 1 + thickness * 0.1)}; filter: blur({blur}px) saturate({(1 + blur / 80) * ui.frostColour / 100})"></div>
         {#if thickness > 0}<div class="rim" style="--rim: {1 + thickness * 1.5}px; opacity: {0.45 + thickness * 0.55}"><div class="picture" style="{placed(rect, 1 + thickness * 0.3)}; filter: blur(0.6px) saturate(0.45) brightness(2.4)"></div></div>{/if}
       </div>
     {/each}
