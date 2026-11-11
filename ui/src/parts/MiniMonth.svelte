@@ -3,7 +3,7 @@
   import { ui, eventsOn, type Placed } from '../state.svelte'
   import { addDays, addMonths, sameDay, startOfDay, startOfWeek, prefs, monthName } from '../lib/dates'
   import Icon from './Icon.svelte'
-  let { events, follow }: { events: Placed[]; follow?: Date } = $props()
+  let { events, follow, ontoday }: { events: Placed[]; follow?: Date; ontoday?: () => void } = $props()
   let shownMonth = $state(new Date(ui.focus.getFullYear(), ui.focus.getMonth(), 1))
   // Follows the day list's scrolling (agenda), turning the page when the list reaches another month
   $effect(() => { const day = follow; if (day) untrack(() => { if (day.getMonth() !== shownMonth.getMonth() || day.getFullYear() !== shownMonth.getFullYear()) shownMonth = new Date(day.getFullYear(), day.getMonth(), 1) }) })
@@ -14,7 +14,7 @@
 </script>
 
 <div class="mini-month">
-  <div class="mini-head"><span>{monthName(shownMonth)} {shownMonth.getFullYear()}</span>{#if !sameDay(ui.focus, today) || shownMonth.getMonth() !== today.getMonth() || shownMonth.getFullYear() !== today.getFullYear()}<button class="back-today" onclick={() => { ui.focus = today; shownMonth = new Date(today.getFullYear(), today.getMonth(), 1) }} title="Back to today (T)">Today</button>{/if}<button onclick={() => shownMonth = addMonths(shownMonth, -1)} aria-label="Previous month"><Icon name="previous" size={14} /></button><button onclick={() => shownMonth = addMonths(shownMonth, 1)} aria-label="Next month"><Icon name="next" size={14} /></button></div>
+  <div class="mini-head"><span>{monthName(shownMonth)} {shownMonth.getFullYear()}</span>{#if !sameDay(ui.focus, today) || (follow && !sameDay(follow, today)) || shownMonth.getMonth() !== today.getMonth() || shownMonth.getFullYear() !== today.getFullYear()}<button class="back-today" onclick={() => { ui.focus = today; shownMonth = new Date(today.getFullYear(), today.getMonth(), 1); ontoday?.() }} title="Back to today (T)">Today</button>{/if}<button onclick={() => shownMonth = addMonths(shownMonth, -1)} aria-label="Previous month"><Icon name="previous" size={14} /></button><button onclick={() => shownMonth = addMonths(shownMonth, 1)} aria-label="Next month"><Icon name="next" size={14} /></button></div>
   <div class="cells">
     {#each days.slice(0, 7) as day}<span class="weekday">{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
     {#each days as day (day.getTime())}
