@@ -103,7 +103,7 @@
   section.today { border-radius: 8px; padding: 2px 4px 6px; }
   .cell.today .number { color: var(--accent); font-weight: 750; }
   .cell.selected { box-shadow: inset 0 0 0 1.5px var(--fg); }
-  .cell.today.selected { box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
+  .cell.today.selected { box-shadow: none; }
   .dots { position: absolute; left: 0; right: 0; bottom: 12%; display: flex; justify-content: center; gap: 2px; }
   .dots i { width: 4px; height: 4px; border-radius: 50%; }
   .handle { flex: none; width: 14px; display: grid; place-items: center; cursor: col-resize; touch-action: none; }
