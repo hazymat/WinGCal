@@ -1,7 +1,7 @@
 <script lang="ts">
   import HandCircle from '../parts/HandCircle.svelte'
   import { ui, eventsOn, type Placed } from '../state.svelte'
-  import { addDays, sameDay, startOfDay, formatTime, weekdayShort, shortDate, monthName, dayKey } from '../lib/dates'
+  import { prefs, addDays, sameDay, startOfDay, formatTime, weekdayShort, shortDate, monthName, dayKey } from '../lib/dates'
   import MiniMonth from '../parts/MiniMonth.svelte'
   import Icon from '../parts/Icon.svelte'
   import { warpScroll, isWarping } from '../lib/warp'
@@ -73,7 +73,7 @@
   <div class="list-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="lamp" class:on={warmed} aria-hidden="true"></div>
-  <div class="list" class:warmed bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
+  <div class="list" class:warmed class:lit={(ui.lookVersion, prefs.fluorescent)} bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
     {#each days as { day, list }, index (day.getTime())}
       <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
@@ -134,6 +134,13 @@
   .item { display: grid; grid-template-columns: 4px auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 6px 8px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel)); /* Event tint, Settings › Appearance */ color: var(--fg); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
   .item:hover { background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel-strong)); }
   .item.past { opacity: 0.6; }
+  /* Strip light (Settings › View): a cool fluorescent band fixed in space, so each of today's and upcoming events catches it as it scrolls past (Chromium scroll-driven animation) */
+  .lit .day:not(.gone) .item { position: relative; overflow: hidden; }
+  .lit .day:not(.gone) .item::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; mix-blend-mode: screen; background: linear-gradient(105deg, transparent 38%, rgba(214, 236, 255, 0.1) 45%, rgba(240, 248, 255, 0.24) 50%, rgba(214, 236, 255, 0.1) 55%, transparent 62%) no-repeat, linear-gradient(rgba(205, 228, 255, 0.045), rgba(205, 228, 255, 0.045)); background-size: 300% 100%, 100% 100%; animation: strip-light linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+  /* Today is glossier: a brighter, sharper reflection with a second faint band behind it */
+  .lit .day.today .item::after { background: linear-gradient(105deg, transparent 36%, rgba(214, 236, 255, 0.16) 44%, rgba(255, 255, 255, 0.46) 50%, rgba(214, 236, 255, 0.16) 56%, transparent 64%) no-repeat, linear-gradient(105deg, transparent 30%, rgba(214, 236, 255, 0.12) 34%, transparent 38%) no-repeat, linear-gradient(rgba(205, 228, 255, 0.07), rgba(205, 228, 255, 0.07)); background-size: 300% 100%, 300% 100%, 100% 100%; animation-name: strip-light-today; }
+  @keyframes strip-light { from { background-position: 85% 0, 0 0; } to { background-position: 15% 0, 0 0; } }
+  @keyframes strip-light-today { from { background-position: 85% 0, 92% 0, 0 0; } to { background-position: 15% 0, 22% 0, 0 0; } }
   .bar { grid-row: 1 / span 2; align-self: stretch; border-radius: 2px; background: var(--colour); }
   .time { font-size: 12px; color: var(--fg-quiet); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
