@@ -7,8 +7,11 @@
   import { ui, eventsOn, type Placed } from '../state.svelte'
   import { addDays, sameDay, startOfDay, startOfWeek, formatTime, weekdayShort, prefs, dayMs, dayKey } from '../lib/dates'
   import { warpScroll, isWarping } from '../lib/warp'
+  import { dayPicker, inPicked } from '../lib/pickDays'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
+  const picker = dayPicker() // drag across days, or hold one, for the New event bar
+  let selectedDay: Date | null = $state(null) // a click on a day just marks it, softly (today keeps its ring)
   // One endless sheet of weeks, six to a screen: the wheel scrolls through the months above and below, and the month filling the middle is the one shown
   const weekOf = (date: Date) => startOfWeek(new Date(date.getFullYear(), date.getMonth(), 1), prefs.weekStart)
   const firstOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1)
@@ -73,14 +76,14 @@
 <div class="month" onwheel={(wheelEvent) => { if (scroller && !scroller.contains(wheelEvent.target as Node)) scroller.scrollTop += wheelEvent.deltaY }}>
   <div class="weekdays">{#each days.slice(0, 7) as day}<div>{weekdayShort(day)}</div>{/each}</div>
   <div class="scroller" bind:this={scroller} bind:clientHeight={viewHeight} onscroll={onScroll}>
-  <div class="grid" style="--row: {rowHeight}px">
+  <div class="grid" style="--row: {rowHeight}px" onpointerdown={picker.down} onpointermove={picker.move} onpointerup={picker.up} onpointercancel={picker.up} oncontextmenu={picker.menu} role="grid" tabindex="-1">
     {#each days as day (day.getTime())}
       {@const list = dayEvents(day)}
-      <div class="day" data-newday={dayKey(day)} class:other={day.getMonth() !== shownMonth.getMonth() || day.getFullYear() !== shownMonth.getFullYear()} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:today={sameDay(day, today)}>
+      <div class="day" data-newday={dayKey(day)} data-key={dayKey(day)} class:picked-day={(ui.pickedDays, inPicked(day))} class:other={day.getMonth() !== shownMonth.getMonth() || day.getFullYear() !== shownMonth.getFullYear()} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:today={sameDay(day, today)} class:today-ring={sameDay(day, today)} class:selected-day={!!selectedDay && sameDay(day, selectedDay)} onclick={(click) => { if (!(click.target as HTMLElement).closest('button')) selectedDay = day }} role="presentation">
         <button class="number" onclick={() => { ui.focus = day; ui.view = 'week' }} title="Open this week">{day.getDate() === 1 ? day.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</button>
         {#each list.shown as event (event.id)}
           {#if event.allDay}
-            <button class="pill" class:picked={ui.picked.includes(event.id)} data-event={event.id} class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{#if !isBirthday(event) && !(continuesBefore(event, day) && day.getDay() !== prefs.weekStart)}<HandStar seed={event.id} />{/if}{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : shortTitle(event)}<HandArrow {event} {day} /></button>
+            <button class="pill" class:span={continuesBefore(event, day) || continuesAfter(event, day)} class:picked={ui.picked.includes(event.id)} data-event={event.id} class:joined-left={continuesBefore(event, day)} class:joined-right={continuesAfter(event, day)} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{#if !isBirthday(event) && !(continuesBefore(event, day) && day.getDay() !== prefs.weekStart)}<HandStar seed={event.id} />{/if}{continuesBefore(event, day) && day.getDay() !== prefs.weekStart ? '' : shortTitle(event)}<HandArrow {event} {day} /></button>
           {:else}
             <button class="line" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{shortTitle(event)}</span></button>
           {/if}
@@ -107,6 +110,8 @@
   .number:hover { background: var(--hover); }
   .today .number { background: var(--accent); color: var(--on-accent); }
   .today { animation: today-pulse 3s ease-in-out infinite; } /* tokens.css */
+  .day.selected-day { background: color-mix(in srgb, var(--fg) 8%, var(--cell)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 22%, transparent); }
+  .day.picked-day { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent); } /* days picked for a new event */
   .line, .pill, .more { display: flex; align-items: center; gap: 5px; height: 17px; flex: none; min-width: 0; padding: 0 4px; border: 0; border-radius: 4px; background: none; color: var(--fg); font: inherit; font-size: 12px; text-align: left; cursor: pointer; white-space: nowrap; }
   .line:hover, .more:hover { background: var(--hover); }
   .line.past { color: var(--fg-quiet); }
@@ -120,4 +125,13 @@
   .pill.joined-left { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -4px; }
   .pill.joined-right { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -5px; }
   .more { color: var(--fg-quiet); font-size: 11.5px; font-weight: 600; }
+  /* A multi-day event is a thread rather than a block: its name over a thin line in its colour, a dot where it starts and a cap where it ends (Paper draws its own pen line) */
+  :global(:root:not([data-skin="paper"])) .pill.span { position: relative; background: none; color: color-mix(in srgb, var(--colour) 55%, var(--fg)); text-shadow: none; }
+  :global(:root:not([data-skin="paper"])) .pill.span::after { content: ""; position: absolute; left: 0; right: 0; bottom: 1px; height: 2px; background: var(--colour); opacity: 0.75; }
+  :global(:root:not([data-skin="paper"])) .pill.span:not(.joined-left) { padding-left: 11px; }
+  :global(:root:not([data-skin="paper"])) .pill.span:not(.joined-left)::before { content: ""; position: absolute; left: 2px; top: 50%; width: 6px; height: 6px; margin-top: -4px; border-radius: 50%; background: var(--colour); }
+  :global(:root:not([data-skin="paper"])) .pill.span:not(.joined-left)::after { left: 4px; border-radius: 1px 0 0 1px; }
+  :global(:root:not([data-skin="paper"])) .pill.span:not(.joined-right)::after { right: 6px; }
+  :global(:root:not([data-skin="paper"])) .pill.span.joined-left:not(.joined-right)::before { content: ""; position: absolute; right: 2px; bottom: -1px; width: 6px; height: 6px; border-radius: 50%; background: var(--colour); } /* the end */
+  :global(:root:not([data-skin="paper"])) .pill.span:hover { filter: none; background: var(--hover); }
 </style>

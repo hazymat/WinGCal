@@ -20,15 +20,15 @@ public sealed class EventPopup : Window
     public readonly Kind Mode;
     public readonly string EventId; // Event: the event shown; Batch: "" (ids below)
     readonly List<string> batchIds;
-    readonly string newDay, newTime, newEndDay; // New: the day (or first of the days picked in Agenda's month) and the hour, if any
+    readonly string newDay, newTime, newEndDay, newEndTime; // New: the day (or first of the days picked) and the hour, if any; the last day and end time when hours were dragged in Week
     readonly WebView2 webView = new();
     bool ready;
     App App => App.Instance;
     static readonly JsonSerializerOptions camel = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    public EventPopup(Kind mode, string eventId = "", List<string>? ids = null, string day = "", string time = "", string endDay = "")
+    public EventPopup(Kind mode, string eventId = "", List<string>? ids = null, string day = "", string time = "", string endDay = "", string endTime = "")
     {
-        Mode = mode; EventId = eventId; batchIds = ids ?? new(); newDay = day; newTime = time; newEndDay = endDay;
+        Mode = mode; EventId = eventId; batchIds = ids ?? new(); newDay = day; newTime = time; newEndDay = endDay; newEndTime = endTime;
         Title = mode == Kind.New ? "New event" : mode == Kind.Batch ? "Change events" : App.Store.FindEvent(eventId)?.Title ?? "Event";
         Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/WinGCal.ico"));
         Width = 400; Height = mode == Kind.Batch ? 470 : 540; MinWidth = 320; MinHeight = 300;
@@ -90,7 +90,7 @@ public sealed class EventPopup : Window
         var store = App.Store;
         var calendars = store.Calendars.Select(calendar => new { key = calendar.Key, name = calendar.Name, colour = store.ColourOf(calendar), account = calendar.Account, readOnly = calendar.ReadOnly, shown = store.IsShown(calendar.Key), inSwitcher = store.IsInSwitcher(calendar.Key), isDefault = calendar.Key == App.Settings.Sync.DefaultCalendar });
         var shown = Mode == Kind.Event ? store.FindEvent(EventId) is { } found ? new[] { UiEventJson(found) } : Array.Empty<object>() : Mode == Kind.Batch ? batchIds.Select(id => store.FindEvent(id)).Where(found => found != null).Select(found => UiEventJson(found!)).ToArray() : Array.Empty<object>();
-        Push(JsonSerializer.Serialize(new { type = "editor", mode = Mode.ToString().ToLowerInvariant(), events = shown, calendars, day = newDay, time = newTime, endDay = newEndDay }, camel));
+        Push(JsonSerializer.Serialize(new { type = "editor", mode = Mode.ToString().ToLowerInvariant(), events = shown, calendars, day = newDay, time = newTime, endDay = newEndDay, endTime = newEndTime }, camel));
         if (Mode == Kind.Event && shown.Length > 0 && store.FindEvent(EventId) is { } current) Title = current.Title;
     }
 

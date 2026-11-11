@@ -10,14 +10,14 @@
   import type { EditorEvent, EditorCalendar } from './types'
   // A glass event window (SPEC.md › Event windows): ?window=event | new | batch. The shell sends the look, then what to show
   const mode = new URLSearchParams(location.search).get('window') ?? 'event'
-  let glass = $state(false), clear = $state(false), payload = $state<{ events: EditorEvent[]; calendars: EditorCalendar[]; day: string; time: string; endDay: string } | null>(null), problem = $state(''), savedAt = $state(0)
+  let glass = $state(false), clear = $state(false), payload = $state<{ events: EditorEvent[]; calendars: EditorCalendar[]; day: string; time: string; endDay: string; endTime: string } | null>(null), problem = $state(''), savedAt = $state(0)
   onShellMessage('skin', message => { ui.skin = message.skin || 'auto'; ui.glassTransparency = message.glassTransparency ?? -1; ui.glassTintHue = message.glassTintHue ?? 0; ui.windowTint = message.windowTint ?? ui.windowTint; ui.panelTint = message.panelTint ?? ui.panelTint; ui.panelGrain = message.panelGrain ?? ui.panelGrain; ui.glassThickness = message.glassThickness ?? ui.glassThickness; ui.frostColour = message.frostColour ?? ui.frostColour })
   onShellMessage('window', message => { glass = !!message.glass; clear = !!message.clear })
   // Clear glass, as the calendar window: see-through, the heading and the form each a frosted panel over the wallpaper behind them
   onShellMessage('wallpaper', message => { if (message.off) { ui.wallpaper = null; return } ui.wallpaper = { image: message.image ?? ui.wallpaper?.image ?? '', monitor: message.monitor, origin: message.origin, frost: message.frost } })
   watchFrostPanels()
   onShellMessage('prefs', message => { prefs.weekStart = message.weekStart ?? prefs.weekStart; if (typeof message.hour12 === 'boolean') prefs.hour12 = message.hour12 })
-  onShellMessage('editor', message => payload = { events: message.events, calendars: message.calendars, day: message.day, time: message.time, endDay: message.endDay ?? '' })
+  onShellMessage('editor', message => payload = { events: message.events, calendars: message.calendars, day: message.day, time: message.time, endDay: message.endDay ?? '', endTime: message.endTime ?? '' })
   onShellMessage('saved', () => { problem = ''; savedAt = Date.now() })
   onShellMessage('error', message => problem = message.text)
   const prefersDark = matchMedia('(prefers-color-scheme: dark)')
@@ -56,7 +56,7 @@
   </header>
   {#if payload}<div class="panel">
     {#if mode === 'batch'}<BatchForm events={payload.events} calendars={payload.calendars} bind:problem />
-    {:else if mode === 'new' || payload.events.length > 0}<EventForm event={mode === 'new' ? null : payload.events[0]} calendars={payload.calendars} day={payload.day} time={payload.time} endDay={payload.endDay} {savedAt} bind:problem />
+    {:else if mode === 'new' || payload.events.length > 0}<EventForm event={mode === 'new' ? null : payload.events[0]} calendars={payload.calendars} day={payload.day} time={payload.time} endDay={payload.endDay} endTime={payload.endTime} {savedAt} bind:problem />
     {:else}<p class="gone">This event isn't in your calendar any more.</p>{/if}
   </div>{/if}
 </div>

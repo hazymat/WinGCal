@@ -114,7 +114,7 @@ public partial class MainWindow : Window
                 case "setPinned": App.Settings.Window.Pinned = message.GetProperty("on").GetBoolean(); App.Settings.Save(); ApplyPinned(); App.NotifySettingsChanged(); break;
                 case "editEvent": if (App.Store.FindEvent(Text(message, "id")) is { Link.Length: > 0 } toEdit) OpenUrl(toEdit.Link); break; // "More in Google Calendar": guests, reminders and the rest
                 case "openEditor": App.OpenEventEditor(Text(message, "id")); break;
-                case "newEvent": App.OpenNewEvent(Text(message, "day"), Text(message, "time"), Text(message, "endDay")); break;
+                case "newEvent": App.OpenNewEvent(Text(message, "day"), Text(message, "time"), Text(message, "endDay"), Text(message, "endTime")); break;
                 case "batchEdit": App.OpenBatchEditor(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList()); break;
                 case "moveEvents":
                     var carried = message.GetProperty("ids").EnumerateArray().Select(id => App.Store.FindEvent(id.GetString() ?? "")).Where(found => found != null).Select(found => found!).ToList();

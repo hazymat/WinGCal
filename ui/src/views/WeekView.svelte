@@ -4,6 +4,7 @@
   import HandArrow from '../parts/HandArrow.svelte'
   import { ui, eventsOn, type Placed } from '../state.svelte'
   import { carry } from '../lib/carry.svelte'
+  import { dayPicker, inPicked, swallowClick } from '../lib/pickDays'
   import { addDays, sameDay, startOfDay, startOfWeek, formatTime, formatHour, weekdayShort, prefs, minutesIntoDay, dayKey } from '../lib/dates'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
@@ -36,19 +37,62 @@
     closeCluster()
     return timed
   }
+  const continuesBefore = (event: Placed, day: Date) => event.startAt.getTime() < startOfDay(day).getTime()
+  const continuesAfter = (event: Placed, day: Date) => event.endAt.getTime() > addDays(startOfDay(day), 1).getTime()
   const allDayOn = (day: Date) => eventsOn(events, day).filter(event => event.allDay)
 
-  // Sideways wheel (tilt wheel or Shift+wheel) moves a whole page of days, sliding in from the side it came from; up and down anywhere scrolls the hours
-  let sideways = 0, lastPage = 0, page: HTMLDivElement | undefined = $state()
+  // Sideways wheel (tilt wheel or Shift+wheel) moves a whole page of days: the old page slides slowly out as the new one slides in beside it, no fade; up and down anywhere scrolls the hours
+  let sideways = 0, lastPage = 0, page: HTMLDivElement | undefined = $state(), slider: HTMLDivElement | undefined = $state(), leaving: HTMLElement | null = null
+  const slideMs = 900, slideEase = 'cubic-bezier(0.45, 0, 0.2, 1)'
+  function turnPage(direction: number) {
+    if (!slider) { ui.focus = addDays(ui.focus, direction * dayCount); return }
+    leaving?.remove()
+    const snapshot = slider.cloneNode(true) as HTMLElement, scrollTop = scroller?.scrollTop ?? 0
+    snapshot.classList.add('leaving'); slider.parentElement!.append(snapshot); leaving = snapshot
+    const oldScroller = snapshot.querySelector<HTMLElement>('.scroller'); if (oldScroller) oldScroller.scrollTop = scrollTop
+    ui.focus = addDays(ui.focus, direction * dayCount)
+    snapshot.animate([{ transform: 'none' }, { transform: `translateX(${-direction * 100}%)` }], { duration: slideMs, easing: slideEase, fill: 'forwards' }).finished.then(() => { snapshot.remove(); if (leaving === snapshot) leaving = null }, () => {})
+    slider.animate([{ transform: `translateX(${direction * 100}%)` }, { transform: 'none' }], { duration: slideMs, easing: slideEase })
+  }
   function onWheel(wheelEvent: WheelEvent) {
     if (Math.abs(wheelEvent.deltaX) <= Math.abs(wheelEvent.deltaY)) { if (scroller && !scroller.contains(wheelEvent.target as Node)) scroller.scrollTop += wheelEvent.deltaY; return }
     wheelEvent.preventDefault()
-    if (performance.now() - lastPage < 380) { sideways = 0; return } // one page per flick
+    if (performance.now() - lastPage < 450) { sideways = 0; return } // one page per flick
     sideways += wheelEvent.deltaX
     if (Math.abs(sideways) < 40) return
     const direction = Math.sign(sideways); sideways = 0; lastPage = performance.now()
-    ui.focus = addDays(ui.focus, direction * dayCount)
-    page?.querySelectorAll<HTMLElement>('.head, .allday, .body, .lists').forEach(part => part.animate([{ transform: `translateX(${direction * 70}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }))
+    turnPage(direction)
+  }
+  // Hours for a new event: drag down a day (on into the next days to run across them) or press and hold an hour; the bar then offers New event. Quarter hours
+  const allDayPicker = dayPicker()
+  let selectedDay: Date | null = $state(null) // a click on a day just marks it, softly (today keeps its ring)
+  const selectDay = (click: MouseEvent, day: Date) => { if (!(click.target as HTMLElement).closest('[data-event]')) selectedDay = day }
+  let timeStart: { day: Date; minute: number } | null = null, timePicking = false, timeHold = 0, timePress = { x: 0, y: 0 }
+  function slotAt(pointer: PointerEvent) {
+    const column = (document.elementFromPoint(pointer.clientX, pointer.clientY) as HTMLElement | null)?.closest<HTMLElement>('.column[data-key]'); if (!column) return null
+    const [year, month, date] = column.dataset.key!.split('-').map(Number), minute = Math.max(0, Math.min(1425, Math.floor((pointer.clientY - column.getBoundingClientRect().top) / hourHeight * 4) * 15))
+    return { day: new Date(year, month - 1, date), minute }
+  }
+  const timeOf = (slot: { day: Date; minute: number }) => new Date(slot.day.getFullYear(), slot.day.getMonth(), slot.day.getDate(), 0, slot.minute)
+  function pickTimes(first: Date, second: Date, length: number) { const [from, to] = first <= second ? [first, second] : [second, first]; ui.picked = []; ui.pickedDays = { from, to: new Date(to.getTime() + length * 60_000), timed: true } }
+  function timeDown(pointer: PointerEvent) {
+    if (pointer.button !== 0 || (pointer.target as HTMLElement).closest('[data-event]')) return
+    timeStart = slotAt(pointer); timePicking = false; timePress = { x: pointer.clientX, y: pointer.clientY }; clearTimeout(timeHold)
+    const held = timeStart; if (held) timeHold = setTimeout(() => { if (timeStart === held) { timePicking = true; const start = timeOf(held); pickTimes(start, start, 60) } }, prefs.holdMs) // a held hour: an hour from there
+  }
+  function timeMove(pointer: PointerEvent) {
+    if (!timeStart || (!timePicking && Math.hypot(pointer.clientX - timePress.x, pointer.clientY - timePress.y) < 6)) return
+    const over = slotAt(pointer); if (!over) return
+    clearTimeout(timeHold)
+    if (!timePicking) (pointer.currentTarget as HTMLElement).setPointerCapture(pointer.pointerId)
+    timePicking = true; pickTimes(timeOf(timeStart), timeOf(over), 15)
+  }
+  function timeUp() { clearTimeout(timeHold); if (timeStart && timePicking) swallowClick(); timeStart = null; timePicking = false }
+  // The part of a day the dragged hours cover (minutes from midnight), and whether the label goes there
+  function pickedOn(day: Date) {
+    const picked = ui.pickedDays; if (!picked?.timed) return null
+    const dayStart = startOfDay(day).getTime(), top = Math.max(0, (picked.from.getTime() - dayStart) / 60_000), bottom = Math.min(1440, (picked.to.getTime() - dayStart) / 60_000)
+    return bottom > top ? { top, bottom, first: sameDay(day, picked.from) } : null
   }
   // Opens at the working day (an hour before the earliest event, 07:00 at the latest)
   let scroller: HTMLDivElement | undefined = $state()
@@ -60,17 +104,18 @@
 </script>
 
 <div class="week" bind:this={page} bind:clientWidth={width} bind:clientHeight={height} onwheel={onWheel}>
+  <div class="slider" bind:this={slider}>
   <div class="head" style="--days: {dayCount}">
     <div class="gutter"></div>
     {#each days as day}
-      <div class="dayname" class:today={sameDay(day, today)}><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}</span></div>
+      <div class="dayname" class:today={sameDay(day, today)} class:selected-day={!!selectedDay && sameDay(day, selectedDay)} onclick={() => selectedDay = day} role="presentation"><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}</span></div>
     {/each}
   </div>
   {#if listMode}
   <div class="lists" style="--days: {dayCount}">
     <div class="gutter"></div>
     {#each days as day}
-      <div class="day-list" class:today={sameDay(day, today)}>
+      <div class="day-list" class:today={sameDay(day, today)} class:today-ring={sameDay(day, today)} class:selected-day={!!selectedDay && sameDay(day, selectedDay)} onclick={(click) => selectDay(click, day)} role="presentation">
         {#each eventsOn(events, day) as event (event.id)}
           {#if event.allDay}<button class="pill" style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{#if !isBirthday(event)}<HandStar seed={event.id} />{/if}{shortTitle(event)}<HandArrow {event} {day} /></button>
           {:else}<button class="line" class:past={event.endAt < now} class:picked={ui.picked.includes(event.id)} data-event={event.id} style="--colour: {event.colourShown}" onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}><span class="dot"></span><span class="time">{formatTime(event.startAt)}</span><span class="title">{shortTitle(event)}</span></button>{/if}
@@ -79,15 +124,16 @@
     {/each}
   </div>
   {:else}
-  <div class="allday" style="--days: {dayCount}">
+  <div class="allday" style="--days: {dayCount}" onpointerdown={allDayPicker.down} onpointermove={allDayPicker.move} onpointerup={allDayPicker.up} onpointercancel={allDayPicker.up} oncontextmenu={allDayPicker.menu} role="grid" tabindex="-1">
     <div class="gutter"></div>
-    {#each days as day}<div class="allday-cell">{#each allDayOn(day) as event (event.id)}<button class="pill" style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{#if !isBirthday(event)}<HandStar seed={event.id} />{/if}{shortTitle(event)}<HandArrow {event} {day} /></button>{/each}</div>{/each}
+    {#each days as day, dayIndex}<div class="allday-cell" data-key={dayKey(day)} class:picked-day={(ui.pickedDays, inPicked(day))}>{#each allDayOn(day) as event (event.id)}{@const before = continuesBefore(event, day)}{@const after = continuesAfter(event, day)}<button class="pill" class:span={before || after} class:joined-left={before} class:joined-right={after} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>{#if before && dayIndex > 0}&nbsp;{:else}{#if !isBirthday(event)}<HandStar seed={event.id} />{/if}{shortTitle(event)}{/if}<HandArrow {event} {day} /></button>{/each}</div>{/each}
   </div>
   <div class="scroller" bind:this={scroller}>
-    <div class="body" style="--days: {dayCount}; height: {hourHeight * 24}px">
+    <div class="body" style="--days: {dayCount}; height: {hourHeight * 24}px" onpointerdown={timeDown} onpointermove={timeMove} onpointerup={timeUp} onpointercancel={timeUp} role="grid" tabindex="-1">
       <div class="hours">{#each Array.from({ length: 24 }, (unused, hour) => hour) as hour}<div class="hour" style="top: {hour * hourHeight}px">{hour ? formatHour(hour) : ''}</div>{/each}</div>
       {#each days as day}
-        <div class="column" data-newday={dayKey(day)} data-hour-height={hourHeight} class:today={sameDay(day, today)}>
+        <div class="column" data-newday={dayKey(day)} data-key={dayKey(day)} data-hour-height={hourHeight} class:today={sameDay(day, today)} class:today-ring={sameDay(day, today)} class:selected-day={!!selectedDay && sameDay(day, selectedDay)} onclick={(click) => selectDay(click, day)} role="presentation">
+          {#if pickedOn(day)}{@const span = pickedOn(day)!}<div class="time-pick" style="top: {span.top / 60 * hourHeight}px; height: {(span.bottom - span.top) / 60 * hourHeight}px">{#if span.first}<span>{formatTime(ui.pickedDays!.from)} – {formatTime(ui.pickedDays!.to)}</span>{/if}</div>{/if}
           {#each layout(day) as item (item.event.id)}
             {@const height = Math.max(18, (item.bottom - item.top) / 60 * hourHeight - 2)}
             <button class="event" class:short={height < 36} class:past={item.event.endAt < now} style="--colour: {item.event.colourShown}; top: {item.top / 60 * hourHeight + 1}px; height: {height}px; left: calc({item.column} * 100% / {item.columns} + 2px); width: calc(100% / {item.columns} - 4px)" class:picked={ui.picked.includes(item.event.id)} data-event={item.event.id} onclick={(clickEvent) => onpick(item.event, clickEvent.currentTarget)}>
@@ -101,10 +147,11 @@
     </div>
   </div>
   {/if}
+  </div>
 </div>
 
 <style>
-  .week { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0 6px 6px; overflow: hidden; }
+  .week { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0 6px 6px; overflow: hidden; }
   .lists { flex: 1; min-height: 0; display: grid; grid-template-columns: 52px repeat(var(--days), minmax(0, 1fr)); }
   .day-list { display: flex; flex-direction: column; gap: 2px; padding: 2px 3px; border-left: 1px solid var(--line); overflow-y: auto; min-width: 0; }
   .day-list.today { background: var(--today-column); border-radius: 8px; animation: today-pulse 3s ease-in-out infinite; }
@@ -123,6 +170,17 @@
   .allday { border-bottom: 1px solid var(--line); padding-bottom: 4px; }
   .allday-cell { display: flex; flex-direction: column; gap: 2px; padding: 0 2px; min-width: 0; }
   .pill { flex: none; height: 19px; padding: 0 6px; border: 0; border-radius: 4px; background: color-mix(in srgb, var(--colour) 78%, transparent); color: #fff; font: inherit; font-size: 12px; font-weight: 600; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25); }
+  .pill.joined-left { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -3px; }
+  .pill.joined-right { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -3px; }
+  /* A multi-day event is a thread rather than a block: its name over a thin line in its colour, a dot where it starts and a cap where it ends (Paper draws its own pen line) */
+  :global(:root:not([data-skin="paper"])) .pill.span { position: relative; background: none; color: color-mix(in srgb, var(--colour) 55%, var(--fg)); text-shadow: none; }
+  :global(:root:not([data-skin="paper"])) .pill.span::after { content: ""; position: absolute; left: 0; right: 0; bottom: 1px; height: 2px; background: var(--colour); opacity: 0.75; }
+  :global(:root:not([data-skin="paper"])) .pill.span:not(.joined-left) { padding-left: 11px; }
+  :global(:root:not([data-skin="paper"])) .pill.span:not(.joined-left)::before { content: ""; position: absolute; left: 2px; top: 50%; width: 6px; height: 6px; margin-top: -4px; border-radius: 50%; background: var(--colour); }
+  :global(:root:not([data-skin="paper"])) .pill.span:not(.joined-left)::after { left: 4px; border-radius: 1px 0 0 1px; }
+  :global(:root:not([data-skin="paper"])) .pill.span:not(.joined-right)::after { right: 6px; }
+  :global(:root:not([data-skin="paper"])) .pill.span.joined-left:not(.joined-right)::before { content: ""; position: absolute; right: 2px; bottom: -1px; width: 6px; height: 6px; border-radius: 50%; background: var(--colour); } /* the end */
+  :global(:root:not([data-skin="paper"])) .pill.span:hover { filter: none; background: var(--hover); }
   .scroller { flex: 1; min-height: 0; overflow-y: auto; border-radius: 0 0 10px 10px; }
   .body { position: relative; }
   .hours { position: relative; }
@@ -136,6 +194,13 @@
   .event .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .event .time { font-size: 11px; color: var(--fg-quiet); white-space: nowrap; font-variant-numeric: tabular-nums; }
   /* Where a carried event would land in the hours */
+  .column.selected-day, .day-list.selected-day { background-color: color-mix(in srgb, var(--fg) 6%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 20%, transparent); }
+  .dayname.selected-day .date { text-decoration: underline 2px color-mix(in srgb, var(--fg) 40%, transparent); text-underline-offset: 4px; }
+  .slider { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .week :global(.leaving) { position: absolute; inset: 0 6px 6px; pointer-events: none; } /* the old page, sliding out */
+  .allday-cell.picked-day { background: var(--accent-soft); border-radius: 5px; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent); }
+  /* Hours dragged for a new event */
+  .time-pick { position: absolute; left: 2px; right: 2px; z-index: 2; padding: 2px 6px; border-radius: 5px; background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 75%, transparent); color: var(--accent); font-size: 11px; font-weight: 600; pointer-events: none; overflow: hidden; white-space: nowrap; box-sizing: border-box; }
   .drop-preview { position: absolute; left: 2px; right: 2px; border: 1.5px dashed var(--accent); border-radius: 5px; background: color-mix(in srgb, var(--accent) 14%, transparent); pointer-events: none; transition: top 0.12s ease-out; }
   .now { position: absolute; left: -4px; right: 0; height: 2px; background: var(--now); z-index: 3; pointer-events: none; }
   .now::before { content: ""; position: absolute; left: -1px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--now); }
