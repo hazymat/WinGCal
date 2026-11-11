@@ -74,7 +74,7 @@ public sealed class EventPopup : Window
     }
 
     void Push(string json) { if (ready) Dispatcher.BeginInvoke(() => webView.CoreWebView2?.PostWebMessageAsJson(json)); }
-    public void PushSkin() { ApplyGlass(); Push(App.MainShell.SkinMessage()); Push(JsonSerializer.Serialize(new { type = "window", glass = glassOn, clear = clearOn, frameless = true, maximised = false, pinned = false })); if (clearOn) PushWallpaper(true); }
+    public void PushSkin() { ApplyGlass(); if (webView.CoreWebView2 != null) webView.ZoomFactor = Math.Clamp(App.UiScale, 0.75, 1.5); Push(App.MainShell.SkinMessage()); Push(JsonSerializer.Serialize(new { type = "window", glass = glassOn, clear = clearOn, frameless = true, maximised = false, pinned = false })); if (clearOn) PushWallpaper(true); }
     // Clear glass, as the calendar window: see-through, with each panel frosted from the wallpaper behind it (Shell/WallpaperFrost.cs)
     readonly WallpaperFeed wallpaperFeed = new();
     void PushWallpaper(bool recheck = false) { if (ready && wallpaperFeed.Message(webView, ActualWidth, ActualHeight, true, recheck) is { } message) Push(message); }

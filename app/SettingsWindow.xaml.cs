@@ -35,7 +35,7 @@ public partial class SettingsWindow : Window
         App.Store.Changed += OnStoreChanged; App.Store.Tasks.Changed += OnStoreChanged; App.SettingsChanged += OnStoreChanged;
         Closed += (sender, args) => { App.Store.Changed -= OnStoreChanged; App.Store.Tasks.Changed -= OnStoreChanged; App.SettingsChanged -= OnStoreChanged; };
     }
-    void OnStoreChanged() => Dispatcher.BeginInvoke(FillLists);
+    void OnStoreChanged() => Dispatcher.BeginInvoke(() => { FillLists(); if (Math.Abs(uiScaleSlider.Value - Math.Round(App.UiScale * 100)) > 0.5) uiScaleSlider.Value = Math.Round(App.UiScale * 100); });
 
     public void SelectTab(string tabName)
     {

@@ -47,7 +47,7 @@ Hiding to the tray works when pinned too: the widget hides, and Show desktop doe
 
 A **monitor setup** is the set of monitors connected, identified the way Windows identifies them: each monitor's EDID manufacturer and product codes plus its device path (from `QueryDisplayConfig` / `DisplayConfigGetDeviceInfo`), sorted, so the same monitors give the same setup whichever order they come up in. The laptop screen alone is one setup; laptop plus the desk monitor is another.
 
-Per setup WinGCal remembers: which monitor the widget is on (by that monitor's id), its position relative to that monitor's top-left corner, its size, maximised or not, and the app's **Scale**. All in physical pixels, so a different Windows scaling on another monitor doesn't move it.
+Per setup WinGCal remembers: which monitor the widget is on (by that monitor's id), its position relative to that monitor's top-left corner, its size, maximised or not, and the app's **Scale** (Settings › Appearance, or Ctrl+mouse wheel over the calendar in 5% steps, 75–150%; event windows follow it). All in physical pixels, so a different Windows scaling on another monitor doesn't move it.
 
 - When the displays change (plug, unplug, dock, resolution or Windows scaling change), WinGCal waits for Windows to settle (about 1.5 s), identifies the setup, and moves, resizes and rescales the widget to what that setup had last time.
 - A setup it hasn't seen starts from the nearest one it has (same monitor if present), kept fully on screen.
