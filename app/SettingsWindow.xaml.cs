@@ -333,6 +333,8 @@ public partial class SettingsWindow : Window
         clockBox.SelectionChanged += (sender, args) => { if (clockBox.SelectedItem is ComboBoxItem { Tag: string clock }) { view.Clock = clock; Settings.Save(); App.ApplyView(); } };
         smoothWheelBox.IsChecked = view.SmoothWheel; stripLightSlider.Value = view.StripLight; stripLightText.Text = view.StripLight == 0 ? "Off" : $"{view.StripLight}%";
         stripLightSlider.ValueChanged += (sender, args) => { view.StripLight = (int)stripLightSlider.Value; stripLightText.Text = view.StripLight == 0 ? "Off" : $"{view.StripLight}%"; Settings.Save(); App.ApplyView(); };
+        emptyDaysBox.SelectedItem = emptyDaysBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == view.EmptyDays) ?? emptyDaysBox.Items[0];
+        emptyDaysBox.SelectionChanged += (sender, args) => { if (emptyDaysBox.SelectedItem is ComboBoxItem { Tag: string emptyDays }) { view.EmptyDays = emptyDays; Settings.Save(); App.ApplyView(); } };
         smoothWheelBox.Click += (sender, args) => { view.SmoothWheel = smoothWheelBox.IsChecked == true; Settings.Save(); App.ApplyView(); };
         declinedBox.IsChecked = view.ShowDeclined;
         declinedBox.Click += (sender, args) => { view.ShowDeclined = declinedBox.IsChecked == true; Settings.Save(); App.ApplyView(); };

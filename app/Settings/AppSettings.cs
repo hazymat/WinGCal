@@ -64,6 +64,7 @@ public class ViewSettings
     public string Clock { get; set; } = "auto"; // auto | 12 | 24
     public bool ShowDeclined { get; set; }
     public int StripLight { get; set; } = 50; // Agenda: how strongly a strip light sweeps across today's and upcoming events as they scroll by (0 = off)
+    public string EmptyDays { get; set; } = "hide"; // Agenda days with nothing on: hide | each (a blank row per day) | group (a run of them as one row, "Sat 14 to Mon 16")
     public bool SmoothWheel { get; set; } = true; // Agenda: the wheel glides the list rather than stepping
     public int HoldMs { get; set; } = 350; // press and hold an event this long to pick it up (and select it)
 }

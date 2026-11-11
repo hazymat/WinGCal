@@ -68,7 +68,19 @@
   }
   // Keep adding while the list doesn't yet reach past the bottom (quiet stretches), up to ten years
   $effect(() => { days.length; requestAnimationFrame(() => { if (list && span < 3650 && list.scrollHeight < list.clientHeight + 600) span += 56 }) })
-  const days = $derived(Array.from({ length: span + lookBack }, (unused, index) => addDays(ui.focus, index - lookBack)).map(day => ({ day, list: eventsOn(events, day) })).filter(entry => carry.active || entry.list.length > 0 || sameDay(entry.day, ui.focus) || sameDay(entry.day, today) || (!!openedDay && sameDay(entry.day, openedDay))))
+  // Empty days (Settings › General): hidden, a blank row each, or each run of them as one row ("Sat 14 to Mon 16", lastDay set); the focus day, today and a clicked day always stand alone
+  const days = $derived.by(() => {
+    const emptyDays = (ui.lookVersion, prefs.emptyDays), shown: { day: Date; list: Placed[]; lastDay?: Date; blank?: boolean }[] = []
+    for (const day of Array.from({ length: span + lookBack }, (unused, index) => addDays(ui.focus, index - lookBack))) {
+      const list = eventsOn(events, day), alone = carry.active || list.length > 0 || sameDay(day, ui.focus) || sameDay(day, today) || (!!openedDay && sameDay(day, openedDay))
+      if (alone) { shown.push({ day, list }); continue }
+      if (emptyDays === 'hide') continue
+      const previous = shown[shown.length - 1]
+      if (emptyDays === 'group' && previous?.blank && sameDay(addDays(previous.lastDay ?? previous.day, 1), day) && previous.day.getMonth() === day.getMonth()) previous.lastDay = day
+      else shown.push({ day, list, blank: true })
+    }
+    return shown
+  })
   // While events are carried, every day opens up (empty ones as dashed boxes to drop into), sliding the others aside; afterwards they close again
   let sliding = $state(false), slideTimer = 0
   $effect(() => { carry.active; sliding = true; clearTimeout(slideTimer); slideTimer = setTimeout(() => sliding = false, 700) })
@@ -93,13 +105,14 @@
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="lamp" class:on={lamp.warmed} style="height: min(100%, {lamp.height}px)" aria-hidden="true"></div>
   <div class="list" class:warmed={lamp.warmed} class:lit={(ui.lookVersion, prefs.stripLight > 0)} style:--strip={(ui.lookVersion, prefs.stripLight / 50)} bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
-    {#each days as { day, list }, index (day.getTime())}
+    {#each days as { day, list, lastDay, blank }, index (day.getTime())}
       <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
-      <section class="day" class:today={sameDay(day, today)} class:today-chase={sameDay(day, today)} use:chaseOnView={sameDay(day, today)} class:gone={day < today} data-day={dayKey(day)} data-newday={dayKey(day)}>
+      <section class="day" class:blank class:today={sameDay(day, today)} class:today-chase={sameDay(day, today)} use:chaseOnView={sameDay(day, today)} class:gone={day < today} data-day={dayKey(day)} data-newday={dayKey(day)}>
         <div class="when warm"><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</span></div>
         <div class="items warm">
           {#if list.length === 0 && carry.active}<div class="slot">{shortDate(day)}</div>
+          {:else if blank}{#if lastDay}<div class="until">to {weekdayShort(lastDay)} {lastDay.getDate()}</div>{/if}
           {:else if list.length === 0}<div class="empty">{sameDay(day, today) ? 'Nothing on today' : 'Nothing on ' + shortDate(day)}</div>{/if}
           {#each list as event (event.id)}
             <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}; {paneTilt(event.id + dayKey(day))}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
@@ -142,6 +155,11 @@
   /* Room to drop into while carrying: an empty day, or the end of the day under the pointer */
   .slot { min-height: 30px; display: flex; align-items: center; padding: 0 10px; border: 1.5px dashed color-mix(in srgb, var(--fg) 28%, transparent); border-radius: 8px; color: var(--fg-quiet); font-size: 12px; box-sizing: border-box; }
   :global([data-drop]) .slot { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  /* A blank row for an empty day (or a run of them) */
+  .day.blank { padding: 1px 4px; }
+  .day.blank .when { flex-direction: row; gap: 5px; align-items: baseline; justify-content: center; opacity: 0.6; }
+  .day.blank .date { font-size: 13px; }
+  .until { padding: 3px 4px 0; font-size: 11.5px; color: var(--fg-quiet); opacity: 0.8; }
   .empty { padding: 7px 4px; color: var(--fg-quiet); font-size: 12.5px; }
   .item { display: grid; grid-template-columns: 4px auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 6px 8px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel)); /* Event tint, Settings › Appearance */ color: var(--fg); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
   .item:hover { background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel-strong)); }

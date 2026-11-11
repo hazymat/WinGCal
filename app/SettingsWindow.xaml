@@ -330,6 +330,7 @@
           <StackPanel>
             <TextBlock Text="Events" Style="{StaticResource CardTitle}" />
             <CheckBox x:Name="declinedBox" Content="Show events I've declined" Margin="0,4,0,0" />
+            <WrapPanel Margin="0,8,0,0"><TextBlock Text="Empty days in Agenda" MinWidth="120" VerticalAlignment="Center" /><ComboBox x:Name="emptyDaysBox" Width="200"><ComboBoxItem Content="Hidden" Tag="hide" /><ComboBoxItem Content="A blank row each" Tag="each" /><ComboBoxItem Content="Grouped (Sat 14 to Mon 16)" Tag="group" /></ComboBox></WrapPanel>
             <CheckBox x:Name="smoothWheelBox" Content="Smooth scrolling with the mouse wheel (Agenda and Month and days)" Margin="0,8,0,0" />
             <WrapPanel Margin="0,10,0,0">
               <TextBlock Text="Hold to pick up" Margin="0,0,8,0" MinWidth="120" VerticalAlignment="Center" />
