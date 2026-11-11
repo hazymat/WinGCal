@@ -43,6 +43,7 @@ public class LookSettings
     public int WindowTint { get; set; } = 6; // clear glass: 0..100 tint of the see-through window
     public int PanelTint { get; set; } = 42; // clear glass: 0..100 tint of the frosted panels
     public int PanelFrost { get; set; } = 100; // clear glass: 0..100 how much of the blur shows behind the panels (0 = see-through panels)
+    public int EventTint { get; set; } = 0; // 0..60 how much each event's panel takes its calendar's colour (Agenda, Split)
     public int PanelGrain { get; set; } = 0; // clear glass: 0..100 extra frosted grain on the panels
     public bool ShowTitleBar { get; set; } // frameless by default
     [JsonIgnore] public bool Frameless { get => !ShowTitleBar; set => ShowTitleBar = !value; }

@@ -88,7 +88,7 @@ public partial class MainWindow : Window
     public const string UiHost = uiHost;
     public bool DarkTheme => darkTheme;
     public string PrefsMessage() { var culture = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat;         var view = App.Settings.View; return JsonSerializer.Serialize(new { type = "prefs", weekStart = view.WeekStart >= 0 ? view.WeekStart : (int)culture.FirstDayOfWeek, hour12 = view.Clock == "auto" ? culture.ShortTimePattern.Contains('h') : view.Clock == "12" }); }
-    public string SkinMessage() => JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint, panelGrain = App.Settings.Look.PanelGrain });
+    public string SkinMessage() => JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint, panelGrain = App.Settings.Look.PanelGrain, eventTint = App.Settings.Look.EventTint });
     public static void OpenLink(string url) => OpenUrl(url);
     static void OpenUrl(string url) { if (url.StartsWith("https://") || url.StartsWith("http://") || url.StartsWith("mailto:")) Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
 

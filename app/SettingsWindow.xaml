@@ -199,6 +199,11 @@
               <Button x:Name="accentChooseButton" Content="Choose…" Margin="0,0,6,0" />
               <Button x:Name="accentResetButton" Content="Reset to default blue" />
             </WrapPanel>
+            <WrapPanel Margin="0,10,0,0">
+              <TextBlock Text="Event tint" Margin="0,0,8,0" MinWidth="100" VerticalAlignment="Center" />
+              <Slider x:Name="eventTintSlider" Minimum="0" Maximum="60" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
+              <TextBlock x:Name="eventTintText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
+            </WrapPanel>
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">

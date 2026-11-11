@@ -23,7 +23,7 @@ export const app = $state({
 })
 export const ui = $state({
   skin: readSetting('skin', 'auto'), accent: readSetting('accent', ''), glassTransparency: Number(readSetting('glassTransparency', '-1')), glassTintHue: Number(readSetting('glassTintHue', '0')), lookVersion: 0,
-  windowTint: Number(readSetting('windowTint', '6')), panelTint: Number(readSetting('panelTint', '42')), panelGrain: Number(readSetting('panelGrain', '0')), confirmDelete: null as string[] | null, // events waiting on the glass Delete dialog
+  windowTint: Number(readSetting('windowTint', '6')), panelTint: Number(readSetting('panelTint', '42')), panelGrain: Number(readSetting('panelGrain', '0')), eventTint: Number(readSetting('eventTint', '0')), confirmDelete: null as string[] | null, // events waiting on the glass Delete dialog
  frostRects: [] as { left: number; top: number; width: number; height: number }[], wallpaper: null as null | { image: string; monitor: { x: number; y: number; width: number; height: number }; origin: { x: number; y: number }; frost: number }, // clear glass: tint of the see-through window and of the frosted panels
   view: readSetting('view', 'auto') as ViewMode,
   focus: startOfDay(new Date()), // the day the view is built around
