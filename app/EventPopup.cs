@@ -102,7 +102,7 @@ public sealed class EventPopup : Window
         {
             switch (Text(message, "type"))
             {
-                case "ready": ready = true; wallpaperFeed.Forget(); PushSkin(); _ = ReapplyGlassSoonAsync(); Push(App.MainShell.PrefsMessage()); PushContent(); break;
+                case "ready": ready = true; wallpaperFeed.Forget(); Activate(); webView.Focus(); PushSkin(); _ = ReapplyGlassSoonAsync(); Push(App.MainShell.PrefsMessage()); PushContent(); break;
                 case "dragWindow": ReleaseCapture(); SendMessage(new WindowInteropHelper(this).Handle, 0xA1, (IntPtr)2, IntPtr.Zero); break;
                 case "windowControl": if (Text(message, "action") == "minimise") WindowState = WindowState.Minimized; else Close(); break;
                 case "growWindow":

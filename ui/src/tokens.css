@@ -111,7 +111,13 @@ a, img, svg { -webkit-user-drag: none; }
 .picked { box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 1px var(--accent); background: var(--accent-soft); }
 
 /* Today breathes gently in every view: a soft accent wash, no outline */
-@keyframes today-pulse { 0%, 100% { background-color: color-mix(in srgb, var(--accent) 3%, transparent); } 50% { background-color: color-mix(in srgb, var(--accent) 11%, transparent); } }
-@keyframes today-pulse-bright { 0%, 100% { background-color: color-mix(in srgb, var(--accent) 6%, transparent); } 50% { background-color: color-mix(in srgb, var(--accent) 19%, transparent); } }
+/* Today no longer breathes: it holds the brightest wash (the old pulse's peak) */
+@keyframes today-pulse { from, to { background-color: color-mix(in srgb, var(--accent) 11%, transparent); } }
+@keyframes today-pulse-bright { from, to { background-color: color-mix(in srgb, var(--accent) 19%, transparent); } }
+/* ...and every few seconds a line chases round its border, glints as it closes, then fades away (Agenda and Split) */
+@property --chase { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes today-chase { 0% { --chase: 0deg; opacity: 1; filter: none; } 28% { --chase: 360deg; opacity: 1; filter: none; } 32% { --chase: 360deg; opacity: 1; filter: brightness(2.2) drop-shadow(0 0 4px var(--accent)); } 38% { --chase: 360deg; opacity: 1; filter: none; } 50%, 100% { --chase: 360deg; opacity: 0; filter: none; } }
+.today-chase { position: relative; }
+.today-chase::after { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; background: conic-gradient(from -90deg at 50% 50%, var(--accent) 0deg var(--chase), transparent var(--chase)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: today-chase 7s ease-in-out infinite; }
 /* Agenda and Split: days drift in from below and fade as they pass the top */
 @keyframes agenda-drift { 0% { opacity: 0.2; transform: translateY(14px) scale(0.96); } 24% { opacity: 1; transform: none; } 68% { opacity: 1; transform: none; } 100% { opacity: 0.25; transform: scale(0.98); } }

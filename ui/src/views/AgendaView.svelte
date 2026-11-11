@@ -8,6 +8,7 @@
   import { carry } from '../lib/carry.svelte'
   import { glideWheel } from '../lib/glide'
   import { slide } from 'svelte/transition'
+  import { tick } from 'svelte'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   let height = $state(600)
@@ -44,21 +45,24 @@
     wheelDay = target
     if (offset < -lookBack) lookBack = -offset + 28
     if (offset + 40 > span) span = offset + 70
-    requestAnimationFrame(() => { if (!list) return; const key = dayKey(target), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.dataset.day! >= key); if (section) warpScroll(list, section.offsetTop - readingLine()) })
+    tick().then(() => requestAnimationFrame(() => { if (!list) return; const key = dayKey(target), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.dataset.day! >= key); if (section) warpScroll(list, section.offsetTop - readingLine()) }))
   }
   // The strip's month heading follows the day being read, so the month isn't shown twice
   $effect(() => { ui.readingDay = wheelDay ?? topDay; return () => { ui.readingDay = null } })
   // A day clicked in the month above: the list warps there (to it, or the next day with something on), making room first if it's beyond what's drawn
+  // A clicked day with nothing on opens up as an empty slot (sliding in) so the list has somewhere to land
+  let openedDay = $state<Date | null>(null)
   function glideToDay(target: Date) {
     const offset = Math.round((target.getTime() - ui.focus.getTime()) / 86_400_000)
     wheelDay = target
+    if (!openedDay || !sameDay(openedDay, target)) { sliding = true; clearTimeout(slideTimer); slideTimer = setTimeout(() => sliding = false, 700); openedDay = target }
     if (offset < -lookBack) lookBack = -offset + 28
     if (offset + 40 > span) span = offset + 70
     requestAnimationFrame(() => { if (!list) return; const key = dayKey(target), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.dataset.day! >= key); if (section) warpScroll(list, section.offsetTop - readingLine()) })
   }
   // Keep adding while the list doesn't yet reach past the bottom (quiet stretches), up to ten years
   $effect(() => { days.length; requestAnimationFrame(() => { if (list && span < 3650 && list.scrollHeight < list.clientHeight + 600) span += 56 }) })
-  const days = $derived(Array.from({ length: span + lookBack }, (unused, index) => addDays(ui.focus, index - lookBack)).map(day => ({ day, list: eventsOn(events, day) })).filter(entry => carry.active || entry.list.length > 0 || sameDay(entry.day, ui.focus) || sameDay(entry.day, today)))
+  const days = $derived(Array.from({ length: span + lookBack }, (unused, index) => addDays(ui.focus, index - lookBack)).map(day => ({ day, list: eventsOn(events, day) })).filter(entry => carry.active || entry.list.length > 0 || sameDay(entry.day, ui.focus) || sameDay(entry.day, today) || (!!openedDay && sameDay(entry.day, openedDay))))
   // While events are carried, every day opens up (empty ones as dashed boxes to drop into), sliding the others aside; afterwards they close again
   let sliding = $state(false), slideTimer = 0
   $effect(() => { carry.active; sliding = true; clearTimeout(slideTimer); slideTimer = setTimeout(() => sliding = false, 700) })
@@ -73,7 +77,7 @@
     {#each days as { day, list }, index (day.getTime())}
       <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
-      <section class="day" class:today={sameDay(day, today)} class:gone={day < today} data-day={dayKey(day)} data-newday={dayKey(day)}>
+      <section class="day" class:today={sameDay(day, today)} class:today-chase={sameDay(day, today)} class:gone={day < today} data-day={dayKey(day)} data-newday={dayKey(day)}>
         <div class="when"><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</span></div>
         <div class="items">
           {#if list.length === 0 && carry.active}<div class="slot">{shortDate(day)}</div>
