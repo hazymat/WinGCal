@@ -11,7 +11,7 @@ export function parseWhen(text: string) { return /^\d{4}-\d{2}-\d{2}$/.test(text
 export function minutesIntoDay(date: Date) { return date.getHours() * 60 + date.getMinutes() }
 
 const locale = navigator.language || 'en-GB'
-export const prefs = { hour12: new Intl.DateTimeFormat(locale, { hour: 'numeric' }).resolvedOptions().hour12 ?? false, weekStart: 1, holdMs: 350, smoothWheel: true, fluorescent: true }
+export const prefs = { hour12: new Intl.DateTimeFormat(locale, { hour: 'numeric' }).resolvedOptions().hour12 ?? false, weekStart: 1, holdMs: 350, smoothWheel: true, stripLight: 50 }
 export function formatTime(date: Date) {
   if (prefs.hour12) { const hours = date.getHours() % 12 || 12; const minutes = date.getMinutes(); return `${hours}${minutes ? ':' + String(minutes).padStart(2, '0') : ''}${date.getHours() < 12 ? 'am' : 'pm'}` }
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`

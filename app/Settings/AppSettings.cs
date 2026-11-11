@@ -63,7 +63,7 @@ public class ViewSettings
     public int WeekStart { get; set; } = -1; // 0 = Sunday, 1 = Monday; -1 = Windows' setting
     public string Clock { get; set; } = "auto"; // auto | 12 | 24
     public bool ShowDeclined { get; set; }
-    public bool Fluorescent { get; set; } = true; // Agenda: a cool strip light sweeps across today's and upcoming events as they scroll by
+    public int StripLight { get; set; } = 50; // Agenda: how strongly a strip light sweeps across today's and upcoming events as they scroll by (0 = off)
     public bool SmoothWheel { get; set; } = true; // Agenda: the wheel glides the list rather than stepping
     public int HoldMs { get; set; } = 350; // press and hold an event this long to pick it up (and select it)
 }
