@@ -47,7 +47,7 @@
 
 <WallpaperFrost />
 <!-- The whole window is one frosted panel (with clear glass) -->
-<div class="frame" data-frost>
+<div class="frame edge-glint" data-frost>
   <!-- No heading: just the window buttons and a drag area -->
   <header role="presentation" onmousedown={drag}>
     <span class="grow"></span>
@@ -65,7 +65,7 @@
   :global(html.editor-window), :global(html.editor-window body) { background: transparent; height: 100%; margin: 0; overflow: hidden; }
   .frame { display: flex; flex-direction: column; height: 100vh; background: var(--popover); color: var(--fg); box-sizing: border-box; border-radius: 8px; }
   :global(html.editor-window.glass) .frame { background: var(--glass-tint); }
-  :global(html.editor-window.clear) .frame { background: rgb(var(--clear-rgb) / var(--clear-panel-tint, 0.42)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); }
+  :global(html.editor-window.clear) .frame { background: rgb(var(--clear-rgb) / var(--clear-panel-tint, 0.42)); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.22); }
   .panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   header { display: flex; align-items: center; gap: 2px; height: 34px; padding: 0 4px 0 16px; flex: none; }
   .grow { flex: 1; }
