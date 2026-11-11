@@ -189,6 +189,8 @@ public partial class SettingsWindow : Window
             if (colourDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
             look.AccentColour = $"#{colourDialog.Color.R:x2}{colourDialog.Color.G:x2}{colourDialog.Color.B:x2}"; Settings.Save(); App.ApplySkin(); ShowAccent();
         };
+        eventTintSlider.Value = look.EventTint; eventTintText.Text = look.EventTint == 0 ? "None" : $"{look.EventTint}%";
+        eventTintSlider.ValueChanged += (sender, args) => { look.EventTint = (int)eventTintSlider.Value; eventTintText.Text = look.EventTint == 0 ? "None" : $"{look.EventTint}%"; Settings.Save(); App.ApplySkin(); };
         accentResetButton.Click += (sender, args) => { look.AccentColour = ""; Settings.Save(); App.ApplySkin(); ShowAccent(); };
         // Scale belongs to the monitor setup (SPEC.md › Monitor setups)
         uiScaleSlider.Value = Math.Round(App.UiScale * 100); uiScaleText.Text = $"{uiScaleSlider.Value}%";

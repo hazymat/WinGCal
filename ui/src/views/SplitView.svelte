@@ -134,8 +134,8 @@
   .empty { padding: 1px 4px 2px 10px; font-size: 12px; color: var(--fg-quiet); }
   .day-items { display: grid; grid-template-columns: 1fr; gap: 4px 6px; padding: 0 2px; }
   .day-items.two { grid-template-columns: 1fr 1fr; }
-  .item { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; padding: 5px 8px; border: 0; border-radius: 8px; background: var(--panel); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); color: var(--fg); font: inherit; font-size: 12.5px; line-height: 1.35; text-align: left; cursor: pointer; }
-  .item:hover { background: var(--panel-strong); }
+  .item { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; padding: 5px 8px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); color: var(--fg); font: inherit; font-size: 12.5px; line-height: 1.35; text-align: left; cursor: pointer; }
+  .item:hover { background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel-strong)); }
   .item.past { opacity: 0.55; }
   .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--colour); }
   .time { flex: none; display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--fg-quiet); font-variant-numeric: tabular-nums; white-space: nowrap; }
