@@ -203,6 +203,7 @@
               <Slider x:Name="eventTintSlider" Minimum="0" Maximum="60" Width="220" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center" />
               <TextBlock x:Name="eventTintText" Width="70" Margin="8,0,0,0" VerticalAlignment="Center" />
             </WrapPanel>
+            <CheckBox x:Name="fluorescentBox" Content="Strip light over today and upcoming events (Agenda)" Margin="0,4,0,0" />
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">
@@ -297,7 +298,6 @@
             <TextBlock Text="Events" Style="{StaticResource CardTitle}" />
             <CheckBox x:Name="declinedBox" Content="Show events I've declined" Margin="0,4,0,0" />
             <CheckBox x:Name="smoothWheelBox" Content="Smooth scrolling with the mouse wheel (Agenda and Month and days)" Margin="0,8,0,0" />
-            <CheckBox x:Name="fluorescentBox" Content="Strip light over today and upcoming events (Agenda)" Margin="0,8,0,0" />
             <WrapPanel Margin="0,10,0,0">
               <TextBlock Text="Hold to pick up" Margin="0,0,8,0" MinWidth="120" VerticalAlignment="Center" />
               <Slider x:Name="holdSlider" Minimum="150" Maximum="1000" Width="200" IsSnapToTickEnabled="True" TickFrequency="50" VerticalAlignment="Center" />
