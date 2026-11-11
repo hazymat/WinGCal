@@ -14,13 +14,15 @@
   const readingLine = () => (list?.clientHeight ?? 0) * 0.25
   $effect(() => { const focus = ui.focus; topDay = focus; span = 56; lookBack = 30; requestAnimationFrame(() => scrollToDay(focus, false)) })
   function scrollToDay(day: Date, smooth: boolean) { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (!list) return; if (!section) { ui.focus = day; return } if (smooth) warpScroll(list, section.offsetTop - readingLine()); else list.scrollTop = section.offsetTop - readingLine() }
-  let growingBack = false
+  let growingBack = false, todayInView = $state(true)
   // The month above follows the day on the reading line
   function onListScroll() {
     if (!list) return
     if (list.scrollTop + list.clientHeight > list.scrollHeight - 600) span += 56
     // Scrolling up reaches further back, eight weeks at a time, without the list jumping
     if (list.scrollTop < 300 && lookBack < 3650 && !growingBack && !isWarping(list)) { growingBack = true; const before = list.scrollHeight; lookBack += 56; requestAnimationFrame(() => { if (list) list.scrollTop += list.scrollHeight - before; growingBack = false }) }
+    const todaySection = list.querySelector<HTMLElement>('.day.today')
+    todayInView = !!todaySection && todaySection.offsetTop + todaySection.offsetHeight > list.scrollTop + 20 && todaySection.offsetTop < list.scrollTop + list.clientHeight - 20
     const line = list.scrollTop + readingLine(), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > line)
     if (section) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
   }
@@ -33,7 +35,7 @@
 <div class="agenda" bind:clientHeight={height}>
   {#if height > 520}<div class="mini"><MiniMonth {events} follow={topDay} /></div>{/if}
   <div class="list-wrap">
-  {#if !sameDay(topDay, today)}<button class="jump-today" onclick={() => scrollToDay(today, true)} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
+  {#if !todayInView}<button class="jump-today" onclick={() => scrollToDay(today, true)} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="list" bind:this={list} onscroll={onListScroll}>
     {#each days as { day, list }, index (day.getTime())}
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}

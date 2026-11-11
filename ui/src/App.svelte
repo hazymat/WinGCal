@@ -118,6 +118,13 @@
     else ui.focus = addDays(ui.focus, direction * 7)
   }
   const isToday = $derived(startOfDay(new Date()).getTime() === ui.focus.getTime())
+  // The Today pill shows only while today is out of view (Agenda has its own, over its list)
+  const todayShown = $derived.by(() => {
+    const today = ui.today, focus = ui.focus
+    if (shownView === 'agenda') return true
+    if (shownView === 'week') { const dayCount = width >= 560 ? 7 : width >= 360 ? 3 : 1, firstDay = dayCount === 7 ? startOfWeek(focus, prefs.weekStart) : startOfDay(focus); return today >= firstDay && today < addDays(firstDay, dayCount) }
+    return today.getMonth() === focus.getMonth() && today.getFullYear() === focus.getFullYear()
+  })
   const views: [ViewMode, string][] = [['auto', 'Auto: picks by window size'], ['month', 'Month'], ['week', 'Week'], ['agenda', 'Agenda'], ['split', 'Month and days']]
   // Tasks: a column beside the calendar when there's room, otherwise a panel over it
   const tasksColumn = $derived(app.tasks.enabled && ui.tasksOpen && width >= 760)
@@ -172,11 +179,11 @@
   <header class="strip" role="presentation" onmousedown={dragWindow} data-frost>
     <div class="heading" bind:clientWidth={headingRoom}>
       <span class="today measure" aria-hidden="true" bind:clientWidth={headingNatural}>{heading}</span>
-      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 220 ? 64 : 0) - (isToday ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
+      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 220 ? 64 : 0) - (todayShown ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
       {#if width >= 220}
         <button class="step" onclick={() => step(-1)} aria-label="Previous"><Icon name="previous" size={16} /></button>
         <button class="step" onclick={() => step(1)} aria-label="Next"><Icon name="next" size={16} /></button>
-        {#if !isToday}<button class="back-today" onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">Today</button>{/if}
+        {#if !todayShown}<button class="back-today" onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">Today</button>{/if}
       {/if}
     </div>
     <div class="tools">
