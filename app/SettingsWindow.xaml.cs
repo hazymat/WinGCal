@@ -28,6 +28,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent(); settingsTabs.SelectedItem = App.Settings.Sync.Accounts.Count == 0 ? accountsTab : appearanceTab;
+        defaultCalendarBox.SelectionChanged += (sender, args) => { if (fillingDefault || defaultCalendarBox.SelectedValue is not string key) return; Settings.Sync.DefaultCalendar = key; Settings.Save(); };
         WireAccountsTab(); WireSyncTab(); WireTasksTab(); WireExportTab(); WireAppearanceTab(); WireViewTab(); WireWindowTab(); WireAboutTab();
         FillLists();
         // Esc closes (settings save as they change); an open drop-down takes the Esc first and marks it handled
@@ -68,9 +69,18 @@ public partial class SettingsWindow : Window
     record CalendarRow(string Key, string Name, bool Shown, Brush ColourBrush, string AccountHeading, Visibility HeadingVisibility, bool InSwitcher = true);
     record SetupRow(string Key, string Name, string CurrentLabel, string Detail);
     record ExportRow(string Email) { public bool Chosen { get; set; } = true; }
+    record DefaultChoice(string Key, string Label);
+    bool fillingDefault;
+    void FillDefaultCalendar()
+    {
+        var store = App.Store; var many = store.Calendars.Select(calendar => calendar.Account).Distinct().Count() > 1;
+        var choices = new List<DefaultChoice> { new("", "The first ticked calendar") }.Concat(store.Calendars.Where(calendar => !calendar.ReadOnly).Select(calendar => new DefaultChoice(calendar.Key, many ? $"{calendar.Name} · {calendar.Account}" : calendar.Name))).ToList();
+        fillingDefault = true; defaultCalendarBox.ItemsSource = choices; defaultCalendarBox.SelectedValue = choices.Any(choice => choice.Key == Settings.Sync.DefaultCalendar) ? Settings.Sync.DefaultCalendar : ""; fillingDefault = false;
+    }
     void FillLists()
     {
         var store = App.Store;
+        FillDefaultCalendar();
         accountsList.ItemsSource = Settings.Sync.Accounts.Select(email =>
         {
             var state = store.AccountStates.GetValueOrDefault(email);
