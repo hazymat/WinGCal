@@ -299,6 +299,8 @@ public partial class SettingsWindow : Window
         holdSlider.Value = view.HoldMs; holdText.Text = $"{view.HoldMs} ms";
         holdSlider.ValueChanged += (sender, args) => { view.HoldMs = (int)holdSlider.Value; holdText.Text = $"{view.HoldMs} ms"; Settings.Save(); App.ApplyView(); };
         clockBox.SelectionChanged += (sender, args) => { if (clockBox.SelectedItem is ComboBoxItem { Tag: string clock }) { view.Clock = clock; Settings.Save(); App.ApplyView(); } };
+        smoothWheelBox.IsChecked = view.SmoothWheel;
+        smoothWheelBox.Click += (sender, args) => { view.SmoothWheel = smoothWheelBox.IsChecked == true; Settings.Save(); App.ApplyView(); };
         declinedBox.IsChecked = view.ShowDeclined;
         declinedBox.Click += (sender, args) => { view.ShowDeclined = declinedBox.IsChecked == true; Settings.Save(); App.ApplyView(); };
     }

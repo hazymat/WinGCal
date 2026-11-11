@@ -32,7 +32,7 @@
   onShellMessage('calendars', message => { app.accounts = message.accounts; app.calendars = message.calendars; app.sampleData = !!message.sample })
   onShellMessage('events', message => app.events = message.events)
   onShellMessage('sync', message => { app.syncing = !!message.syncing; app.offline = !!message.offline })
-  onShellMessage('prefs', message => { prefs.weekStart = message.weekStart ?? prefs.weekStart; prefs.holdMs = message.holdMs ?? prefs.holdMs; if (typeof message.hour12 === 'boolean') prefs.hour12 = message.hour12; ui.lookVersion++ })
+  onShellMessage('prefs', message => { prefs.weekStart = message.weekStart ?? prefs.weekStart; prefs.holdMs = message.holdMs ?? prefs.holdMs; prefs.smoothWheel = message.smoothWheel ?? prefs.smoothWheel; if (typeof message.hour12 === 'boolean') prefs.hour12 = message.hour12; ui.lookVersion++ })
   onShellMessage('update', message => app.updateReady = message.version ?? '')
   onShellMessage('tasks', message => app.tasks = { enabled: !!message.enabled, lists: message.lists ?? [], items: message.items ?? [] })
   onShellMessage('tip', message => ui.tip = { title: message.title ?? '', text: message.text ?? '' })

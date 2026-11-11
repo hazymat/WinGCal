@@ -61,6 +61,7 @@ public class ViewSettings
     public int WeekStart { get; set; } = -1; // 0 = Sunday, 1 = Monday; -1 = Windows' setting
     public string Clock { get; set; } = "auto"; // auto | 12 | 24
     public bool ShowDeclined { get; set; }
+    public bool SmoothWheel { get; set; } = true; // Agenda: the wheel glides the list rather than stepping
     public int HoldMs { get; set; } = 350; // press and hold an event this long to pick it up (and select it)
 }
 

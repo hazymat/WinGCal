@@ -6,6 +6,7 @@
   import Icon from '../parts/Icon.svelte'
   import { warpScroll, isWarping } from '../lib/warp'
   import { carry } from '../lib/carry.svelte'
+  import { glideWheel } from '../lib/glide'
   import { slide } from 'svelte/transition'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
@@ -57,7 +58,7 @@
   {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={wheelDay ?? topDay} /></div>{/if}
   <div class="list-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
-  <div class="list" bind:this={list} onscroll={onListScroll} onwheel={() => wheelDay = null}>
+  <div class="list" bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
     {#each days as { day, list }, index (day.getTime())}
       <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
