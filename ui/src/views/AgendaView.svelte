@@ -9,14 +9,16 @@
   let height = $state(600)
   const today = $derived(ui.today)
   // The focus day sits a quarter of the way down, with a glimpse of the last few weeks above it; scrolling near the end adds eight weeks more, without end. Empty days are skipped, except the focus day and today
-  const lookBack = 30
-  let span = $state(56), list: HTMLDivElement | undefined = $state(), topDay = $state(ui.focus)
+  let lookBack = $state(30), span = $state(56), list: HTMLDivElement | undefined = $state(), topDay = $state(ui.focus)
   const readingLine = () => (list?.clientHeight ?? 0) * 0.25
-  $effect(() => { const focus = ui.focus; topDay = focus; span = 56; requestAnimationFrame(() => { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(focus)}"]`); if (list && section) list.scrollTop = section.offsetTop - readingLine() }) })
+  $effect(() => { const focus = ui.focus; topDay = focus; span = 56; lookBack = 30; requestAnimationFrame(() => { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(focus)}"]`); if (list && section) list.scrollTop = section.offsetTop - readingLine() }) })
+  let growingBack = false
   // The month above follows the day on the reading line
   function onListScroll() {
     if (!list) return
     if (list.scrollTop + list.clientHeight > list.scrollHeight - 600) span += 56
+    // Scrolling up reaches further back, eight weeks at a time, without the list jumping
+    if (list.scrollTop < 300 && lookBack < 3650 && !growingBack) { growingBack = true; const before = list.scrollHeight; lookBack += 56; requestAnimationFrame(() => { if (list) list.scrollTop += list.scrollHeight - before; growingBack = false }) }
     const line = list.scrollTop + readingLine(), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.offsetTop + candidate.offsetHeight > line)
     if (section) { const [year, month, date] = section.dataset.day!.split('-').map(Number); if (!sameDay(topDay, new Date(year, month - 1, date))) topDay = new Date(year, month - 1, date) }
   }
