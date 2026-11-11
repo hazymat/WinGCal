@@ -45,9 +45,11 @@
   function monthWheel(wheelEvent: WheelEvent) {
     wheelEvent.preventDefault()
     if (!list) return
-    wheelPending += Math.abs(wheelEvent.deltaY) >= Math.abs(wheelEvent.deltaX) ? wheelEvent.deltaY : wheelEvent.deltaX
+    const delta = Math.abs(wheelEvent.deltaY) >= Math.abs(wheelEvent.deltaX) ? wheelEvent.deltaY : wheelEvent.deltaX
+    // A mouse notch (its size varies with display scaling) turns one month at once; a touchpad's small deltas add up to one
+    if (Math.abs(delta) >= 50) wheelPending = Math.sign(delta) * 100; else wheelPending += delta
     const steps = Math.trunc(wheelPending / 100); if (!steps) return
-    wheelPending -= steps * 100
+    wheelPending = 0
     const shownMonth = wheelDay ?? topDay, target = new Date(shownMonth.getFullYear(), shownMonth.getMonth() + Math.sign(steps), 1), offset = Math.round((target.getTime() - ui.focus.getTime()) / 86_400_000)
     wheelDay = target
     if (offset < -lookBack) lookBack = -offset + 28
