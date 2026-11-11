@@ -3,7 +3,7 @@
   import { ui, eventsOn, type Placed } from '../state.svelte'
   import { addDays, addMonths, sameDay, startOfDay, startOfWeek, prefs, monthName } from '../lib/dates'
   import Icon from './Icon.svelte'
-  let { events, follow }: { events: Placed[]; follow?: Date } = $props()
+  let { events, follow, onday }: { events: Placed[]; follow?: Date; onday?: (day: Date) => void } = $props() // onday: the owner handles a click on a day (Agenda glides there) instead of it becoming the focus
   let shownMonth = $state(new Date(ui.focus.getFullYear(), ui.focus.getMonth(), 1))
   // Follows the day list's scrolling (agenda), turning the page when the list reaches another month
   $effect(() => { const day = follow; if (day) untrack(() => { if (day.getMonth() !== shownMonth.getMonth() || day.getFullYear() !== shownMonth.getFullYear()) shownMonth = new Date(day.getFullYear(), day.getMonth(), 1) }) })
@@ -41,7 +41,7 @@
     <span class="blob" bind:this={blob} aria-hidden="true"></span>
     {#each days.slice(0, 7) as day}<span class="weekday">{day.toLocaleDateString(undefined, { weekday: 'narrow' })}</span>{/each}
     {#each days as day (day.getTime())}
-      <button class="cell" class:other={day.getMonth() !== shownMonth.getMonth()} class:today={sameDay(day, today)} class:focus={sameDay(day, follow ?? ui.focus)} onclick={() => ui.focus = day}>
+      <button class="cell" class:other={day.getMonth() !== shownMonth.getMonth()} class:today={sameDay(day, today)} class:focus={sameDay(day, follow ?? ui.focus)} onclick={() => onday ? onday(day) : ui.focus = day}>
         {day.getDate()}<span class="dots">{#each dots(day) as colour}<i style="background: {colour}"></i>{/each}</span>
       </button>
     {/each}

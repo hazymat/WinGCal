@@ -17,7 +17,7 @@
   const readingLine = () => (list?.clientHeight ?? 0) * 0.25
   // While the list rebuilds around a newly picked day, its scrolling isn't read (it would flick the month above back and forth)
   let settling = false
-  $effect(() => { const focus = ui.focus; topDay = focus; wheelDay = null; span = 56; lookBack = 30; settling = true; requestAnimationFrame(() => { scrollToDay(focus, false); requestAnimationFrame(() => settling = false) }) })
+  $effect(() => { const focus = ui.focus; topDay = focus; wheelDay = null; span = 56; lookBack = 30; settling = true; requestAnimationFrame(() => { scrollToDay(focus, false); requestAnimationFrame(() => { settling = false; onListScroll() }) }) })
   function scrollToDay(day: Date, smooth: boolean) { const section = list?.querySelector<HTMLElement>(`[data-day="${dayKey(day)}"]`); if (!list) return; if (!section) { ui.focus = day; return } if (smooth) warpScroll(list, section.offsetTop - readingLine()); else list.scrollTop = section.offsetTop - readingLine() }
   let growingBack = false, todayInView = $state(true)
   // Lingering among only past days: after a moment they warm back up a little, like a tungsten bulb coming on (they stay warm until a day from today on comes into view)
@@ -51,6 +51,14 @@
   }
   // The strip's month heading follows the day being read, so the month isn't shown twice
   $effect(() => { ui.readingDay = wheelDay ?? topDay; return () => { ui.readingDay = null } })
+  // A day clicked in the month above: the list warps there (to it, or the next day with something on), making room first if it's beyond what's drawn
+  function glideToDay(target: Date) {
+    const offset = Math.round((target.getTime() - ui.focus.getTime()) / 86_400_000)
+    wheelDay = target
+    if (offset < -lookBack) lookBack = -offset + 28
+    if (offset + 40 > span) span = offset + 70
+    requestAnimationFrame(() => { if (!list) return; const key = dayKey(target), section = Array.from(list.querySelectorAll<HTMLElement>('[data-day]')).find(candidate => candidate.dataset.day! >= key); if (section) warpScroll(list, section.offsetTop - readingLine()) })
+  }
   // Keep adding while the list doesn't yet reach past the bottom (quiet stretches), up to ten years
   $effect(() => { days.length; requestAnimationFrame(() => { if (list && span < 3650 && list.scrollHeight < list.clientHeight + 600) span += 56 }) })
   const days = $derived(Array.from({ length: span + lookBack }, (unused, index) => addDays(ui.focus, index - lookBack)).map(day => ({ day, list: eventsOn(events, day) })).filter(entry => carry.active || entry.list.length > 0 || sameDay(entry.day, ui.focus) || sameDay(entry.day, today)))
@@ -61,7 +69,7 @@
 </script>
 
 <div class="agenda" bind:clientHeight={height}>
-  {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={wheelDay ?? topDay} /></div>{/if}
+  {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={wheelDay ?? topDay} onday={glideToDay} /></div>{/if}
   <div class="list-wrap">
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="list" class:warmed bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>

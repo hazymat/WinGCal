@@ -232,7 +232,7 @@
   <header class="strip" role="presentation" onmousedown={dragWindow} data-frost>
     <div class="heading" bind:clientWidth={headingRoom}>
       <span class="today measure" aria-hidden="true" bind:clientWidth={headingNatural}>{heading}</span>
-      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 220 ? 64 : 0) - (todayShown ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{heading}</button>
+      <button class="today" class:on={isToday} class:cut={headingNatural > headingRoom - (width >= 220 ? 64 : 0) - (todayShown ? 0 : 60)} onclick={() => ui.focus = startOfDay(new Date())} title="Back to today (T)">{headingNatural > headingRoom - (width >= 220 ? 64 : 0) - (todayShown ? 0 : 60) ? `${shortMonth(headingDay)} ${headingDay.getFullYear()}` : heading}</button>
       {#if width >= 220}
         <button class="step" onclick={() => step(-1)} aria-label="Previous"><Icon name="previous" size={16} /></button>
         <button class="step" onclick={() => step(1)} aria-label="Next"><Icon name="next" size={16} /></button>
@@ -305,7 +305,7 @@
   .today { min-width: 0; padding: 2px 8px; margin-right: 4px; border: 0; border-radius: 8px; background: none; color: var(--fg); font: inherit; font-size: 18px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; letter-spacing: -0.01em; }
   .today:hover { background: var(--hover); }
   .today.measure { position: absolute; visibility: hidden; pointer-events: none; }
-  .today.cut { display: none; }
+  .today.cut { font-size: 15px; } /* short of room: "Nov 2026", never nothing */
   /* Back to today: only while away from it, quiet until hovered */
   /* Back to today: shown only while away from it, in the accent so it's hard to miss */
   .back-today { flex: none; height: 22px; padding: 0 10px; margin-left: 6px; border: 0; border-radius: 11px; background: var(--accent-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
