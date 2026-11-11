@@ -2,6 +2,7 @@
   import { sendToShell } from '../bridge'
   import { addDays, dayKey, parseWhen } from '../lib/dates'
   import Icon from '../parts/Icon.svelte'
+  import SaveChanges from './SaveChanges.svelte'
   import type { EditorEvent, EditorCalendar } from './types'
   // One event, shown ready to edit (or a new one): Save sends only what changed; the window stays open until closed
   let { event, calendars, day, time, savedAt, problem = $bindable() }: { event: EditorEvent | null; calendars: EditorCalendar[]; day: string; time: string; savedAt: number; problem: string } = $props()
@@ -20,7 +21,7 @@
     const startAt = parseWhen(event.start), endAt = parseWhen(event.end), lastDay = event.allDay ? addDays(endAt, -1) : endAt
     return { title: event.title, allDay: event.allDay, startDate: dayKey(startAt), startTime: event.allDay ? '09:00' : clock(startAt), endDate: dayKey(lastDay), endTime: event.allDay ? '10:00' : clock(endAt), location: event.location ?? '', description: notesOf(event.description), calendarKey: event.calendarKey }
   }
-  let draft = $state<Draft>(fromEvent()), original = $state<Draft>(fromEvent()), saving = $state(false), confirmingDelete = $state(false), wholeSeries = $state(false)
+  let draft = $state<Draft>(fromEvent()), original = $state<Draft>(fromEvent()), saving = $state(false), confirmingDelete = $state(false), askingSave = $state(false), wholeSeries = $state(false)
   const dirty = $derived(JSON.stringify(draft) !== JSON.stringify(original))
   // The event changed elsewhere (sync, another window): follow it unless this one has unsaved edits
   $effect(() => { const fresh = fromEvent(); if (JSON.stringify(fresh) !== JSON.stringify(original) && !dirty) { draft = fresh; original = fromEvent() } })
@@ -56,14 +57,22 @@
     saving = true; sendToShell(message)
   }
   function onKey(keyEvent: KeyboardEvent) {
-    if ((keyEvent.key === 's' && keyEvent.ctrlKey) || (keyEvent.key === 'Enter' && (keyEvent.ctrlKey || !(keyEvent.target as HTMLElement).matches('textarea')))) { keyEvent.preventDefault(); save() }
+    if ((keyEvent.key === 's' && keyEvent.ctrlKey) || (keyEvent.key === 'Enter' && (keyEvent.ctrlKey || !(keyEvent.target as HTMLElement).matches('textarea, button, a')))) { keyEvent.preventDefault(); save() }
+  }
+  // Esc: backs out of a question first, closes straight away when nothing changed, otherwise asks (Save is the default)
+  const unsaved = $derived(dirty && !readOnly)
+  function onEscape(keyEvent: KeyboardEvent) {
+    if (keyEvent.key !== 'Escape') return
+    keyEvent.preventDefault()
+    if (confirmingDelete) confirmingDelete = false; else if (askingSave) askingSave = false; else if (unsaved && !saving) askingSave = true; else closeWindow()
   }
   let titleInput: HTMLTextAreaElement | undefined = $state(), form: HTMLDivElement | undefined = $state()
   // The delete question grows the window by whatever no longer fits, rather than leaving it to scroll
-  $effect(() => { if (!confirmingDelete || !form) return; requestAnimationFrame(() => { if (!form) return; const overflow = form.scrollHeight - form.clientHeight; if (overflow > 0) sendToShell({ type: 'growWindow', by: overflow }) }) })
+  $effect(() => { if (!(confirmingDelete || askingSave) || !form) return; requestAnimationFrame(() => { if (!form) return; const overflow = form.scrollHeight - form.clientHeight; if (overflow > 0) sendToShell({ type: 'growWindow', by: overflow }) }) })
   $effect(() => { if (!event) titleInput?.focus() })
 </script>
 
+<svelte:window onkeydown={onEscape} />
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="form" bind:this={form} onkeydown={onKey} style="--colour: {event?.colour || calendar?.colour || '#4f8ef7'}">
   <div class="title-row"><span class="swatch"></span><textarea class="title" rows="1" bind:this={titleInput} bind:value={draft.title} placeholder={event ? 'Title' : 'Add a title'} disabled={readOnly} onkeydown={(keyEvent) => { if (keyEvent.key === 'Enter') keyEvent.preventDefault() }}></textarea></div>
@@ -80,7 +89,9 @@
   {#if event?.meetUrl}<div class="row"><Icon name="video" size={15} /><a class="join" href={event.meetUrl} target="_blank" rel="noreferrer">Join video call</a></div>{/if}
   <textarea bind:value={draft.description} placeholder="Add notes" disabled={readOnly}></textarea>
   {#if problem}<div class="problem">{problem}</div>{/if}
-  {#if confirmingDelete && event}
+  {#if askingSave}
+    <SaveChanges saveLabel={event ? 'Save' : 'Add event'} canSave={!draftProblem} onsave={save} ondiscard={closeWindow} />
+  {:else if confirmingDelete && event}
     <div class="confirm">
       <b>Delete “{event.title}”?</b>
       {#if event.recurring}<label><input type="radio" name="series" checked={!wholeSeries} onchange={() => wholeSeries = false} />This event</label><label><input type="radio" name="series" checked={wholeSeries} onchange={() => wholeSeries = true} />All events in the series</label>{/if}
