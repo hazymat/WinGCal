@@ -102,6 +102,13 @@
             <TextBlock x:Name="noCalendarsText" Style="{StaticResource Quiet}" Text="Sign in on Accounts first." />
           </StackPanel>
         </Border>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="New events" Style="{StaticResource CardTitle}" />
+            <TextBlock Style="{StaticResource Quiet}" Text="The calendar a new event starts in. You can still change it in the event window." />
+            <ComboBox x:Name="defaultCalendarBox" Margin="0,8,0,0" MinWidth="260" HorizontalAlignment="Left" DisplayMemberPath="Label" SelectedValuePath="Key" />
+          </StackPanel>
+        </Border>
       </StackPanel>
       </ScrollViewer>
     </TabItem>

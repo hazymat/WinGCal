@@ -10,7 +10,7 @@
   const clock = (date: Date) => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
   const notesOf = (html: string) => html ? new DOMParser().parseFromString(html.replace(/<(br|\/p|\/li|\/div)\s*\/?>/gi, '\n$&'), 'text/html').body.textContent?.trim() ?? '' : ''
   // New events go only in calendars picked in Settings › Calendars (all writable ones if none are picked)
-  const writable = $derived.by(() => { const open = calendars.filter(calendar => !calendar.readOnly), picked = open.filter(calendar => calendar.inSwitcher); return picked.length ? picked : open })
+  const writable = $derived.by(() => { const open = calendars.filter(calendar => !calendar.readOnly), picked = open.filter(calendar => calendar.inSwitcher || calendar.isDefault); return picked.length ? picked : open })
   const calendar = $derived(calendars.find(candidate => candidate.key === (event?.calendarKey ?? draft.calendarKey)))
   const readOnly = $derived(!!event && !!calendar?.readOnly)
   type Draft = { title: string; allDay: boolean; startDate: string; startTime: string; endDate: string; endTime: string; location: string; description: string; calendarKey: string }
@@ -18,7 +18,7 @@
     if (!event) {
       // A double-clicked day is an all-day event; a double-clicked hour (Week) starts then, for an hour
       const startHour = time || '09:00', endAt = new Date(new Date(`${day || dayKey(new Date())}T${startHour}`).getTime() + 3_600_000)
-      return { title: '', allDay: !time, startDate: day || dayKey(new Date()), startTime: startHour, endDate: time ? dayKey(endAt) : endDay || day || dayKey(new Date()), endTime: clock(endAt), location: '', description: '', calendarKey: (writable.find(candidate => candidate.shown) ?? writable[0])?.key ?? '' }
+      return { title: '', allDay: !time, startDate: day || dayKey(new Date()), startTime: startHour, endDate: time ? dayKey(endAt) : endDay || day || dayKey(new Date()), endTime: clock(endAt), location: '', description: '', calendarKey: (writable.find(candidate => candidate.isDefault) ?? writable.find(candidate => candidate.shown) ?? writable[0])?.key ?? '' /* the default from Settings › Calendars first */ }
     }
     const startAt = parseWhen(event.start), endAt = parseWhen(event.end), lastDay = event.allDay ? addDays(endAt, -1) : endAt
     return { title: event.title, allDay: event.allDay, startDate: dayKey(startAt), startTime: event.allDay ? '09:00' : clock(startAt), endDate: dayKey(lastDay), endTime: event.allDay ? '10:00' : clock(endAt), location: event.location ?? '', description: notesOf(event.description), calendarKey: event.calendarKey }

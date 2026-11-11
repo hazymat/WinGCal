@@ -78,6 +78,7 @@ public class SyncSettings
     public int RefreshMinutes { get; set; } = 5;
     public List<string> HiddenCalendars { get; set; } = new(); // "account|calendarId"
     public List<string> CalendarOrder { get; set; } = new(); // Settings › Calendars order (up/down buttons)
+    public string DefaultCalendar { get; set; } = ""; // new events start in this calendar (Settings › Calendars › New events); "" = the first picked one
     public List<string> OutOfSwitcher { get; set; } = new(); // calendars left out of the quick switcher (Settings › Calendars › In switcher)
     public List<string> KnownCalendars { get; set; } = new(); // seen before: a new one starts shown or hidden as it is in Google Calendar
     public Dictionary<string, string> ColourOverrides { get; set; } = new();
