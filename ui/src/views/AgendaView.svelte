@@ -7,6 +7,7 @@
   import { warpScroll, isWarping } from '../lib/warp'
   import { carry } from '../lib/carry.svelte'
   import { glideWheel } from '../lib/glide'
+  import { chaseOnView } from '../lib/chase'
   import { slide } from 'svelte/transition'
   import { tick } from 'svelte'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
@@ -84,7 +85,7 @@
     {#each days as { day, list }, index (day.getTime())}
       <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
-      <section class="day" class:today={sameDay(day, today)} class:today-chase={sameDay(day, today)} class:gone={day < today} data-day={dayKey(day)} data-newday={dayKey(day)}>
+      <section class="day" class:today={sameDay(day, today)} class:today-chase={sameDay(day, today)} use:chaseOnView={sameDay(day, today)} class:gone={day < today} data-day={dayKey(day)} data-newday={dayKey(day)}>
         <div class="when"><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</span></div>
         <div class="items">
           {#if list.length === 0 && carry.active}<div class="slot">{shortDate(day)}</div>

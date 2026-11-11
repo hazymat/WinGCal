@@ -114,10 +114,15 @@ a, img, svg { -webkit-user-drag: none; }
 /* Today no longer breathes: it holds the brightest wash (the old pulse's peak) */
 @keyframes today-pulse { from, to { background-color: color-mix(in srgb, var(--accent) 11%, transparent); } }
 @keyframes today-pulse-bright { from, to { background-color: color-mix(in srgb, var(--accent) 19%, transparent); } }
-/* ...and every few seconds a line chases round its border, glints as it closes, then fades away (Agenda and Split) */
+/* ...and each time it comes into view a line chases once round its border, then the ring fades as a glint sweeps across the panel (Agenda and Split; lib/chase.ts adds .chasing) */
 @property --chase { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-@keyframes today-chase { 0% { --chase: 0deg; opacity: 1; filter: none; } 28% { --chase: 360deg; opacity: 1; filter: none; } 32% { --chase: 360deg; opacity: 1; filter: brightness(2.2) drop-shadow(0 0 4px var(--accent)); } 38% { --chase: 360deg; opacity: 1; filter: none; } 50%, 100% { --chase: 360deg; opacity: 0; filter: none; } }
+@keyframes today-chase { 0% { --chase: 0deg; opacity: 1; } 62% { --chase: 360deg; opacity: 1; } 70% { --chase: 360deg; opacity: 1; filter: brightness(1.8) drop-shadow(0 0 4px var(--accent)); } 100% { --chase: 360deg; opacity: 0; filter: none; } }
+@keyframes today-glint { 0%, 62% { background-position: 130% 0; opacity: 0; } 66% { opacity: 1; } 92% { opacity: 1; } 100% { background-position: -30% 0; opacity: 0; } }
 .today-chase { position: relative; }
-.today-chase::after { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; background: conic-gradient(from -90deg at 50% 50%, var(--accent) 0deg var(--chase), transparent var(--chase)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: today-chase 7s ease-in-out infinite; }
+.today-chase::after, .today-chase::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; }
+.today-chase::after { padding: 1.5px; background: conic-gradient(from -90deg at 50% 50%, var(--accent) 0deg var(--chase), transparent var(--chase)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.today-chase::before { z-index: 1; mix-blend-mode: screen; background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.12) 46%, rgba(255, 255, 255, 0.45) 50%, rgba(255, 255, 255, 0.12) 54%, transparent 60%) no-repeat; background-size: 250% 100%; }
+.today-chase.chasing::after { animation: today-chase 3.2s ease-in-out both; }
+.today-chase.chasing::before { animation: today-glint 3.2s ease-out both; }
 /* Agenda and Split: days drift in from below and fade as they pass the top */
 @keyframes agenda-drift { 0% { opacity: 0.2; transform: translateY(14px) scale(0.96); } 24% { opacity: 1; transform: none; } 68% { opacity: 1; transform: none; } 100% { opacity: 0.25; transform: scale(0.98); } }

@@ -88,7 +88,7 @@ The windows are glass like the calendar (acrylic for the glass skins, solid for 
 
 Press and hold an event (or Ctrl+click or Shift+click) to start picking several; while some are picked, a click adds or removes one. A floating rounded bar near the bottom (over the calendar, never pushing it up) shows "N events selected" with Edit… (a glass "Change N events" window: tick Date, Starts at, Ends at, Place or Calendar; each event keeps its own time and length where it makes sense; only ticked fields change; moving calendars stays within the account, never for repeats), Copy (titles and times as text), Delete (a glass dialog listing them; for repeats, only these occurrences or the whole series) and ×. Esc or × ends picking.
 
-**Today** holds a steady accent wash (no pulse); in Agenda and Split, every 7 s a line chases round today's border, glints as it closes, then fades.
+**Today** holds a steady accent wash (no pulse); in Agenda and Split, each time today comes into view a line chases once round its border, then the ring fades as a glint sweeps across today's panel. It plays again only after today has left the view and come back.
 
 **Strip light** (Settings › Appearance › Colour, slider 0–100%, default 50%, 0 = off): in Agenda a soft, slightly warm daylight glow (broad and feathered, screen-blended so it reads as light rather than metal), fixed in space, sweeps across each of today's and upcoming events as it scrolls past; today's events catch a brighter, glossier reflection. Past days get a tungsten warm-up instead: once the past fills most of the view (a past day on the reading line and today in the bottom quarter or below), they flicker and glow warm after 0.7 s, with a warm pool of light over the past days only.
 
