@@ -137,7 +137,7 @@
   .item.past { opacity: 0.6; }
   /* Strip light (Settings › View): a cool fluorescent band fixed in space, so each of today's and upcoming events catches it as it scrolls past (Chromium scroll-driven animation) */
   .lit .day:not(.gone) .item { position: relative; overflow: hidden; }
-  .lit .day:not(.gone) .item::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; mix-blend-mode: soft-light; background: linear-gradient(100deg, transparent 44%, rgba(255, 255, 255, 0.35) 49.2%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.35) 50.8%, transparent 56%) no-repeat; background-size: 300% 100%; animation: strip-light linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+  .lit .day:not(.gone) .item::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; mix-blend-mode: soft-light; background: linear-gradient(100deg, transparent 44%, rgba(255, 255, 255, 0.35) 49.2%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.35) 50.8%, transparent 56%) no-repeat; background-size: 300% 100%; animation: strip-light linear both; animation-timeline: view(); animation-range: cover 20% cover 80%; } /* tied to scroll position, crossing each event within the middle of the view so it moves briskly with the wheel */
   /* Today is glossier: the same tube, reflected a little brighter */
   .lit .day.today .item::after { mix-blend-mode: overlay; background-image: linear-gradient(100deg, transparent 43%, rgba(255, 255, 255, 0.4) 49%, rgba(255, 255, 255, 0.75) 50%, rgba(255, 255, 255, 0.4) 51%, transparent 57%); }
   @keyframes strip-light { from { background-position: 85% 0; } to { background-position: 15% 0; } }
