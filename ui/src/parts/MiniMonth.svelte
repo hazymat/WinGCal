@@ -29,6 +29,9 @@
       blob.animate([frame(from), { offset: 0.25, ...frame(pinch) }, { offset: 0.55, ...frame(stretch) }, { offset: 0.8, ...frame({ left: rect.left - 2, top: rect.top - 1, width: rect.width + 4, height: rect.height + 2 }) }, frame(rect)], { duration: 420, easing: 'cubic-bezier(0.3, 0, 0.2, 1)' })
     })
   })
+  // Changing month, the days slide in from the way it went: up for later, down for earlier
+  let previousMonth = untrack(() => shownMonth.getTime())
+  $effect(() => { const month = shownMonth.getTime(); untrack(() => { if (month === previousMonth) return; const direction = month > previousMonth ? 1 : -1; previousMonth = month; cells?.animate([{ transform: `translateY(${direction * 60}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 320, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }) }) })
   const dots = (day: Date) => Array.from(new Set(eventsOn(events, day).map(event => event.colourShown))).slice(0, 3)
 </script>
 
@@ -46,6 +49,7 @@
 </div>
 
 <style>
+  .mini-month { overflow: hidden; }
   .mini-head { display: flex; align-items: center; gap: 2px; font-weight: 600; font-size: 13px; padding: 2px 2px 4px; }
   .mini-head span { flex: 1; }
   .mini-head button { display: grid; place-items: center; width: 26px; height: 24px; border: 0; border-radius: 6px; background: none; color: var(--fg-quiet); cursor: pointer; }

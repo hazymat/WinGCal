@@ -1,18 +1,26 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import HandCircle from '../parts/HandCircle.svelte'
   import HandArrow from '../parts/HandArrow.svelte'
   import { ui, eventsOn, type Placed } from '../state.svelte'
   import { addDays, sameDay, startOfDay, startOfWeek, formatTime, weekdayShort, prefs, dayMs, dayKey } from '../lib/dates'
+  import { warpScroll, isWarping } from '../lib/warp'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
-  // Six weeks from the week holding the 1st, so every month fits and the grid never jumps in height
-  const firstOfMonth = $derived(new Date(ui.focus.getFullYear(), ui.focus.getMonth(), 1))
-  const gridStart = $derived(startOfWeek(firstOfMonth, prefs.weekStart))
-  const days = $derived(Array.from({ length: 42 }, (unused, index) => addDays(gridStart, index)))
+  // One endless sheet of weeks, six to a screen: the wheel scrolls through the months above and below, and the month filling the middle is the one shown
+  const weekOf = (date: Date) => startOfWeek(new Date(date.getFullYear(), date.getMonth(), 1), prefs.weekStart)
+  const firstOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1)
+  const padWeeks = 26, maxWeeks = 130
+  let firstWeek = $state(addDays(weekOf(ui.focus), -padWeeks * 7)), weekCount = $state(padWeeks * 2 + 6)
+  let shownMonth = $state(firstOfMonth(ui.focus))
+  let scroller: HTMLDivElement | undefined = $state(), viewHeight = $state(600)
+  const rowHeight = $derived(Math.max(40, viewHeight / 6))
+  const rowPx = () => Math.max(40, (scroller?.clientHeight ?? viewHeight) / 6)
+  const days = $derived(Array.from({ length: weekCount * 7 }, (unused, index) => addDays(firstWeek, index)))
+  const rowOf = (date: Date) => Math.round((weekOf(date).getTime() - firstWeek.getTime()) / (7 * dayMs))
   const today = $derived(ui.today)
-  let gridHeight = $state(600)
   // How many event lines fit under a day's number (18 px each)
-  const linesPerDay = $derived(Math.max(1, Math.floor((gridHeight / 6 - 26) / 18)))
+  const linesPerDay = $derived(Math.max(1, Math.floor((rowHeight - 26) / 18)))
   const isWeekend = (day: Date) => day.getDay() === 0 || day.getDay() === 6
   function dayEvents(day: Date) {
     const all = eventsOn(events, day)
@@ -21,14 +29,52 @@
   }
   const continuesBefore = (event: Placed, day: Date) => event.allDay && event.startAt.getTime() < startOfDay(day).getTime()
   const continuesAfter = (event: Placed, day: Date) => event.allDay && event.endAt.getTime() > startOfDay(day).getTime() + dayMs
+
+  // A month picked elsewhere (arrows, Today, keys) glides there; one far away starts a fresh sheet around it
+  let monthFromScroll = 0, placed = false, topRow = padWeeks, reshaping = false, settleTimer = 0
+  $effect(() => {
+    const target = firstOfMonth(ui.focus)
+    untrack(() => {
+      if (target.getTime() === monthFromScroll) { monthFromScroll = 0; return }
+      if (!scroller) return
+      const row = rowOf(target)
+      shownMonth = target
+      if (!placed || row < 1 || row > weekCount - 7) { placed = true; firstWeek = addDays(weekOf(target), -padWeeks * 7); weekCount = padWeeks * 2 + 6; requestAnimationFrame(() => { if (scroller) scroller.scrollTop = padWeeks * rowPx() }); return }
+      warpScroll(scroller, row * rowPx())
+    })
+  })
+  // Keeps the same week at the top when the window is resized
+  $effect(() => { const height = rowHeight; untrack(() => { if (scroller && placed) scroller.scrollTop = topRow * height }) })
+
+  function onScroll() {
+    if (!scroller || reshaping) return
+    const height = rowPx(), row = scroller.scrollTop / height
+    topRow = row
+    // The month of the day in the middle of the screen is the one shown
+    const middle = addDays(firstWeek, Math.floor(row + 3) * 7 + 3), month = firstOfMonth(middle)
+    if (month.getTime() !== shownMonth.getTime()) { shownMonth = month; monthFromScroll = month.getTime(); ui.focus = month.getMonth() === today.getMonth() && month.getFullYear() === today.getFullYear() ? today : month }
+    // Adds months above or below as they come near, dropping the far end so the sheet stays light
+    if (!isWarping(scroller) && (row < 6 || row > weekCount - 12)) {
+      let shift = 0
+      reshaping = true
+      if (row < 6) { firstWeek = addDays(firstWeek, -padWeeks * 7); weekCount = Math.min(maxWeeks, weekCount + padWeeks); shift = padWeeks }
+      else if (weekCount + padWeeks > maxWeeks) { firstWeek = addDays(firstWeek, padWeeks * 7); shift = -padWeeks }
+      else weekCount += padWeeks
+      requestAnimationFrame(() => { if (scroller) scroller.scrollTop += shift * height; reshaping = false })
+    }
+    // When the wheel stops, settles onto the nearest week
+    clearTimeout(settleTimer)
+    settleTimer = setTimeout(() => { if (!scroller || isWarping(scroller)) return; const snapTop = Math.round(scroller.scrollTop / rowPx()) * rowPx(); if (Math.abs(snapTop - scroller.scrollTop) > 1) scroller.scrollTo({ top: snapTop, behavior: 'smooth' }) }, 220)
+  }
 </script>
 
-<div class="month">
+<div class="month" onwheel={(wheelEvent) => { if (scroller && !scroller.contains(wheelEvent.target as Node)) scroller.scrollTop += wheelEvent.deltaY }}>
   <div class="weekdays">{#each days.slice(0, 7) as day}<div>{weekdayShort(day)}</div>{/each}</div>
-  <div class="grid" bind:clientHeight={gridHeight}>
+  <div class="scroller" bind:this={scroller} bind:clientHeight={viewHeight} onscroll={onScroll}>
+  <div class="grid" style="--row: {rowHeight}px">
     {#each days as day (day.getTime())}
       {@const list = dayEvents(day)}
-      <div class="day" data-newday={dayKey(day)} class:other={day.getMonth() !== firstOfMonth.getMonth()} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:today={sameDay(day, today)}>
+      <div class="day" data-newday={dayKey(day)} class:other={day.getMonth() !== shownMonth.getMonth() || day.getFullYear() !== shownMonth.getFullYear()} class:weekend={isWeekend(day)} class:sunday={day.getDay() === 0} class:today={sameDay(day, today)}>
         <button class="number" onclick={() => { ui.focus = day; ui.view = 'week' }} title="Open this week">{day.getDate() === 1 ? day.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</button>
         {#each list.shown as event (event.id)}
           {#if event.allDay}
@@ -41,17 +87,19 @@
       </div>
     {/each}
   </div>
+  </div>
 </div>
 
 <style>
   .month { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); padding: 0 6px; }
   .weekdays div { padding: 2px 8px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-quiet); }
-  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); gap: 1px; margin: 0 6px 6px; border-radius: 10px; overflow: hidden; background: var(--line); }
-  .day { container: day / inline-size; position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 0; padding: 3px 4px; background: var(--cell); overflow: hidden; }
+  .scroller { flex: 1; min-height: 0; margin: 0 6px 6px; border-radius: 10px; overflow-y: auto; scrollbar-width: none; }
+  .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: calc(var(--row) - 1px); gap: 1px; background: var(--line); }
+  .day { container: day / inline-size; position: relative; transition: background-color 0.35s; display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 0; padding: 3px 4px; background: var(--cell); overflow: hidden; }
   .day.weekend { background: var(--cell-weekend); }
   .day.other { background: var(--cell-other); }
-  .day.other > :not(.number) { opacity: 0.6; }
+  .day.other > :not(.number) { opacity: 0.6; transition: opacity 0.35s; }
   .number { align-self: flex-start; min-width: 22px; height: 22px; padding: 0 6px; border: 0; border-radius: 11px; background: none; color: var(--fg); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
   .other .number { color: var(--fg-quiet); font-weight: 500; }
   .number:hover { background: var(--hover); }
