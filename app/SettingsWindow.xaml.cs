@@ -296,6 +296,8 @@ public partial class SettingsWindow : Window
         weekStartBox.SelectedItem = weekStartBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == view.WeekStart.ToString()) ?? weekStartBox.Items[0];
         weekStartBox.SelectionChanged += (sender, args) => { if (weekStartBox.SelectedItem is ComboBoxItem { Tag: string start }) { view.WeekStart = int.Parse(start); Settings.Save(); App.ApplyView(); } };
         clockBox.SelectedItem = clockBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == view.Clock) ?? clockBox.Items[0];
+        holdSlider.Value = view.HoldMs; holdText.Text = $"{view.HoldMs} ms";
+        holdSlider.ValueChanged += (sender, args) => { view.HoldMs = (int)holdSlider.Value; holdText.Text = $"{view.HoldMs} ms"; Settings.Save(); App.ApplyView(); };
         clockBox.SelectionChanged += (sender, args) => { if (clockBox.SelectedItem is ComboBoxItem { Tag: string clock }) { view.Clock = clock; Settings.Save(); App.ApplyView(); } };
         declinedBox.IsChecked = view.ShowDeclined;
         declinedBox.Click += (sender, args) => { view.ShowDeclined = declinedBox.IsChecked == true; Settings.Save(); App.ApplyView(); };

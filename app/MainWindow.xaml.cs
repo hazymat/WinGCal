@@ -87,7 +87,7 @@ public partial class MainWindow : Window
     public static Task<CoreWebView2Environment> WebEnvironment() => webEnvironment ??= CoreWebView2Environment.CreateAsync(null, Path.Combine(AppPaths.DataFolder, "WebView2"));
     public const string UiHost = uiHost;
     public bool DarkTheme => darkTheme;
-    public string PrefsMessage() { var culture = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat;         var view = App.Settings.View; return JsonSerializer.Serialize(new { type = "prefs", weekStart = view.WeekStart >= 0 ? view.WeekStart : (int)culture.FirstDayOfWeek, hour12 = view.Clock == "auto" ? culture.ShortTimePattern.Contains('h') : view.Clock == "12" }); }
+    public string PrefsMessage() { var culture = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat;         var view = App.Settings.View; return JsonSerializer.Serialize(new { type = "prefs", weekStart = view.WeekStart >= 0 ? view.WeekStart : (int)culture.FirstDayOfWeek, hour12 = view.Clock == "auto" ? culture.ShortTimePattern.Contains('h') : view.Clock == "12", holdMs = view.HoldMs }); }
     public string SkinMessage() => JsonSerializer.Serialize(new { type = "skin", skin = App.Settings.Look.Skin, accent = App.Settings.Look.AccentColour, glassTransparency = App.Settings.Look.GlassTransparency, glassTintHue = App.Settings.Look.GlassTintHue, windowTint = App.Settings.Look.WindowTint, panelTint = App.Settings.Look.PanelTint, panelGrain = App.Settings.Look.PanelGrain, eventTint = App.Settings.Look.EventTint });
     public static void OpenLink(string url) => OpenUrl(url);
     static void OpenUrl(string url) { if (url.StartsWith("https://") || url.StartsWith("http://") || url.StartsWith("mailto:")) Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
@@ -111,6 +111,11 @@ public partial class MainWindow : Window
                 case "openEditor": App.OpenEventEditor(Text(message, "id")); break;
                 case "newEvent": App.OpenNewEvent(Text(message, "day"), Text(message, "time")); break;
                 case "batchEdit": App.OpenBatchEditor(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList()); break;
+                case "moveEvents":
+                    var carried = message.GetProperty("ids").EnumerateArray().Select(id => App.Store.FindEvent(id.GetString() ?? "")).Where(found => found != null).Select(found => found!).ToList();
+                    var moveFailed = await EventChanges.ShiftManyAsync(App.Store, carried, message.GetProperty("days").GetInt32(), message.TryGetProperty("minutes", out var minutesValue) ? minutesValue.GetInt32() : 0);
+                    if (moveFailed.Count > 0) { App.ShowTip(moveFailed.Count == 1 ? "Couldn't move one event" : $"Couldn't move {moveFailed.Count} events", string.Join(" ", moveFailed)); PushCalendars(); }
+                    break;
                 case "deleteEvents": await DeleteEventsAsync(message.GetProperty("ids").EnumerateArray().Select(id => id.GetString() ?? "").ToList(), message.TryGetProperty("series", out var series) && series.GetBoolean()); break;
                 case "taskDone": await TaskActionAsync(() => App.Store.Tasks.SetCompletedAsync(Text(message, "id"), message.GetProperty("done").GetBoolean())); break;
                 case "taskAdd": await TaskActionAsync(() => App.Store.Tasks.AddAsync(Text(message, "listKey"), Text(message, "title"))); break;

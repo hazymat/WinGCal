@@ -2,7 +2,8 @@
   import { sendToShell, onShellMessage } from './bridge'
   import { watchFrostPanels } from './lib/frost'
   import { app, ui, writeSetting, placedEvents, hint, type Placed, type ViewMode } from './state.svelte'
-  import { addDays, addMonths, monthName, startOfDay, startOfWeek, prefs, shortDate } from './lib/dates'
+  import { addDays, addMonths, monthName, startOfDay, startOfWeek, prefs, shortDate, parseWhen, dayKey, dayMs } from './lib/dates'
+  import { carry } from './lib/carry.svelte'
   import { sampleAccounts, sampleCalendars, sampleEvents, sampleTasks } from './lib/sample'
   import MonthView from './views/MonthView.svelte'
   import WeekView from './views/WeekView.svelte'
@@ -31,7 +32,7 @@
   onShellMessage('calendars', message => { app.accounts = message.accounts; app.calendars = message.calendars; app.sampleData = !!message.sample })
   onShellMessage('events', message => app.events = message.events)
   onShellMessage('sync', message => { app.syncing = !!message.syncing; app.offline = !!message.offline })
-  onShellMessage('prefs', message => { prefs.weekStart = message.weekStart ?? prefs.weekStart; if (typeof message.hour12 === 'boolean') prefs.hour12 = message.hour12; ui.lookVersion++ })
+  onShellMessage('prefs', message => { prefs.weekStart = message.weekStart ?? prefs.weekStart; prefs.holdMs = message.holdMs ?? prefs.holdMs; if (typeof message.hour12 === 'boolean') prefs.hour12 = message.hour12; ui.lookVersion++ })
   onShellMessage('update', message => app.updateReady = message.version ?? '')
   onShellMessage('tasks', message => app.tasks = { enabled: !!message.enabled, lists: message.lists ?? [], items: message.items ?? [] })
   onShellMessage('tip', message => ui.tip = { title: message.title ?? '', text: message.text ?? '' })
@@ -140,17 +141,67 @@
     if (ui.picked.length > 0) { ui.picked = ui.picked.includes(event.id) ? ui.picked.filter(id => id !== event.id) : ui.picked.concat(event.id); return }
     sendToShell({ type: 'openEditor', id: event.id }) // its own glass window (SPEC.md › Event windows)
   }
-  // Press and hold an event to start picking several (SPEC.md › Multi-select); moving the pointer (scrolling) cancels it
-  let holdTimer = 0, heldId = '', holdStart = { x: 0, y: 0 }
+  // Press and hold an event (Settings › View › Hold to pick up): it's picked (SPEC.md › Multi-select) and lifts, with every other picked event, to be dragged to another day (SPEC.md › Moving events). Moving the pointer first (scrolling) cancels it
+  let holdTimer = 0, heldId = '', holdStart = { x: 0, y: 0 }, holdPointer = 0
   function startHold(pointer: PointerEvent) {
     pickModifier = pointer.ctrlKey || pointer.shiftKey || pointer.metaKey
     clearTimeout(holdTimer); heldId = ''
     const element = (pointer.target as HTMLElement).closest?.<HTMLElement>('[data-event]')
     if (!element || pointer.button !== 0) return
-    holdStart = { x: pointer.clientX, y: pointer.clientY }
-    holdTimer = setTimeout(() => { const id = element.dataset.event!; heldId = id; ui.selectedEvent = null; if (!ui.picked.includes(id)) ui.picked = ui.picked.concat(id) }, 450)
+    holdStart = { x: pointer.clientX, y: pointer.clientY }; holdPointer = pointer.pointerId
+    holdTimer = setTimeout(() => { holdTimer = 0; const id = element.dataset.event!; heldId = id; ui.selectedEvent = null; if (!ui.picked.includes(id)) ui.picked = ui.picked.concat(id); lift(element) }, prefs.holdMs)
   }
-  function moveHold(pointer: PointerEvent) { if (holdTimer && Math.hypot(pointer.clientX - holdStart.x, pointer.clientY - holdStart.y) > 6) { clearTimeout(holdTimer); holdTimer = 0 } }
+  function moveHold(pointer: PointerEvent) {
+    if (carry.active) { carry.x = pointer.clientX; carry.y = pointer.clientY; aim(); return }
+    if (holdTimer && Math.hypot(pointer.clientX - holdStart.x, pointer.clientY - holdStart.y) > 6) { clearTimeout(holdTimer); holdTimer = 0 }
+  }
+  function endHold() { clearTimeout(holdTimer); holdTimer = 0; if (carry.active) drop(true) }
+  let liftMinute = -1, carryScroller: HTMLElement | null = null
+  const minuteAt = (cell: HTMLElement, clientY: number) => (clientY - cell.getBoundingClientRect().top) / Number(cell.dataset.hourHeight) * 60
+  const scrollParent = (node: HTMLElement | null) => { for (; node; node = node.parentElement) if (/(auto|scroll)/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight) return node; return null }
+  function lift(element: HTMLElement) {
+    const cell = element.closest<HTMLElement>('[data-newday]'); if (!cell) return
+    carry.ids = ui.picked.slice(); carry.originDay = carry.targetDay = cell.dataset.newday!; carry.x = holdStart.x; carry.y = holdStart.y; carry.minutes = 0; carry.previewTop = -1
+    liftMinute = cell.dataset.hourHeight ? minuteAt(cell, holdStart.y) : -1; carryScroller = scrollParent(element)
+    carry.active = true; document.documentElement.classList.add('carrying')
+    try { document.body.setPointerCapture(holdPointer) } catch { /* the pointer already went up */ }
+    requestAnimationFrame(edgeScroll)
+  }
+  // Where the carried events would land: the day under the pointer, and in Week's hours the time too (moved in quarter hours)
+  function aim() {
+    const cell = document.elementsFromPoint(carry.x, carry.y).map(node => node.closest<HTMLElement>('[data-newday]')).find(found => found) ?? null
+    document.querySelectorAll('[data-drop]').forEach(node => { if (node !== cell) node.removeAttribute('data-drop') })
+    if (!cell) { carry.targetDay = ''; carry.previewTop = -1; return }
+    cell.setAttribute('data-drop', ''); carry.targetDay = cell.dataset.newday!
+    const first = events.find(event => event.id === carry.ids[0])
+    if (cell.dataset.hourHeight && liftMinute >= 0 && first && !first.allDay) {
+      carry.minutes = Math.round((minuteAt(cell, carry.y) - liftMinute) / 15) * 15
+      carry.previewTop = first.startAt.getHours() * 60 + first.startAt.getMinutes() + carry.minutes; carry.previewLength = (first.endAt.getTime() - first.startAt.getTime()) / 60000
+    } else { carry.minutes = 0; carry.previewTop = -1 }
+  }
+  // Holding near the top or bottom of the list scrolls it, faster the closer to (or past) the edge
+  function edgeScroll() {
+    if (!carry.active) return
+    if (carryScroller) {
+      const box = carryScroller.getBoundingClientRect(), edge = 56
+      const push = carry.y < box.top + edge ? carry.y - box.top - edge : carry.y > box.bottom - edge ? carry.y - box.bottom + edge : 0
+      if (push) { carryScroller.scrollTop += Math.max(-28, Math.min(28, push * 0.3)); aim() }
+    }
+    requestAnimationFrame(edgeScroll)
+  }
+  // Dropped on another day (or time): moved at once here, then in Google; dropped where it started, it stays picked
+  function drop(place: boolean) {
+    const days = place && carry.targetDay ? Math.round((parseWhen(carry.targetDay).getTime() - parseWhen(carry.originDay).getTime()) / dayMs) : 0, minutes = place && carry.targetDay ? carry.minutes : 0
+    if (days || minutes) {
+      const localText = (date: Date) => `${dayKey(date)}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:00`
+      const shifted = (text: string, allDay: boolean) => allDay ? dayKey(addDays(parseWhen(text), days)) : localText(new Date(addDays(parseWhen(text), days).getTime() + minutes * 60000))
+      app.events = app.events.map(event => carry.ids.includes(event.id) ? Object.assign({}, event, { start: shifted(event.start, event.allDay), end: shifted(event.end, event.allDay) }) : event)
+      sendToShell({ type: 'moveEvents', ids: carry.ids.slice(), days, minutes }); ui.picked = []
+    }
+    carry.active = false; carry.targetDay = ''; carry.previewTop = -1; carryScroller = null
+    document.documentElement.classList.remove('carrying'); document.querySelectorAll('[data-drop]').forEach(node => node.removeAttribute('data-drop'))
+  }
+  const carried = $derived(carry.active ? events.filter(event => carry.ids.includes(event.id)) : [])
   // Double-click an empty spot of a day: a new event that day (all day), or at that time in Week
   function newEventAt(pointer: MouseEvent) {
     const target = pointer.target as HTMLElement
@@ -162,6 +213,7 @@
   }
   function onKey(event: KeyboardEvent) {
     if ((event.target as HTMLElement).closest('input, textarea')) return
+    if (event.key === 'Escape' && carry.active) { drop(false); return }
     if (event.key === 'Escape') { ui.selectedEvent = null; ui.picked = []; ui.switcherOpen = false; tasksOverlay = false }
     else if (event.key === 'ArrowLeft' || event.key === 'PageUp') step(-1)
     else if (event.key === 'ArrowRight' || event.key === 'PageDown') step(1)
@@ -172,7 +224,7 @@
   }
 </script>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} ondblclick={newEventAt} onpointerdowncapture={startHold} onpointermove={moveHold} onpointerup={() => { clearTimeout(holdTimer); holdTimer = 0 }} />
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} onkeydown={onKey} ondragstart={(dragEvent) => { if (!(dragEvent.target as HTMLElement).closest?.('input, textarea')) dragEvent.preventDefault() }} ondblclick={newEventAt} onpointerdowncapture={startHold} onpointermove={moveHold} onpointerup={endHold} onpointercancel={() => { clearTimeout(holdTimer); holdTimer = 0; if (carry.active) drop(false) }} />
 
 <WallpaperFrost />
 <div class="shell" class:pinned={app.window.pinned}>
@@ -237,6 +289,13 @@
 
 <WhatsNew />
 <SelectionBar />
+<!-- What's being carried: up to three stacked, with a count when there are more than one -->
+{#if carry.active && carried.length}
+  <div class="carried" style="left: {carry.x}px; top: {carry.y}px" aria-hidden="true">
+    {#each carried.slice(0, 3) as event, index (event.id)}<div class="carried-item" style="--colour: {event.colourShown}; --index: {index}"><span class="carried-bar"></span><span class="carried-title">{event.title}</span></div>{/each}
+    {#if carried.length > 1}<span class="carried-count">{carried.length}</span>{/if}
+  </div>
+{/if}
 <ConfirmDelete />
 
 <style>
@@ -284,4 +343,15 @@
   .welcome .primary { padding: 8px 18px; font-size: 14px; }
   .hint { position: fixed; top: 46px; right: 12px; z-index: 60; display: flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 9px; background: var(--popover); backdrop-filter: blur(24px); border: 1px solid var(--line); box-shadow: 0 8px 24px var(--shadow); font-size: 12.5px; animation: hint-in 160ms ease-out; }
   @keyframes hint-in { from { opacity: 0; transform: translateY(-4px); } }
+  /* Carrying events: a lifted stack that follows the pointer, wiggling as it comes up; the originals fade where they were, and the day under the pointer is outlined */
+  .carried { position: fixed; z-index: 1000; pointer-events: none; transform: translate(-24px, -50%); animation: carry-lift 0.36s ease-out; }
+  .carried-item { position: relative; display: flex; align-items: center; gap: 8px; width: 220px; margin-top: calc(var(--index) * -30px); padding: 7px 10px; border-radius: 8px; background: color-mix(in srgb, var(--colour) 28%, var(--panel-solid)); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4); color: var(--fg); font-size: 12.5px; font-weight: 600; transform: translate(calc(var(--index) * 5px), calc(var(--index) * 5px)) rotate(calc(var(--index) * 2deg)); z-index: calc(3 - var(--index)); }
+  .carried-bar { width: 4px; align-self: stretch; border-radius: 2px; background: var(--colour); flex: none; }
+  .carried-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .carried-count { position: absolute; right: -8px; top: -8px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 700; display: grid; place-items: center; z-index: 5; }
+  @keyframes carry-lift { 0% { transform: translate(-24px, -50%) scale(1); } 25% { transform: translate(-24px, -50%) scale(1.06) rotate(-2.5deg); } 50% { transform: translate(-24px, -50%) scale(1.06) rotate(2deg); } 75% { transform: translate(-24px, -50%) scale(1.04) rotate(-1deg); } 100% { transform: translate(-24px, -50%) scale(1.03); } }
+  :global(html.carrying [data-event].picked) { opacity: 0.35; }
+  :global(html.carrying .selection-bar) { opacity: 0; pointer-events: none; }
+  :global(html.carrying), :global(html.carrying *) { cursor: grabbing; }
+  :global([data-newday][data-drop]) { outline: 2px dashed var(--accent); outline-offset: -2px; background-color: color-mix(in srgb, var(--accent) 10%, transparent); }
 </style>

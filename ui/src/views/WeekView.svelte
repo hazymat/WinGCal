@@ -1,6 +1,7 @@
 <script lang="ts">
   import HandArrow from '../parts/HandArrow.svelte'
   import { ui, eventsOn, type Placed } from '../state.svelte'
+  import { carry } from '../lib/carry.svelte'
   import { addDays, sameDay, startOfDay, startOfWeek, formatTime, formatHour, weekdayShort, prefs, minutesIntoDay, dayKey } from '../lib/dates'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
@@ -91,6 +92,7 @@
               <span class="title">{item.event.title}</span><span class="time">{formatTime(item.event.startAt)}{height >= 36 ? ' – ' + formatTime(item.event.endAt) : ''}</span>
             </button>
           {/each}
+          {#if carry.active && carry.previewTop >= 0 && carry.targetDay === dayKey(day)}<div class="drop-preview" style="top: {carry.previewTop / 60 * hourHeight + 1}px; height: {Math.max(18, carry.previewLength / 60 * hourHeight - 2)}px"></div>{/if}
           {#if sameDay(day, today)}<div class="now" style="top: {minutesIntoDay(now) / 60 * hourHeight}px"></div>{/if}
         </div>
       {/each}
@@ -131,6 +133,8 @@
   .event.short { flex-direction: row; align-items: center; gap: 6px; padding-top: 0; padding-bottom: 0; }
   .event .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .event .time { font-size: 11px; color: var(--fg-quiet); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* Where a carried event would land in the hours */
+  .drop-preview { position: absolute; left: 2px; right: 2px; border: 1.5px dashed var(--accent); border-radius: 5px; background: color-mix(in srgb, var(--accent) 14%, transparent); pointer-events: none; transition: top 0.12s ease-out; }
   .now { position: absolute; left: -4px; right: 0; height: 2px; background: var(--now); z-index: 3; pointer-events: none; }
   .now::before { content: ""; position: absolute; left: -1px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--now); }
 </style>

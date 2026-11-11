@@ -5,6 +5,8 @@
   import MiniMonth from '../parts/MiniMonth.svelte'
   import Icon from '../parts/Icon.svelte'
   import { warpScroll, isWarping } from '../lib/warp'
+  import { carry } from '../lib/carry.svelte'
+  import { slide } from 'svelte/transition'
   let { events, onpick }: { events: Placed[]; onpick: (event: Placed, target: HTMLElement) => void } = $props()
 
   let height = $state(600)
@@ -44,7 +46,10 @@
   $effect(() => { ui.readingDay = wheelDay ?? topDay; return () => { ui.readingDay = null } })
   // Keep adding while the list doesn't yet reach past the bottom (quiet stretches), up to ten years
   $effect(() => { days.length; requestAnimationFrame(() => { if (list && span < 3650 && list.scrollHeight < list.clientHeight + 600) span += 56 }) })
-  const days = $derived(Array.from({ length: span + lookBack }, (unused, index) => addDays(ui.focus, index - lookBack)).map(day => ({ day, list: eventsOn(events, day) })).filter(entry => entry.list.length > 0 || sameDay(entry.day, ui.focus) || sameDay(entry.day, today)))
+  const days = $derived(Array.from({ length: span + lookBack }, (unused, index) => addDays(ui.focus, index - lookBack)).map(day => ({ day, list: eventsOn(events, day) })).filter(entry => carry.active || entry.list.length > 0 || sameDay(entry.day, ui.focus) || sameDay(entry.day, today)))
+  // While events are carried, every day opens up (empty ones as dashed boxes to drop into), sliding the others aside; afterwards they close again
+  let sliding = $state(false), slideTimer = 0
+  $effect(() => { carry.active; sliding = true; clearTimeout(slideTimer); slideTimer = setTimeout(() => sliding = false, 700) })
   const allDayLabel = (event: Placed, day: Date) => { const total = Math.round((event.endAt.getTime() - event.startAt.getTime()) / 86_400_000); if (total <= 1) return 'All day'; const dayNumber = Math.round((startOfDay(day).getTime() - event.startAt.getTime()) / 86_400_000) + 1; return `Day ${dayNumber} of ${total}` }
 </script>
 
@@ -54,11 +59,13 @@
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="list" bind:this={list} onscroll={onListScroll} onwheel={() => wheelDay = null}>
     {#each days as { day, list }, index (day.getTime())}
+      <div class="entry" transition:slide={{ duration: sliding ? 340 : 0 }}>
       {#if index > 0 && days[index - 1].day.getMonth() !== day.getMonth()}<div class="month-break">{monthName(day)}</div>{/if}
       <section class="day" class:today={sameDay(day, today)} class:gone={day < today} data-day={dayKey(day)} data-newday={dayKey(day)}>
         <div class="when"><span class="weekday">{weekdayShort(day)}</span><span class="date">{day.getDate()}{#if sameDay(day, today)}<HandCircle seed={dayKey(day)} />{/if}</span></div>
         <div class="items">
-          {#if list.length === 0}<div class="empty">{sameDay(day, today) ? 'Nothing on today' : 'Nothing on ' + shortDate(day)}</div>{/if}
+          {#if list.length === 0 && carry.active}<div class="slot">{shortDate(day)}</div>
+          {:else if list.length === 0}<div class="empty">{sameDay(day, today) ? 'Nothing on today' : 'Nothing on ' + shortDate(day)}</div>{/if}
           {#each list as event (event.id)}
             <button class="item" class:past={event.endAt < new Date()} style="--colour: {event.colourShown}" class:picked={ui.picked.includes(event.id)} data-event={event.id} onclick={(clickEvent) => onpick(event, clickEvent.currentTarget)}>
               <span class="bar"></span>
@@ -68,8 +75,10 @@
               {#if event.meetUrl}<span class="where"><Icon name="video" size={12} />Video call</span>{/if}
             </button>
           {/each}
+          {#if carry.active && list.length > 0 && carry.targetDay === dayKey(day) && carry.targetDay !== carry.originDay}<div class="slot" transition:slide={{ duration: 180 }}>Move here</div>{/if}
         </div>
       </section>
+      </div>
     {/each}
   </div>
   </div>
@@ -95,6 +104,9 @@
   .date { font-size: 20px; font-weight: 600; color: var(--fg); font-variant-numeric: tabular-nums; line-height: 1.15; }
   .today .date { color: var(--accent); }
   .items { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  /* Room to drop into while carrying: an empty day, or the end of the day under the pointer */
+  .slot { min-height: 30px; display: flex; align-items: center; padding: 0 10px; border: 1.5px dashed color-mix(in srgb, var(--fg) 28%, transparent); border-radius: 8px; color: var(--fg-quiet); font-size: 12px; box-sizing: border-box; }
+  :global([data-drop]) .slot { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
   .empty { padding: 7px 4px; color: var(--fg-quiet); font-size: 12.5px; }
   .item { display: grid; grid-template-columns: 4px auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 6px 8px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel)); /* Event tint, Settings › Appearance */ color: var(--fg); font: inherit; text-align: left; cursor: pointer; min-width: 0; }
   .item:hover { background: color-mix(in srgb, var(--colour) var(--event-tint, 0%), var(--panel-strong)); }

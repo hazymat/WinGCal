@@ -30,6 +30,24 @@ public static class EventChanges
         ? (DateTime.ParseExact(item.Start, "yyyy-MM-dd", CultureInfo.InvariantCulture), DateTime.ParseExact(item.End, "yyyy-MM-dd", CultureInfo.InvariantCulture))
         : (DateTimeOffset.Parse(item.Start, CultureInfo.InvariantCulture).LocalDateTime, DateTimeOffset.Parse(item.End, CultureInfo.InvariantCulture).LocalDateTime);
 
+    // Carried by drag and drop: each event moves by the same days (and, dropped in Week's hours, minutes), keeping its length. All-day events move by whole days only
+    public static async Task<List<string>> ShiftManyAsync(CalendarStore store, List<UiEvent> events, int days, int minutes)
+    {
+        var failed = new List<string>();
+        foreach (var item in events)
+        {
+            try
+            {
+                var (start, end) = LocalTimes(item); var shift = TimeSpan.FromDays(days) + (item.AllDay ? TimeSpan.Zero : TimeSpan.FromMinutes(minutes));
+                if (shift == TimeSpan.Zero) continue;
+                start += shift; end += shift;
+                await store.UpdateEventAsync(item.Id, new JsonObject { ["start"] = When(item.AllDay, item.AllDay ? DayText(start) : WithOffset(start)), ["end"] = When(item.AllDay, item.AllDay ? DayText(end) : WithOffset(end)) });
+            }
+            catch (Exception changeError) { failed.Add($"{item.Title}: {changeError.Message}"); }
+        }
+        return failed;
+    }
+
     // Several picked events at once: only the given fields change; each event keeps its own time and length where that makes sense
     public static async Task<List<string>> ApplyToManyAsync(CalendarStore store, List<UiEvent> events, DateTime? newDate, TimeSpan? newStart, TimeSpan? newEnd, string? place, string? targetKey, IProgress<int>? progress = null)
     {
