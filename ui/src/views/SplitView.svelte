@@ -1,4 +1,5 @@
 <script lang="ts">
+  import NextUp from '../parts/NextUp.svelte'
   import { dayPicker, inPicked } from '../lib/pickDays'
   import { shortTitle } from '../lib/titles'
   import HandCircle from '../parts/HandCircle.svelte'
@@ -92,6 +93,7 @@
   <div class="handle" onpointerdown={dragHandle} ondblclick={resetHandle} title="Drag to resize; double-click for automatic"><i></i></div>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div class="days-wrap">
+  <div class="over-top"><NextUp floating /></div>
   {#if !todayInView}<button class="jump-today" onclick={() => pickDay(today)} title="Back to today (T)"><Icon name={ui.focus > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="lamp" class:on={lamp.warmed} style="height: min(100%, {lamp.height}px)" aria-hidden="true"></div>
   <div class="days" class:warmed={lamp.warmed} class:lit={(ui.lookVersion, prefs.stripLight > 0)} style:--strip={(ui.lookVersion, prefs.stripLight / 50)} bind:this={list} bind:clientWidth={listWidth} onscroll={onScroll} onwheel={(wheelEvent) => { userScrolling = true; if (list) glideWheel(list, wheelEvent) }} onpointerdown={() => userScrolling = true} onkeydown={() => userScrolling = true} role="region" aria-label="Days" tabindex="-1">
@@ -141,6 +143,8 @@
   .handle:hover i, .handle:active i { background: var(--accent); height: 56px; }
   .days-wrap { flex: 1; min-width: 0; position: relative; display: flex; }
   .jump-today { position: absolute; z-index: 2; top: 8px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 12px 0 9px; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 13px; background: color-mix(in srgb, var(--panel-solid) 55%, transparent); backdrop-filter: blur(14px) saturate(1.5); color: var(--accent); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08); animation: jump-in 0.2s ease-out; }
+  .over-top { position: absolute; z-index: 3; top: 0; left: 0; right: 0; height: 0; }
+  .over-top:has(:global(.next-up)) ~ .jump-today { top: 54px; }
   .jump-today:hover { background: color-mix(in srgb, var(--accent) 22%, color-mix(in srgb, var(--panel-solid) 55%, transparent)); }
   @keyframes jump-in { from { opacity: 0; transform: translate(-50%, -6px); } }
   .days { flex: 1; min-width: 0; overflow-y: auto; position: relative; scrollbar-width: thin; mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }

@@ -151,6 +151,8 @@ public sealed class CalendarStore
         await Tasks.SyncAsync();
     }
 
+    public bool IsNotified(string key) => settings().Sync.NotifyCalendars.Contains(key);
+    public void SetNotified(string key, bool notified) { var chosen = settings().Sync.NotifyCalendars; if (!notified) chosen.Remove(key); else if (!chosen.Contains(key)) chosen.Add(key); settings().Save(); Changed?.Invoke(); }
     public bool IsInSwitcher(string key) => !settings().Sync.OutOfSwitcher.Contains(key);
     public void SetInSwitcher(string key, bool inSwitcher)
     {

@@ -4,6 +4,7 @@
   import { ui, eventsOn, type Placed } from '../state.svelte'
   import { prefs, addDays, sameDay, startOfDay, formatTime, weekdayShort, shortDate, monthName, dayKey } from '../lib/dates'
   import MiniMonth from '../parts/MiniMonth.svelte'
+  import NextUp from '../parts/NextUp.svelte'
   import Icon from '../parts/Icon.svelte'
   import { warpScroll, isWarping } from '../lib/warp'
   import { carry } from '../lib/carry.svelte'
@@ -102,6 +103,7 @@
 <div class="agenda" bind:clientHeight={height}>
   {#if height > 520}<div class="mini" onwheel={monthWheel}><MiniMonth {events} follow={wheelDay ?? topDay} onday={glideToDay} range={ui.pickedDays} onrange={(from, to) => ui.pickedDays = { from, to }} /></div>{/if}
   <div class="list-wrap">
+  <div class="over-top"><NextUp floating /></div>
   {#if !todayInView}<button class="jump-today" onclick={() => { wheelDay = null; scrollToDay(today, true) }} title="Back to today (T)"><Icon name={topDay > today ? 'up' : 'down'} size={12} />Today</button>{/if}
   <div class="lamp" class:on={lamp.warmed} style="height: min(100%, {lamp.height}px)" aria-hidden="true"></div>
   <div class="list" class:warmed={lamp.warmed} class:lit={(ui.lookVersion, prefs.stripLight > 0)} style:--strip={(ui.lookVersion, prefs.stripLight / 50)} bind:this={list} onscroll={onListScroll} onwheel={(wheelEvent) => { wheelDay = null; if (list) glideWheel(list, wheelEvent) }}>
@@ -138,6 +140,9 @@
   .list-wrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
   /* Back to today: a small pane of glass floating at the top of the list whenever it has scrolled away from today, pointing the way */
   .jump-today { position: absolute; z-index: 2; top: 8px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 12px 0 9px; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 13px; background: color-mix(in srgb, var(--panel-solid) 55%, transparent); backdrop-filter: blur(14px) saturate(1.5); color: var(--accent); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08); animation: jump-in 0.2s ease-out; }
+  /* The Next event box lies over the top of the list (the faded days); the Today pill moves below it */
+  .over-top { position: absolute; z-index: 3; top: 0; left: 0; right: 0; height: 0; }
+  .over-top:has(:global(.next-up)) ~ .jump-today { top: 54px; }
   .jump-today:hover { background: color-mix(in srgb, var(--accent) 22%, color-mix(in srgb, var(--panel-solid) 55%, transparent)); }
   @keyframes jump-in { from { opacity: 0; transform: translate(-50%, -6px); } }
   .list { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 60vh; /* room below so even the last day can reach the reading line */ mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }
