@@ -31,6 +31,7 @@ export const ui = $state({
   selectedEvent: null as null | { event: Placed; left: number; top: number },
   picked: [] as string[], // events Ctrl- or Shift-clicked, for the selection bar
   pickedDays: null as null | { from: Date; to: Date; timed?: boolean }, // days held or dragged across (any view), for the bar's New event; timed: hours dragged in Week, from and to exact times
+  nextDismissed: [] as string[], // Next event capsules let go with × (event id + start)
   switcherOpen: false,
   hint: '' as string,
   tasksOpen: readSetting('tasksOpen', '1') === '1', // the side column, when the window is wide enough

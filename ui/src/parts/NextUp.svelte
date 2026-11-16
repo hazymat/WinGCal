@@ -8,7 +8,10 @@
   // floating: laid over the top of a list (Agenda, Month and days); otherwise a slim row above the view (Month, Week)
   let { floating = false }: { floating?: boolean } = $props()
   const lingerMs = 10 * 60_000
-  let now = $state(Date.now()), dismissed = $state<string[]>([])
+  let now = $state(Date.now())
+  const dismissed = $derived(ui.nextDismissed)
+  // × lets the event go here and on the pop-out (Shell/NextAlert.cs); the pop-out's × does the same here (App.svelte)
+  function dismiss(key: string) { ui.nextDismissed = ui.nextDismissed.concat(key); sendToShell({ type: 'nextDismissed', key }) }
   const next = $derived.by((): Placed | null => {
     const lead = (ui.lookVersion, prefs.nextLead) * 60_000, notified = new Set(app.calendars.filter(calendar => calendar.notify).map(calendar => calendar.key))
     if (notified.size === 0) return null
@@ -43,7 +46,7 @@
       <span class="words"><span class="title">{shortTitle(next)}</span><span class="when">{secondsLeft > 0 ? 'starts ' + when : countdown}</span></span>
     </button>
     {#if next.meetUrl}<button class="join" onclick={() => sendToShell({ type: 'openUrl', url: next.meetUrl })} title="Join the video call" aria-label="Join the video call"><Icon name="video" size={15} /></button>{/if}
-    <button class="dismiss" onclick={() => dismissed = dismissed.concat(next.id + next.start)} title="Dismiss" aria-label="Dismiss"><Icon name="close" size={13} /></button>
+    <button class="dismiss" onclick={() => dismiss(next.id + next.start)} title="Dismiss" aria-label="Dismiss"><Icon name="close" size={13} /></button>
   </div>
 {/if}
 

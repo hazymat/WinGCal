@@ -352,6 +352,14 @@ public partial class SettingsWindow : Window
         nextColourButton.Click += (sender, args) => { if (ChooseNextColour()) { Settings.Save(); App.ApplyView(); ShowNextColour(); } };
         nextStrengthSlider.Value = view.NextStrength; nextStrengthText.Text = $"{view.NextStrength}%";
         nextStrengthSlider.ValueChanged += (sender, args) => { view.NextStrength = (int)nextStrengthSlider.Value; nextStrengthText.Text = $"{view.NextStrength}%"; Settings.Save(); App.ApplyView(); };
+        // WinGCal's own pop-out and sounds (Shell/NextAlert.cs, Shell/Chime.cs); Play alternates the appearing sound and the start-time one
+        nextPopOutBox.IsChecked = view.NextPopOut; nextPopOutBox.Click += (sender, args) => { view.NextPopOut = nextPopOutBox.IsChecked == true; Settings.Save(); };
+        nextSoundBox.SelectedItem = nextSoundBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == view.NextSound) ?? nextSoundBox.Items[0];
+        nextSoundBox.SelectionChanged += (sender, args) => { if (nextSoundBox.SelectedItem is ComboBoxItem { Tag: string sound }) { view.NextSound = sound; Settings.Save(); Chime.Play(sound, false, view.NextVolume); } };
+        var testStartSound = false; nextSoundTestButton.Click += (sender, args) => { Chime.Play(view.NextSound, testStartSound, view.NextVolume); testStartSound = !testStartSound; };
+        nextVolumeSlider.Value = view.NextVolume; nextVolumeText.Text = $"{view.NextVolume}%";
+        nextVolumeSlider.ValueChanged += (sender, args) => { view.NextVolume = (int)nextVolumeSlider.Value; nextVolumeText.Text = $"{view.NextVolume}%"; Settings.Save(); };
+        nextVolumeSlider.PreviewMouseLeftButtonUp += (sender, args) => Chime.Play(view.NextSound, false, view.NextVolume);
         smoothWheelBox.Click += (sender, args) => { view.SmoothWheel = smoothWheelBox.IsChecked == true; Settings.Save(); App.ApplyView(); };
         declinedBox.IsChecked = view.ShowDeclined;
         declinedBox.Click += (sender, args) => { view.ShowDeclined = declinedBox.IsChecked == true; Settings.Save(); App.ApplyView(); };

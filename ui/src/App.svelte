@@ -34,6 +34,7 @@
   onShellMessage('calendars', message => { app.accounts = message.accounts; app.calendars = message.calendars; app.sampleData = !!message.sample })
   onShellMessage('events', message => app.events = message.events)
   onShellMessage('sync', message => { app.syncing = !!message.syncing; app.offline = !!message.offline })
+  onShellMessage('nextDismissed', message => { if (!ui.nextDismissed.includes(message.key)) ui.nextDismissed = ui.nextDismissed.concat(message.key) })
   onShellMessage('prefs', message => { prefs.weekStart = message.weekStart ?? prefs.weekStart; prefs.holdMs = message.holdMs ?? prefs.holdMs; prefs.smoothWheel = message.smoothWheel ?? prefs.smoothWheel; prefs.stripLight = message.stripLight ?? prefs.stripLight; prefs.emptyDays = message.emptyDays ?? prefs.emptyDays; prefs.nextLead = message.nextLead ?? prefs.nextLead; prefs.nextColour = message.nextColour ?? prefs.nextColour; prefs.nextStrength = message.nextStrength ?? prefs.nextStrength; if (typeof message.hour12 === 'boolean') prefs.hour12 = message.hour12; ui.lookVersion++ })
   onShellMessage('update', message => app.updateReady = message.version ?? '')
   onShellMessage('tasks', message => app.tasks = { enabled: !!message.enabled, lists: message.lists ?? [], items: message.items ?? [] })

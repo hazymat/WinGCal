@@ -44,6 +44,7 @@ public partial class App : Application
         versionBeforeThisRun = Settings.General.LastRunVersion;
         if (Settings.General.LastRunVersion != Updater.CurrentVersion) { Settings.General.LastRunVersion = Updater.CurrentVersion; Settings.Save(); }
         Store.Start();
+        Alerts.Start();
         if (CrashReporter.TakeUnseenReport()) ShowTip("WinGCal had a problem last time", "It crashed or stopped responding. Details are in Settings › About › Open logs (crash.log).");
     }
 
@@ -113,6 +114,7 @@ public partial class App : Application
 
     // Glass event windows (SPEC.md › Event windows): one per event (opening it again brings it forward), any number of new ones
     public MainWindow MainShell => mainWindow;
+    public NextAlert Alerts { get; } = new(); // the Next event pop-out and its sounds
     public void OpenEventEditor(string uiEventId)
     {
         if (eventWindows.OfType<EventPopup>().FirstOrDefault(window => window.Mode == EventPopup.Kind.Event && window.EventId == uiEventId) is { } openWindow) { if (openWindow.WindowState == WindowState.Minimized) openWindow.WindowState = WindowState.Normal; openWindow.Activate(); return; }
