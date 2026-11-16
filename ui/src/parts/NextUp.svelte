@@ -24,35 +24,47 @@
     const minutes = Math.ceil(seconds / 60)
     return minutes < 60 ? `in ${minutes} min` : `in ${Math.floor(minutes / 60)} h${minutes % 60 ? ' ' + (minutes % 60) + ' min' : ''}`
   })
-  const colour = $derived(!next ? '' : (ui.lookVersion, prefs.nextColour) === 'accent' ? 'var(--accent)' : prefs.nextColour.startsWith('#') ? prefs.nextColour : next.colourShown)
+  // The colour is its own (a warm amber unless one is chosen), so it never reads as one of the events
+  const colour = $derived(!next ? '' : (ui.lookVersion, prefs.nextColour) === 'accent' ? 'var(--accent)' : prefs.nextColour === 'calendar' ? next.colourShown : prefs.nextColour.startsWith('#') ? prefs.nextColour : '#ffb224')
+  const secondsLeft = $derived(next ? Math.round((next.startAt.getTime() - now) / 1000) : 0)
+  // The dial: what's left of the lead time as a ring, and the time to go in its biggest unit
+  const share = $derived(Math.max(0, Math.min(1, secondsLeft / (prefs.nextLead * 60))))
+  const dial = $derived(secondsLeft <= 0 ? { number: 'GO', unit: 'now' } : secondsLeft < 100 ? { number: String(secondsLeft), unit: 'sec' } : secondsLeft < 5970 ? { number: String(Math.ceil(secondsLeft / 60)), unit: 'min' } : { number: (secondsLeft / 3600).toFixed(secondsLeft < 36000 ? 1 : 0).replace('.0', ''), unit: 'hrs' })
   const when = $derived(!next ? '' : (sameDay(next.startAt, new Date(now)) ? '' : weekdayShort(next.startAt) + ' ') + formatTime(next.startAt))
 </script>
 
 {#if next}
-  <div class="next-up" class:floating class:soon={next.startAt.getTime() - now < 300_000} style="--colour: {colour}; --strength: {(ui.lookVersion, prefs.nextStrength)}" role="status">
+  <div class="next-up" class:floating class:soon={secondsLeft < 300} style="--colour: {colour}; --strength: {(ui.lookVersion, prefs.nextStrength)}" role="status">
     <button class="open" onclick={() => sendToShell({ type: 'openEditor', id: next.id })} title="Open this event">
-      <span class="countdown">{countdown}</span>
-      <span class="title">{shortTitle(next)}</span>
-      <span class="when">{when}{#if next.meetUrl}<Icon name="video" size={12} />{/if}</span>
+      <span class="dial">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><circle class="track" cx="20" cy="20" r="17" /><circle class="left" cx="20" cy="20" r="17" pathLength="100" stroke-dasharray="{share * 100} 100" /></svg>
+        <span class="number">{dial.number}</span><span class="unit">{dial.unit}</span>
+      </span>
+      <span class="words"><span class="title">{shortTitle(next)}</span><span class="when">{secondsLeft > 0 ? 'starts ' + when : countdown}{#if next.meetUrl}<Icon name="video" size={11} />{/if}</span></span>
     </button>
-    <button class="dismiss" onclick={() => dismissed = dismissed.concat(next.id + next.start)} title="Dismiss" aria-label="Dismiss"><Icon name="close" size={14} /></button>
+    <button class="dismiss" onclick={() => dismissed = dismissed.concat(next.id + next.start)} title="Dismiss" aria-label="Dismiss"><Icon name="close" size={13} /></button>
   </div>
 {/if}
 
 <style>
-  /* Boldness (--strength, 0 to 100): from faint tinted glass to solid colour with white text */
-  .next-up { --mix: calc(14% + var(--strength) * 0.86%); display: flex; align-items: stretch; flex: none; margin: 0 10px 6px; border-radius: 10px; background: color-mix(in srgb, var(--colour) var(--mix), var(--panel-solid)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--colour) calc(55% + var(--strength) * 0.45%), transparent), 0 6px 20px rgba(0, 0, 0, 0.3); color: color-mix(in srgb, #fff calc(var(--strength) * 1.4% - 40%), var(--fg)); font-size: 13px; overflow: hidden; animation: next-in 0.25s ease-out; }
-  .next-up.floating { position: absolute; z-index: 3; top: 8px; left: 10px; right: 10px; margin: 0; backdrop-filter: blur(14px) saturate(1.4); background: color-mix(in srgb, var(--colour) var(--mix), color-mix(in srgb, var(--panel-solid) 78%, transparent)); }
-  .next-up.soon { animation: next-in 0.25s ease-out, next-soon 2.4s ease-in-out infinite; }
-  @keyframes next-in { from { opacity: 0; transform: translateY(-6px); } }
-  @keyframes next-soon { 50% { box-shadow: inset 0 0 0 1.5px var(--colour), 0 0 16px color-mix(in srgb, var(--colour) 70%, transparent); } }
+  /* A countdown capsule, nothing like an event row: a solid bright pill, as wide as its words, with a dial that runs down as the event nears. Boldness (--strength) takes it from a tinted pill to full colour */
+  .next-up { --mix: calc(45% + var(--strength) * 0.55%); --ink: #1a1206; display: flex; align-items: stretch; flex: none; align-self: center; width: fit-content; max-width: calc(100% - 20px); margin: 0 auto 6px; border-radius: 999px; background: linear-gradient(135deg, color-mix(in srgb, var(--colour) var(--mix), var(--panel-solid)), color-mix(in srgb, color-mix(in srgb, var(--colour) 78%, #ff3d6e) var(--mix), var(--panel-solid))); box-shadow: 0 6px 22px color-mix(in srgb, var(--colour) 45%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45); color: var(--ink); overflow: hidden; animation: next-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); }
+  .next-up.floating { position: absolute; z-index: 3; top: 8px; left: 50%; translate: -50% 0; margin: 0; }
+  .next-up.soon { animation: next-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1), next-soon 1.6s ease-in-out infinite; }
+  @keyframes next-in { from { opacity: 0; scale: 0.8; } }
+  @keyframes next-soon { 50% { box-shadow: 0 6px 30px 4px color-mix(in srgb, var(--colour) 75%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45); scale: 1.03; } }
   button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
-  .open { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; padding: 8px 4px 8px 12px; text-align: left; }
-  .open:hover, .dismiss:hover { background: color-mix(in srgb, var(--fg) 8%, transparent); }
-  .countdown { flex: none; font-weight: 750; font-variant-numeric: tabular-nums; }
-  .title { min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .when { flex: none; margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 12px; opacity: 0.75; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .next-up { container-type: inline-size; }
-  @container (max-width: 300px) { .when { display: none; } } /* narrow lists: the countdown and the name only */
-  .dismiss { flex: none; display: grid; place-items: center; width: 32px; opacity: 0.7; }
+  .open { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 5px 4px 5px 6px; text-align: left; }
+  .dial { position: relative; flex: none; width: 44px; height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: var(--ink); color: #fff; line-height: 1; }
+  .dial svg { position: absolute; inset: 0; width: 100%; height: 100%; rotate: -90deg; }
+  .dial circle { fill: none; stroke-width: 3; }
+  .track { stroke: rgba(255, 255, 255, 0.16); }
+  .left { stroke: var(--colour); stroke-linecap: round; transition: stroke-dasharray 1s linear; }
+  .number { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .unit { margin-top: 1px; font-size: 8px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; }
+  .words { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .title { font-size: 13.5px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .when { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; opacity: 0.72; white-space: nowrap; }
+  .dismiss { flex: none; display: grid; place-items: center; width: 34px; padding-right: 6px; opacity: 0.6; }
+  .dismiss:hover { opacity: 1; }
 </style>

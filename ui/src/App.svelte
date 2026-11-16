@@ -55,7 +55,7 @@
     if (params.get('view')) ui.view = params.get('view') as ViewMode
     if (params.get('picked')) ui.picked = params.get('picked')!.split(',')
     if (params.has('tasks')) app.tasks = sampleTasks()
-    if (params.has('notify')) { app.calendars = app.calendars.map(calendar => Object.assign({}, calendar, { notify: true })); prefs.nextLead = 1440; prefs.nextStrength = Number(params.get('notify') || 50) } // mockups: the Next event box
+    if (params.has('notify')) { app.calendars = app.calendars.map(calendar => Object.assign({}, calendar, { notify: true })); prefs.nextLead = Number(params.get('lead') || 1440); prefs.nextStrength = Number(params.get('notify') || 50) } // mockups: the Next event box
   }
 
   // ---- Look (from WinSqueeze): skin, accent, glass tint ----
