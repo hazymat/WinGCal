@@ -346,7 +346,7 @@ public partial class SettingsWindow : Window
         nextColourBox.SelectionChanged += (sender, args) =>
         {
             if (nextColourBox.SelectedItem is not ComboBoxItem { Tag: string kind }) return;
-            if (kind != "custom") view.NextColour = kind; else if (!view.NextColour.StartsWith('#') && !ChooseNextColour()) { nextColourBox.SelectedIndex = view.NextColour == "accent" ? 1 : 0; return; }
+            if (kind != "custom") view.NextColour = kind; else if (!view.NextColour.StartsWith('#') && !ChooseNextColour()) { nextColourBox.SelectedItem = nextColourBox.Items.Cast<ComboBoxItem>().First(item => (string)item.Tag == view.NextColour); return; }
             Settings.Save(); App.ApplyView(); ShowNextColour();
         };
         nextColourButton.Click += (sender, args) => { if (ChooseNextColour()) { Settings.Save(); App.ApplyView(); ShowNextColour(); } };

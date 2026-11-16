@@ -142,7 +142,7 @@
   .jump-today { position: absolute; z-index: 2; top: 8px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 12px 0 9px; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 13px; background: color-mix(in srgb, var(--panel-solid) 55%, transparent); backdrop-filter: blur(14px) saturate(1.5); color: var(--accent); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08); animation: jump-in 0.2s ease-out; }
   /* The Next event box lies over the top of the list (the faded days); the Today pill moves below it */
   .over-top { position: absolute; z-index: 3; top: 0; left: 0; right: 0; height: 0; }
-  .over-top:has(:global(.next-up)) ~ .jump-today { top: 54px; }
+  .over-top:has(:global(.next-up)) ~ .jump-today { top: 70px; }
   .jump-today:hover { background: color-mix(in srgb, var(--accent) 22%, color-mix(in srgb, var(--panel-solid) 55%, transparent)); }
   @keyframes jump-in { from { opacity: 0; transform: translate(-50%, -6px); } }
   .list { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 60vh; /* room below so even the last day can reach the reading line */ mask-image: linear-gradient(transparent, #000 10%, #000 88%, transparent); }
