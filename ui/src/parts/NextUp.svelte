@@ -40,8 +40,9 @@
         <svg viewBox="0 0 40 40" aria-hidden="true"><circle class="track" cx="20" cy="20" r="17" /><circle class="left" cx="20" cy="20" r="17" pathLength="100" stroke-dasharray="{share * 100} 100" /></svg>
         <span class="number">{dial.number}</span><span class="unit">{dial.unit}</span>
       </span>
-      <span class="words"><span class="title">{shortTitle(next)}</span><span class="when">{secondsLeft > 0 ? 'starts ' + when : countdown}{#if next.meetUrl}<Icon name="video" size={11} />{/if}</span></span>
+      <span class="words"><span class="title">{shortTitle(next)}</span><span class="when">{secondsLeft > 0 ? 'starts ' + when : countdown}</span></span>
     </button>
+    {#if next.meetUrl}<button class="join" onclick={() => sendToShell({ type: 'openUrl', url: next.meetUrl })} title="Join the video call" aria-label="Join the video call"><Icon name="video" size={15} /></button>{/if}
     <button class="dismiss" onclick={() => dismissed = dismissed.concat(next.id + next.start)} title="Dismiss" aria-label="Dismiss"><Icon name="close" size={13} /></button>
   </div>
 {/if}
@@ -65,6 +66,8 @@
   .words { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .title { font-size: 13.5px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .when { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; opacity: 0.72; white-space: nowrap; }
+  .join { flex: none; align-self: center; display: grid; place-items: center; width: 30px; height: 30px; margin: 0 2px; border-radius: 50%; background: var(--ink); color: #fff; }
+  .join:hover { scale: 1.1; }
   .dismiss { flex: none; display: grid; place-items: center; width: 34px; padding-right: 6px; opacity: 0.6; }
   .dismiss:hover { opacity: 1; }
 </style>

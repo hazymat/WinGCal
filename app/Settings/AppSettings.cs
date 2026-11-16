@@ -65,7 +65,7 @@ public class ViewSettings
     public bool ShowDeclined { get; set; }
     public int StripLight { get; set; } = 50; // Agenda: how strongly a strip light sweeps across today's and upcoming events as they scroll by (0 = off)
     public int NextLead { get; set; } = 60; // Next event box: shows this many minutes before an event starts (Settings › Calendars › Next event)
-    public string NextColour { get; set; } = ""; // its colour: "" = the event's calendar colour, "accent", or #rrggbb
+    public string NextColour { get; set; } = ""; // its colour: "" = its own amber, "calendar" = the event's calendar colour, "accent", or #rrggbb
     public int NextStrength { get; set; } = 50; // how bold it is, 0 (faint glass) to 100 (solid colour)
     public string EmptyDays { get; set; } = "hide"; // Agenda days with nothing on: hide | each (a blank row per day) | group (a run of them as one row, "Sat 14 to Mon 16")
     public bool SmoothWheel { get; set; } = true; // Agenda: the wheel glides the list rather than stepping

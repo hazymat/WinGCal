@@ -111,7 +111,7 @@
             <WrapPanel Margin="0,8,0,0"><TextBlock Text="Show it" MinWidth="100" VerticalAlignment="Center" /><ComboBox x:Name="nextLeadBox" Width="200"><ComboBoxItem Content="5 minutes before" Tag="5" /><ComboBoxItem Content="15 minutes before" Tag="15" /><ComboBoxItem Content="30 minutes before" Tag="30" /><ComboBoxItem Content="1 hour before" Tag="60" /><ComboBoxItem Content="2 hours before" Tag="120" /><ComboBoxItem Content="4 hours before" Tag="240" /><ComboBoxItem Content="A day before" Tag="1440" /></ComboBox></WrapPanel>
             <WrapPanel Margin="0,8,0,0">
               <TextBlock Text="Colour" MinWidth="100" VerticalAlignment="Center" />
-              <ComboBox x:Name="nextColourBox" Width="200"><ComboBoxItem Content="The calendar's colour" Tag="" /><ComboBoxItem Content="Accent colour" Tag="accent" /><ComboBoxItem Content="My own" Tag="custom" /></ComboBox>
+              <ComboBox x:Name="nextColourBox" Width="200"><ComboBoxItem Content="Amber" Tag="" /><ComboBoxItem Content="The calendar's colour" Tag="calendar" /><ComboBoxItem Content="Accent colour" Tag="accent" /><ComboBoxItem Content="My own" Tag="custom" /></ComboBox>
               <Border x:Name="nextColourSwatch" Width="28" Height="22" CornerRadius="4" BorderBrush="#40FFFFFF" BorderThickness="1" Margin="8,0,6,0" />
               <Button x:Name="nextColourButton" Content="Choose…" />
             </WrapPanel>
