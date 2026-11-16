@@ -66,7 +66,7 @@ public partial class SettingsWindow : Window
 
     // ---- Lists that follow the store: accounts, calendars, task lists, monitor setups ----
     record AccountRow(string Email, string Status, Brush StatusBrush);
-    record CalendarRow(string Key, string Name, bool Shown, Brush ColourBrush, string AccountHeading, Visibility HeadingVisibility, bool InSwitcher = true);
+    record CalendarRow(string Key, string Name, bool Shown, Brush ColourBrush, string AccountHeading, Visibility HeadingVisibility, bool InSwitcher = true, bool Notify = false);
     record SetupRow(string Key, string Name, string CurrentLabel, string Detail);
     record ExportRow(string Email) { public bool Chosen { get; set; } = true; }
     record DefaultChoice(string Key, string Label);
@@ -93,7 +93,7 @@ public partial class SettingsWindow : Window
         noClientCallout.Visibility = GoogleAuth.HasClient ? Visibility.Collapsed : Visibility.Visible;
         addAccountButton.IsEnabled = GoogleAuth.HasClient;
         string previousAccount = "";
-        calendarsList.ItemsSource = store.Calendars.Select(calendar => { var first = calendar.Account != previousAccount; previousAccount = calendar.Account; return new CalendarRow(calendar.Key, calendar.Name, store.IsShown(calendar.Key), BrushOf(store.ColourOf(calendar)), calendar.Account, first ? Visibility.Visible : Visibility.Collapsed, store.IsInSwitcher(calendar.Key)); }).ToList();
+        calendarsList.ItemsSource = store.Calendars.Select(calendar => { var first = calendar.Account != previousAccount; previousAccount = calendar.Account; return new CalendarRow(calendar.Key, calendar.Name, store.IsShown(calendar.Key), BrushOf(store.ColourOf(calendar)), calendar.Account, first ? Visibility.Visible : Visibility.Collapsed, store.IsInSwitcher(calendar.Key), store.IsNotified(calendar.Key)); }).ToList();
         calendarsHeader.Visibility = store.Calendars.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         noCalendarsText.Visibility = store.Calendars.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         noCalendarsText.Text = NoCalendarsReason();
@@ -172,6 +172,7 @@ public partial class SettingsWindow : Window
         dragRow = null; dragKey = null; dragLifted = false; dragSiblings = new();
         if (grip?.IsMouseCaptured == true) grip.ReleaseMouseCapture();
     }
+    void CalendarNotify_Click(object sender, RoutedEventArgs args) { if (sender is CheckBox { Tag: string key } box) App.Store.SetNotified(key, box.IsChecked == true); }
     void CalendarInSwitcher_Click(object sender, RoutedEventArgs args) { if (sender is CheckBox { Tag: string key } box) App.Store.SetInSwitcher(key, box.IsChecked == true); }
     void CalendarColour_Click(object sender, RoutedEventArgs args)
     {
@@ -335,6 +336,22 @@ public partial class SettingsWindow : Window
         stripLightSlider.ValueChanged += (sender, args) => { view.StripLight = (int)stripLightSlider.Value; stripLightText.Text = view.StripLight == 0 ? "Off" : $"{view.StripLight}%"; Settings.Save(); App.ApplyView(); };
         emptyDaysBox.SelectedItem = emptyDaysBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == view.EmptyDays) ?? emptyDaysBox.Items[0];
         emptyDaysBox.SelectionChanged += (sender, args) => { if (emptyDaysBox.SelectedItem is ComboBoxItem { Tag: string emptyDays }) { view.EmptyDays = emptyDays; Settings.Save(); App.ApplyView(); } };
+        // Next event box (Settings › Calendars): how early, its colour (the calendar's, the accent, or one chosen) and how bold
+        nextLeadBox.SelectedItem = nextLeadBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == view.NextLead.ToString()) ?? nextLeadBox.Items[3];
+        nextLeadBox.SelectionChanged += (sender, args) => { if (nextLeadBox.SelectedItem is ComboBoxItem { Tag: string minutes }) { view.NextLead = int.Parse(minutes); Settings.Save(); App.ApplyView(); } };
+        void ShowNextColour() { var custom = view.NextColour.StartsWith('#'); nextColourSwatch.Visibility = nextColourButton.Visibility = custom ? Visibility.Visible : Visibility.Collapsed; if (custom) nextColourSwatch.Background = BrushOf(view.NextColour); }
+        bool ChooseNextColour() { using var colourDialog = new System.Windows.Forms.ColorDialog { FullOpen = true, AnyColor = true }; if (view.NextColour.StartsWith('#')) colourDialog.Color = System.Drawing.ColorTranslator.FromHtml(view.NextColour); if (colourDialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return false; view.NextColour = $"#{colourDialog.Color.R:x2}{colourDialog.Color.G:x2}{colourDialog.Color.B:x2}"; return true; }
+        var nextColourKind = view.NextColour.StartsWith('#') ? "custom" : view.NextColour;
+        nextColourBox.SelectedItem = nextColourBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == nextColourKind) ?? nextColourBox.Items[0]; ShowNextColour();
+        nextColourBox.SelectionChanged += (sender, args) =>
+        {
+            if (nextColourBox.SelectedItem is not ComboBoxItem { Tag: string kind }) return;
+            if (kind != "custom") view.NextColour = kind; else if (!view.NextColour.StartsWith('#') && !ChooseNextColour()) { nextColourBox.SelectedIndex = view.NextColour == "accent" ? 1 : 0; return; }
+            Settings.Save(); App.ApplyView(); ShowNextColour();
+        };
+        nextColourButton.Click += (sender, args) => { if (ChooseNextColour()) { Settings.Save(); App.ApplyView(); ShowNextColour(); } };
+        nextStrengthSlider.Value = view.NextStrength; nextStrengthText.Text = $"{view.NextStrength}%";
+        nextStrengthSlider.ValueChanged += (sender, args) => { view.NextStrength = (int)nextStrengthSlider.Value; nextStrengthText.Text = $"{view.NextStrength}%"; Settings.Save(); App.ApplyView(); };
         smoothWheelBox.Click += (sender, args) => { view.SmoothWheel = smoothWheelBox.IsChecked == true; Settings.Save(); App.ApplyView(); };
         declinedBox.IsChecked = view.ShowDeclined;
         declinedBox.Click += (sender, args) => { view.ShowDeclined = declinedBox.IsChecked == true; Settings.Save(); App.ApplyView(); };

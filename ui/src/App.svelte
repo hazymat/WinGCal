@@ -5,6 +5,7 @@
   import { addDays, addMonths, monthName, startOfDay, startOfWeek, prefs, shortDate, parseWhen, dayKey, dayMs } from './lib/dates'
   import { carry } from './lib/carry.svelte'
   import { sampleAccounts, sampleCalendars, sampleEvents, sampleTasks } from './lib/sample'
+  import NextUp from './parts/NextUp.svelte'
   import MonthView from './views/MonthView.svelte'
   import WeekView from './views/WeekView.svelte'
   import AgendaView from './views/AgendaView.svelte'
@@ -33,7 +34,7 @@
   onShellMessage('calendars', message => { app.accounts = message.accounts; app.calendars = message.calendars; app.sampleData = !!message.sample })
   onShellMessage('events', message => app.events = message.events)
   onShellMessage('sync', message => { app.syncing = !!message.syncing; app.offline = !!message.offline })
-  onShellMessage('prefs', message => { prefs.weekStart = message.weekStart ?? prefs.weekStart; prefs.holdMs = message.holdMs ?? prefs.holdMs; prefs.smoothWheel = message.smoothWheel ?? prefs.smoothWheel; prefs.stripLight = message.stripLight ?? prefs.stripLight; prefs.emptyDays = message.emptyDays ?? prefs.emptyDays; if (typeof message.hour12 === 'boolean') prefs.hour12 = message.hour12; ui.lookVersion++ })
+  onShellMessage('prefs', message => { prefs.weekStart = message.weekStart ?? prefs.weekStart; prefs.holdMs = message.holdMs ?? prefs.holdMs; prefs.smoothWheel = message.smoothWheel ?? prefs.smoothWheel; prefs.stripLight = message.stripLight ?? prefs.stripLight; prefs.emptyDays = message.emptyDays ?? prefs.emptyDays; prefs.nextLead = message.nextLead ?? prefs.nextLead; prefs.nextColour = message.nextColour ?? prefs.nextColour; prefs.nextStrength = message.nextStrength ?? prefs.nextStrength; if (typeof message.hour12 === 'boolean') prefs.hour12 = message.hour12; ui.lookVersion++ })
   onShellMessage('update', message => app.updateReady = message.version ?? '')
   onShellMessage('tasks', message => app.tasks = { enabled: !!message.enabled, lists: message.lists ?? [], items: message.items ?? [] })
   onShellMessage('tip', message => ui.tip = { title: message.title ?? '', text: message.text ?? '' })
@@ -54,6 +55,7 @@
     if (params.get('view')) ui.view = params.get('view') as ViewMode
     if (params.get('picked')) ui.picked = params.get('picked')!.split(',')
     if (params.has('tasks')) app.tasks = sampleTasks()
+    if (params.has('notify')) { app.calendars = app.calendars.map(calendar => Object.assign({}, calendar, { notify: true })); prefs.nextLead = 1440; prefs.nextStrength = Number(params.get('notify') || 50) } // mockups: the Next event box
   }
 
   // ---- Look (from WinSqueeze): skin, accent, glass tint ----
@@ -283,8 +285,8 @@
         <button class="primary" onclick={() => sendToShell({ type: 'addAccount' })}>Sign in with Google</button>
         <span class="quiet">Add more accounts later in Settings</span>
       </div>
-    {:else if shownView === 'month'}<MonthView {events} onpick={pick} />
-    {:else if shownView === 'week'}<WeekView {events} onpick={pick} />
+    {:else if shownView === 'month'}<NextUp /><div class="under"><MonthView {events} onpick={pick} /></div>
+    {:else if shownView === 'week'}<NextUp /><div class="under"><WeekView {events} onpick={pick} /></div>
     {:else if shownView === 'split'}<SplitView {events} onpick={pick} />
     {:else}<AgendaView {events} onpick={pick} />{/if}
   </main>
@@ -344,7 +346,9 @@
   .notice span { min-width: 0; text-align: right; }
   .notice.problem { background: color-mix(in srgb, var(--danger) 18%, transparent); }
   .body { flex: 1; min-height: 0; display: flex; }
-  .view { flex: 1; min-width: 0; min-height: 0; }
+  .view { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .view > :global(*) { flex: 1; min-height: 0; }
+  .view > :global(.next-up) { flex: none; } /* the Next event row above Month and Week */
   .tasks-column { flex: none; width: clamp(240px, 26vw, 320px); padding-bottom: 6px; }
   .tool.on { color: var(--accent); background: var(--accent-soft); }
   .welcome { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; text-align: center; color: var(--fg-quiet); }
