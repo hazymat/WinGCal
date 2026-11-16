@@ -67,6 +67,9 @@ public class ViewSettings
     public int NextLead { get; set; } = 60; // Next event box: shows this many minutes before an event starts (Settings › Calendars › Next event)
     public string NextColour { get; set; } = ""; // its colour: "" = its own amber, "calendar" = the event's calendar colour, "accent", or #rrggbb
     public int NextStrength { get; set; } = 50; // how bold it is, 0 (faint glass) to 100 (solid colour)
+    public bool NextPopOut { get; set; } = true; // the capsule also pops out over other windows as the event nears (Shell/NextAlert.cs)
+    public string NextSound { get; set; } = "chime"; // WinGCal's own sound as it does: chime | marimba | bell | "" (none)
+    public int NextVolume { get; set; } = 60;
     public string EmptyDays { get; set; } = "hide"; // Agenda days with nothing on: hide | each (a blank row per day) | group (a run of them as one row, "Sat 14 to Mon 16")
     public bool SmoothWheel { get; set; } = true; // Agenda: the wheel glides the list rather than stepping
     public int HoldMs { get; set; } = 350; // press and hold an event this long to pick it up (and select it)
