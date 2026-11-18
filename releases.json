@@ -399,6 +399,16 @@
   "prerelease": true,
   "published": "2026-11-18T09:03:03Z"
  },
+ "v0.1.175": {
+  "assets": {
+   "WinGCal-0.1.175-dev-full.nupkg": 0,
+   "WinGCal-Portable.exe": 0,
+   "WinGCal-Setup.exe": 0,
+   "releases.dev.json": 0
+  },
+  "prerelease": true,
+  "published": "2026-11-18T21:47:48Z"
+ },
  "v0.1.2": {
   "assets": {
    "WinGCal-0.1.2-dev-full.nupkg": 1,
