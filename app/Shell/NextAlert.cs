@@ -19,14 +19,14 @@ public sealed class NextAlert
     static readonly TimeSpan linger = TimeSpan.FromMinutes(10); // as the capsule in the calendar: until ten minutes after the start
     readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(1) };
     readonly HashSet<string> fired = new(), dismissed = new();
-    AlertCapsule? capsule; DateTime showUntil; string shownKey = "";
+    AlertCapsule? capsule; DateTime showUntil; string shownKey = ""; bool askedFor; // askedFor: brought up from the tray, so shown even with the pop-out turned off
     App App => App.Instance;
 
     public void Start() { timer.Tick += (sender, args) => Tick(); timer.Start(); }
     // × on either capsule (this one or the calendar's) lets that event go everywhere
     public void Dismiss(string key, bool tellCalendar) { dismissed.Add(key); if (shownKey == key) Hide(); if (tellCalendar) App.MainShell.PushNextDismissed(key); }
     static string KeyOf(UiEvent item) => item.Id + item.Start;
-    static DateTime StartOf(UiEvent item) => DateTimeOffset.Parse(item.Start, CultureInfo.InvariantCulture).LocalDateTime;
+    public static DateTime StartOf(UiEvent item) => DateTimeOffset.Parse(item.Start, CultureInfo.InvariantCulture).LocalDateTime;
     static DateTime EndOf(UiEvent item) => DateTimeOffset.Parse(item.End, CultureInfo.InvariantCulture).LocalDateTime;
 
     UiEvent? Next(DateTime now)
@@ -39,6 +39,12 @@ public sealed class NextAlert
             .OrderBy(found => found.start).Select(found => found.item).FirstOrDefault();
     }
 
+    // What the tray's amber dot stands for: the next event inside its lead time that hasn't started (the dot always goes at the start time) or been dismissed
+    public UiEvent? Upcoming { get { try { var now = DateTime.Now; return Next(now) is { } next && StartOf(next) > now ? next : null; } catch { return null; } } }
+    public bool Showing => capsule != null;
+    // The tray icon or its menu row: bring the countdown capsule up now
+    public void ShowNow() { if (Upcoming is not { } next) return; shownKey = KeyOf(next); showUntil = DateTime.Now.AddSeconds(20); askedFor = true; capsule ??= new AlertCapsule(this); Tick(); }
+
     void Tick()
     {
         try
@@ -50,15 +56,15 @@ public sealed class NextAlert
             if (fired.Add(key + moment) && secondsLeft > -60) // an event already under way when WinGCal starts isn't announced again
             {
                 Chime.Play(view.NextSound, moment == "start", view.NextVolume);
-                if (view.NextPopOut) { shownKey = key; showUntil = now.AddSeconds(moment == "start" ? 60 : 20); capsule ??= new AlertCapsule(this); }
+                if (view.NextPopOut) { askedFor = false; shownKey = key; showUntil = now.AddSeconds(moment == "start" ? 60 : 20); capsule ??= new AlertCapsule(this); }
             }
             if (capsule == null) return;
-            if (shownKey != key || !view.NextPopOut || (now > showUntil && !capsule.IsMouseOver)) { Hide(); return; }
+            if (shownKey != key || !view.NextPopOut && !askedFor || (now > showUntil && !capsule.IsMouseOver)) { Hide(); return; }
             capsule.Show(next, key, secondsLeft, Math.Clamp(secondsLeft / (view.NextLead * 60.0), 0, 1), ColourFor(next), view.NextStrength);
         }
         catch (Exception alertError) { CrashReporter.Write("Next event pop-out", alertError, false); }
     }
-    void Hide() { if (capsule == null) return; var leaving = capsule; capsule = null; shownKey = ""; leaving.SlideAway(); }
+    void Hide() { if (capsule == null) return; var leaving = capsule; capsule = null; shownKey = ""; askedFor = false; leaving.SlideAway(); }
 
     // As the capsule in the calendar: its own amber, the calendar's colour, the accent, or one chosen (Settings › Calendars › Next event)
     Color ColourFor(UiEvent item)

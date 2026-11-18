@@ -276,7 +276,7 @@
   </header>
   {#each app.accounts.filter(account => account.error) as account (account.email)}<div class="notice problem" data-frost><span><b>Couldn't read {account.email}.</b> {account.error}</span><button class="ghost" onclick={() => sendToShell({ type: 'refresh' })}>Try again</button></div>{/each}
   {#if ui.tip}<div class="notice" data-frost><span><b>{ui.tip.title}</b> {ui.tip.text}</span><button class="ghost" onclick={() => ui.tip = null}>OK</button></div>{/if}
-  {#if app.updateReady}<div class="notice" data-frost><span>WinGCal {app.updateReady} is ready.</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Restart to update</button></div>{/if}
+  {#if app.updateReady}<div class="notice" data-frost><span>WinGCal {app.updateReady} is ready.</span><button class="primary" onclick={() => sendToShell({ type: 'applyUpdate' })}>Update WinGCal now</button></div>{/if}
   <div class="body">
   <main class="view" data-frost>
     {#if app.accounts.length === 0}

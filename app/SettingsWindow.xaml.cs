@@ -373,9 +373,11 @@ public partial class SettingsWindow : Window
         startWithWindowsBox.IsChecked = Settings.General.StartWithWindows; startWithWindowsBox.IsEnabled = !AppPaths.IsPortable;
         startWithWindowsBox.Click += (sender, args) => { Settings.General.StartWithWindows = startWithWindowsBox.IsChecked == true; Settings.Save(); try { StartupRegistration.Apply(Settings.General.StartWithWindows); } catch { } };
         var general = Settings.General;
-        void ShowTrayChoices() { trayIconBox.IsChecked = general.ShowTrayIcon; startMinimisedBox.IsChecked = general.StartMinimised; closeToTrayBox.IsChecked = general.CloseToTray; var place = general.ShowTrayIcon ? "tray" : "taskbar"; startMinimisedBox.Content = general.ShowTrayIcon ? "Start hidden in the tray" : "Start minimised to the taskbar"; closeToTrayBox.Content = $"Close (X) keeps WinGCal running in the {place} (otherwise it quits)"; }
+        void ShowTrayChoices() { trayUpdateDotBox.IsChecked = general.TrayUpdateDot; trayEventDotBox.IsChecked = general.TrayEventDot; trayUpdateDotBox.IsEnabled = trayEventDotBox.IsEnabled = general.ShowTrayIcon; trayIconBox.IsChecked = general.ShowTrayIcon; startMinimisedBox.IsChecked = general.StartMinimised; closeToTrayBox.IsChecked = general.CloseToTray; var place = general.ShowTrayIcon ? "tray" : "taskbar"; startMinimisedBox.Content = general.ShowTrayIcon ? "Start hidden in the tray" : "Start minimised to the taskbar"; closeToTrayBox.Content = $"Close (X) keeps WinGCal running in the {place} (otherwise it quits)"; }
         ShowTrayChoices();
         trayIconBox.Click += (sender, args) => { general.ShowTrayIcon = trayIconBox.IsChecked == true; Settings.Save(); App.ApplyTray(); ShowTrayChoices(); };
+        trayUpdateDotBox.Click += (sender, args) => { general.TrayUpdateDot = trayUpdateDotBox.IsChecked == true; Settings.Save(); };
+        trayEventDotBox.Click += (sender, args) => { general.TrayEventDot = trayEventDotBox.IsChecked == true; Settings.Save(); };
         startMinimisedBox.Click += (sender, args) => { general.StartMinimised = startMinimisedBox.IsChecked == true; Settings.Save(); };
         closeToTrayBox.Click += (sender, args) => { general.CloseToTray = closeToTrayBox.IsChecked == true; Settings.Save(); };
         quitButton.Click += (sender, args) => App.Quit();
@@ -441,7 +443,7 @@ public partial class SettingsWindow : Window
         {
             updateStatusText.Text = App.Updater.StatusText;
             restartToUpdateButton.Visibility = App.Updater.ReadyVersion == "" ? Visibility.Collapsed : Visibility.Visible;
-            restartToUpdateButton.Content = $"Restart to update to {App.Updater.ReadyVersion}";
+            restartToUpdateButton.Content = $"Update WinGCal to {App.Updater.ReadyVersion}";
         });
     }
 

@@ -103,6 +103,8 @@ public partial class App : Application
     public void SetPinned(bool pinned) { Settings.Window.Pinned = pinned; Settings.Save(); ShowMainWindow(); mainWindow.ApplyPinned(); NotifySettingsChanged(); }
     public void SetSkin(string skin) { Settings.Look.Skin = skin; Settings.Save(); ApplySkin(); ApplyWindowStyle(); NotifySettingsChanged(); }
     // Tips show in the window, or from the tray while the window is hidden
+    // WinGCal's own card, never a Windows balloon
+    public void ShowUpdateReady() => Dispatcher.BeginInvoke(() => { if (trayIcon != null) trayIcon.ShowUpdateCard(false); });
     public void ShowTip(string title, string text) { if (trayIcon != null && !mainWindow.IsVisible) trayIcon.ShowTip(title, text); else Tip?.Invoke(title, text); }
 
     public void OpenSettings(string tabName = "")
