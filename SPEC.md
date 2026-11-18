@@ -37,6 +37,7 @@ Implementation: pinned sets the window's owner to the desktop (`Progman`), adds 
 As WinSqueeze. Settings › Window › Start and tray:
 
 - **Show an icon in the system tray** (on by default). Left-click shows or hides the widget. The menu opens with a small shaded row showing just the version number, then has Show/Hide, Refresh from Google, Pinned to the desktop, Skin, Check for updates, Settings and Quit.
+- The icon is bold line art drawn at the tray's own size with no background, like Windows' own battery and network icons: a calendar leaf holding today's date. It is white on a dark taskbar and near-black on a light one, and redraws when the taskbar's colour changes and at midnight.
 - **Start hidden in the tray** (off by default).
 - **Close (X) keeps WinGCal running in the tray** (off by default, so Close and Alt+F4 quit). The first time, a tip says where it went.
 - With the icon off (as WinSqueeze): no balloons, and the window is never hidden. The two options become "…to the taskbar" and minimise instead; a pinned widget has no taskbar button, so it starts showing and Close quits. Launching WinGCal again always brings it forward.
