@@ -405,6 +405,8 @@
             <TextBlock Text="Start and tray" Style="{StaticResource CardTitle}" />
             <CheckBox x:Name="startWithWindowsBox" Content="Start with Windows" Margin="0,4,0,0" />
             <CheckBox x:Name="trayIconBox" Content="Show an icon in the system tray" Margin="0,6,0,0" />
+            <CheckBox x:Name="trayUpdateDotBox" Content="Blue dot when an update is ready" Margin="20,6,0,0" />
+            <CheckBox x:Name="trayEventDotBox" Content="Amber dot before an event" Margin="20,6,0,0" />
             <CheckBox x:Name="startMinimisedBox" Content="Start hidden in the tray" Margin="20,6,0,0" />
             <CheckBox x:Name="closeToTrayBox" Content="Close (X) keeps WinGCal running in the tray (otherwise it quits)" Margin="20,6,0,0" />
             <Button x:Name="quitButton" Content="Quit WinGCal" HorizontalAlignment="Left" Margin="0,12,0,0" />
@@ -444,7 +446,7 @@
               </WrapPanel>
               <WrapPanel Margin="0,10,0,0">
                 <Button x:Name="checkNowButton" Content="Check now" />
-                <Button x:Name="restartToUpdateButton" Content="Restart to update" Visibility="Collapsed" FontWeight="SemiBold" />
+                <Button x:Name="restartToUpdateButton" Content="Update WinGCal" Visibility="Collapsed" FontWeight="SemiBold" />
               </WrapPanel>
               <TextBlock x:Name="updateStatusText" Style="{StaticResource Quiet}" />
             </StackPanel>

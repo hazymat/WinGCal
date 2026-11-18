@@ -23,6 +23,8 @@ public class GeneralSettings
     public string UpdateChannel { get; set; } = "stable"; // stable | dev
     public bool StartWithWindows { get; set; } = true;
     public bool ShowTrayIcon { get; set; } = true;
+    public bool TrayUpdateDot { get; set; } = true; // blue dot on the tray icon while an update waits
+    public bool TrayEventDot { get; set; } = true; // flashing amber dot while a Notify event is coming up
     public bool StartMinimised { get; set; } // start hidden in the tray (needs the tray icon)
     public bool CloseToTray { get; set; } // off: Close (X, Alt+F4) quits
     public bool CloseToTrayTipShown { get; set; }
