@@ -401,13 +401,33 @@
  },
  "v0.1.175": {
   "assets": {
-   "WinGCal-0.1.175-dev-full.nupkg": 0,
-   "WinGCal-Portable.exe": 0,
-   "WinGCal-Setup.exe": 0,
-   "releases.dev.json": 0
+   "WinGCal-0.1.175-dev-full.nupkg": 2,
+   "WinGCal-Portable.exe": 1,
+   "WinGCal-Setup.exe": 1,
+   "releases.dev.json": 2
   },
   "prerelease": true,
   "published": "2026-11-18T21:47:48Z"
+ },
+ "v0.1.177": {
+  "assets": {
+   "WinGCal-0.1.177-dev-full.nupkg": 2,
+   "WinGCal-Portable.exe": 1,
+   "WinGCal-Setup.exe": 1,
+   "releases.dev.json": 2
+  },
+  "prerelease": true,
+  "published": "2026-11-18T23:53:46Z"
+ },
+ "v0.1.179": {
+  "assets": {
+   "WinGCal-0.1.179-dev-full.nupkg": 2,
+   "WinGCal-Portable.exe": 1,
+   "WinGCal-Setup.exe": 1,
+   "releases.dev.json": 2
+  },
+  "prerelease": true,
+  "published": "2026-11-19T00:25:51Z"
  },
  "v0.1.2": {
   "assets": {
