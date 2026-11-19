@@ -113,7 +113,7 @@ public sealed class TrayIcon : IDisposable
     void ThemeChanged(object sender, Microsoft.Win32.UserPreferenceChangedEventArgs args) => Refresh();
     void ScreenChanged(object? sender, EventArgs args) => Refresh();
 
-    // Drawn at the tray's own pixel size, in the taskbar's ink, on whole pixels so it is as crisp as Windows' own: a calendar leaf that is the whole square slot, edge to edge, with a solid top band and today's date as big as fits under it; the dot takes the top right corner
+    // Drawn at the tray's own pixel size, in the taskbar's ink, on whole pixels so it is as crisp as Windows' own: a calendar leaf that is the whole square slot, edge to edge, in an outline as thin as Windows' battery icon, with a thin rule under the top margin and today's date as big as fits under it; the dot takes the top right corner
     static Icon DrawIcon(int pixelSize, bool lightTaskbar, string dotColour)
     {
         float unit = pixelSize / 16f;
@@ -126,28 +126,29 @@ public sealed class TrayIcon : IDisposable
         using (var datePath = new GraphicsPath())
         {
             graphics.SmoothingMode = SmoothingMode.AntiAlias; graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            int edgePixels = Math.Max(1, (int)Math.Round(1.5f * unit)), bandPixels = Math.Max(edgePixels + 1, (int)Math.Round(4.5f * unit));
-            float outerCorner = 6f * unit, innerCorner = Math.Max(1f, outerCorner - edgePixels * 2);
+            int edgePixels = Math.Max(1, (int)Math.Round(unit)), rulePixels = Math.Max(edgePixels + 1, (int)Math.Round(4f * unit) - 1), bandPixels = rulePixels + edgePixels; // the rule sits rulePixels down; the date's room starts under it
+            float outerCorner = 6.4f * unit, innerCorner = Math.Max(1f, outerCorner - edgePixels * 2);
             AddRoundBox(leafPath, 0, 0, pixelSize, pixelSize, outerCorner);
             graphics.FillPath(inkBrush, leafPath);
-            // The inside is cleared again below the band, leaving the edge and the band solid
-            AddRoundBox(insidePath, edgePixels, bandPixels, pixelSize - edgePixels * 2, pixelSize - bandPixels - edgePixels, innerCorner);
+            // The inside is cleared again, leaving just the thin edge, then the rule is laid across
+            AddRoundBox(insidePath, edgePixels, edgePixels, pixelSize - edgePixels * 2, pixelSize - edgePixels * 2, innerCorner);
             graphics.CompositingMode = CompositingMode.SourceCopy;
             using (var clearBrush = new SolidBrush(Color.Transparent)) graphics.FillPath(clearBrush, insidePath);
             graphics.CompositingMode = CompositingMode.SourceOver;
+            graphics.SmoothingMode = SmoothingMode.None; graphics.FillRectangle(inkBrush, edgePixels, rulePixels, pixelSize - edgePixels * 2, edgePixels); graphics.SmoothingMode = SmoothingMode.AntiAlias;
             // The date is scaled to a fixed box, so every number sits dead centre whatever the font's own spacing
-            using var dateFamily = new FontFamily("Segoe UI");
-            datePath.AddString(DateTime.Today.Day.ToString(), dateFamily, (int)System.Drawing.FontStyle.Bold, 20f, new PointF(0, 0), StringFormat.GenericTypographic);
+            using var dateFamily = DateFamily();
+            datePath.AddString(DateTime.Today.Day.ToString(), dateFamily, (int)System.Drawing.FontStyle.Regular, 20f, new PointF(0, 0), StringFormat.GenericTypographic);
             var drawnBox = datePath.GetBounds();
-            float roomTop = bandPixels + unit, roomBottom = pixelSize - edgePixels - unit;
-            float fitScale = Math.Min((roomBottom - roomTop) / drawnBox.Height, (pixelSize - edgePixels * 2 - 2.2f * unit) / drawnBox.Width);
+            float roomTop = bandPixels + 1.3f * unit, roomBottom = pixelSize - edgePixels - 1.5f * unit;
+            float fitScale = Math.Min((roomBottom - roomTop) / drawnBox.Height, (pixelSize - edgePixels * 2 - 3f * unit) / drawnBox.Width);
             using var fitMatrix = new Matrix();
             fitMatrix.Translate(pixelSize / 2f - (drawnBox.X + drawnBox.Width / 2) * fitScale, (roomTop + roomBottom) / 2 - (drawnBox.Y + drawnBox.Height / 2) * fitScale); fitMatrix.Scale(fitScale, fitScale);
             datePath.Transform(fitMatrix);
             graphics.FillPath(inkBrush, datePath);
             if (dotColour != "")
             {
-                // A clear ring is cut around the dot so it reads on the band
+                // A clear ring is cut around the dot so it reads on the line art
                 float dotX = 13.3f * unit, dotY = 2.7f * unit, dotRadius = 2.7f * unit, gapRadius = 3.4f * unit;
                 graphics.CompositingMode = CompositingMode.SourceCopy;
                 using (var clearBrush = new SolidBrush(Color.Transparent)) graphics.FillEllipse(clearBrush, dotX - gapRadius, dotY - gapRadius, gapRadius * 2, gapRadius * 2);
@@ -160,6 +161,8 @@ public sealed class TrayIcon : IDisposable
         try { using var borrowedIcon = Icon.FromHandle(iconHandle); return (Icon)borrowedIcon.Clone(); }
         finally { DestroyIcon(iconHandle); }
     }
+    // Semibold reads at tray size without the weight of bold
+    static FontFamily DateFamily() { try { return new FontFamily("Segoe UI Semibold"); } catch { return new FontFamily("Segoe UI"); } }
     static void AddRoundBox(GraphicsPath path, float left, float top, float width, float height, float corner)
     {
         path.AddArc(left, top, corner, corner, 180, 90); path.AddArc(left + width - corner, top, corner, corner, 270, 90);
