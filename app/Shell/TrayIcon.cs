@@ -126,7 +126,7 @@ public sealed class TrayIcon : IDisposable
         using (var datePath = new GraphicsPath())
         {
             graphics.SmoothingMode = SmoothingMode.AntiAlias; graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            int edgePixels = Math.Max(1, (int)Math.Round(unit)), rulePixels = (int)Math.Round(4f * unit), bandPixels = rulePixels + edgePixels; // the rule sits rulePixels down; the date's room starts under it
+            int edgePixels = Math.Max(1, (int)Math.Round(unit)), rulePixels = Math.Max(edgePixels + 1, (int)Math.Round(4f * unit) - 1), bandPixels = rulePixels + edgePixels; // the rule sits rulePixels down; the date's room starts under it
             float outerCorner = 6.4f * unit, innerCorner = Math.Max(1f, outerCorner - edgePixels * 2);
             AddRoundBox(leafPath, 0, 0, pixelSize, pixelSize, outerCorner);
             graphics.FillPath(inkBrush, leafPath);
