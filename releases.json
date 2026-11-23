@@ -164,7 +164,7 @@
    "WinGCal-0.1.131-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T02:30:43Z"
@@ -174,7 +174,7 @@
    "WinGCal-0.1.133-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T02:55:38Z"
@@ -184,7 +184,7 @@
    "WinGCal-0.1.135-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:01:30Z"
@@ -194,7 +194,7 @@
    "WinGCal-0.1.137-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:25:28Z"
@@ -204,7 +204,7 @@
    "WinGCal-0.1.139-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:29:58Z"
@@ -224,7 +224,7 @@
    "WinGCal-0.1.141-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:31:18Z"
@@ -234,7 +234,7 @@
    "WinGCal-0.1.143-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:33:45Z"
@@ -244,7 +244,7 @@
    "WinGCal-0.1.145-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:37:35Z"
@@ -254,7 +254,7 @@
    "WinGCal-0.1.147-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:39:46Z"
@@ -264,7 +264,7 @@
    "WinGCal-0.1.149-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:41:55Z"
@@ -274,7 +274,7 @@
    "WinGCal-0.1.151-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:45:04Z"
@@ -284,7 +284,7 @@
    "WinGCal-0.1.153-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:46:54Z"
@@ -294,7 +294,7 @@
    "WinGCal-0.1.155-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:47:57Z"
@@ -304,7 +304,7 @@
    "WinGCal-0.1.157-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T03:52:49Z"
@@ -314,7 +314,7 @@
    "WinGCal-0.1.159-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T12:47:53Z"
@@ -334,7 +334,7 @@
    "WinGCal-0.1.161-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T13:07:20Z"
@@ -344,7 +344,7 @@
    "WinGCal-0.1.163-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T13:08:33Z"
@@ -354,7 +354,7 @@
    "WinGCal-0.1.165-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-11T14:25:42Z"
@@ -364,7 +364,7 @@
    "WinGCal-0.1.167-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-16T17:43:17Z"
@@ -374,7 +374,7 @@
    "WinGCal-0.1.169-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-16T19:31:17Z"
@@ -384,7 +384,7 @@
    "WinGCal-0.1.171-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-16T19:36:11Z"
@@ -394,7 +394,7 @@
    "WinGCal-0.1.173-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-18T09:03:03Z"
@@ -414,7 +414,7 @@
    "WinGCal-0.1.177-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-18T23:53:46Z"
@@ -424,7 +424,7 @@
    "WinGCal-0.1.179-dev-full.nupkg": 2,
    "WinGCal-Portable.exe": 1,
    "WinGCal-Setup.exe": 1,
-   "releases.dev.json": 2
+   "releases.dev.json": 3
   },
   "prerelease": true,
   "published": "2026-11-19T00:25:51Z"
